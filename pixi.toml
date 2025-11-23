@@ -1,0 +1,23 @@
+[workspace]
+name = "gimbal-python"
+channels = ["conda-forge"]
+platforms = ["win-64"]
+
+[dependencies]
+python = "3.11.*"
+pytorch = "*"
+scikit-learn = "*"
+matplotlib = "*"
+jupyterlab = "*"
+ipykernel = "*"
+pymc = "*"
+nutpie = "*"
+arviz = "*"
+preliz = "*"
+ipywidgets = "*"
+
+[tasks]
+# Run the synthetic GIMBAL demo
+run-demo = "python -m examples.run_gimbal_demo"
+# Launch JupyterLab for interactive notebooks
+notebook = "jupyter lab"
