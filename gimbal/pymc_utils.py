@@ -177,9 +177,10 @@ def build_initial_points_for_nutpie(
             )
         initial_points["x_root"] = x_root.astype(np.float64)
 
-    # 4. Directional vectors u_k for k=1..K-1 (each is T, 3)
+    # 4. Raw directional vectors raw_u_k for k=1..K-1 (each is T, 3)
+    # Note: u_k itself is deterministic (normalized version of raw_u_k)
     for k in range(1, K):
-        rv_name = f"u_{k}"
+        rv_name = f"raw_u_{k}"
         if rv_name in model.named_vars:
             u_k = init_result.u_init[:, k, :].copy()
             # Interpolate NaN values and renormalize
@@ -189,9 +190,11 @@ def build_initial_points_for_nutpie(
                 norms = np.linalg.norm(u_k, axis=1, keepdims=True)
                 u_k = u_k / np.maximum(norms, 1e-8)
                 warnings.warn(
-                    f"u_{k} contained NaN values, interpolated and renormalized",
+                    f"raw_u_{k} contained NaN values, interpolated and renormalized",
                     UserWarning,
                 )
+            # Use normalized u_init as raw_u_k initialization
+            # The deterministic normalization will keep them on the sphere
             initial_points[rv_name] = u_k.astype(np.float64)
 
     # 5. Bone lengths length_k for k=1..K-1 (each is T,)
@@ -225,12 +228,8 @@ def build_initial_points_for_nutpie(
             )
             initial_points["inlier_prob"] = np.float64(0.9)
 
-    # 8. Kappa parameters (concentration for vMF)
-    for k in range(1, K):
-        rv_name = f"kappa_{k}"
-        if rv_name in model.named_vars:
-            # Use reasonable default concentration
-            initial_points[rv_name] = np.float64(10.0)
+    # Note: kappa parameters removed - no longer using VonMisesFisher distribution
+    # Directional vectors now use Gaussian-normalize parameterization (raw_u_k)
 
     return initial_points
 
