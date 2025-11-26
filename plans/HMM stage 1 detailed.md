@@ -1,195 +1,184 @@
-# Stage 1 Specification: Generic Collapsed HMM in PyTensor/PyMC
+# Stage 1 — Detailed Specification: Collapsed HMM Engine in PyTensor/PyMC
 
-This document specifies **Stage 1** of the new HMM architecture. It is intended for direct use by Copilot / Sonnet 4.5. It contains complete algorithms, code specifications, naming conventions, and testing procedures.
+This document provides a **complete, implementation-ready specification** of Stage 1. It is intended for Copilot / Sonnet 4.5 and contains algorithms, file structure, tests, diagnostics, naming conventions, and detailed step-by-step instructions.
 
----
+Stage 1 is fully **independent** of:
 
-# 1. Mathematical Specification
+* Cameras
+* Skeletons
+* 3D kinematic chains
+* Joint directions
 
-We construct a **collapsed Hidden Markov Model (HMM)** in PyTensor:
-
-* Discrete states (z_t \in {0,\dots,S-1})
-* Observations (y_t)
-* Emissions parameterized by arbitrary parameters (\theta)
-
-We do **not** sample (z_t). Instead, we compute:
-
-[
-\log p(y_{0:T-1} \mid \pi, A, \theta)
-= \log \sum_{z_{0:T-1}} p(z_0)\prod_{t=1}^{T-1}p(z_t|z_{t-1})\prod_{t=0}^{T-1}p(y_t|z_t)
-]
-
-using a **forward recursion in log-space**.
-
-Inputs:
-
-* `logp_emit[t, s]  =  log p(y_t | z_t = s, θ)`
-* `logp_init[s]     =  log π_s`
-* `logp_trans[i, j] =  log A_{ij}`
-
-Forward recursion:
-
-* Initialization:
-
-[
-\alpha_{0,s} = \log \pi_s + \ell_{0,s}
-]
-
-* Recursion:
-
-[
-\alpha_{t,j} = \ell_{t,j} + \log\sum_i\exp(\alpha_{t-1,i} + \log A_{ij})
-]
-
-* Final collapsed log-likelihood:
-
-[
-\log p(y|\theta) = \log \sum_j \exp(\alpha_{T-1,j})
-]
+Its purpose is to produce a reusable **collapsed HMM log-likelihood** module that can be dropped into later stages.
 
 ---
 
-# 2. Data & Shape Conventions
+# 1. Mathematical Definition
+
+We define a standard HMM with:
+
+* States: `z_t ∈ {0,…,S−1}` for `t = 0,…,T−1`
+* Observations: `y_t`
+* Initial state distribution: `π[s] = p(z_0 = s)`
+* Transition matrix: `A[i,j] = p(z_t = j | z_{t−1} = i)`
+* Emission distribution: `p(y_t | z_t = s, θ)`
+
+We do **not** sample the states. Instead we compute the collapsed likelihood:
+
+```
+log p(y | π, A, θ) = log Σ_z p(z_0) Π p(z_t | z_{t−1}) Π p(y_t | z_t)
+```
+
+via the **forward algorithm in log-space**.
+
+## Inputs
+
+* `logp_emit[t, s]`: log p(y_t | z_t=s, θ)
+* `logp_init[s]`    = log π_s
+* `logp_trans[i,j]` = log A_{i→j}
+
+## Output
+
+A scalar PyTensor variable representing the collapsed log-likelihood.
+
+---
+
+# 2. Required Shapes
 
 Let:
 
 * `T` = number of time steps
 * `S` = number of states
 
-Tensor shapes:
+Then:
 
-* `logp_emit`: `(T, S)`
-* `logp_init`: `(S,)`
-* `logp_trans`: `(S, S)`
+* `logp_emit.shape == (T, S)`
+* `logp_init.shape == (S,)`
+* `logp_trans.shape == (S, S)`
 
-Stage 1 supports a **single sequence**.
+Stage 1 supports **one sequence only** (batch dimension optional later).
 
 ---
 
-# 3. Module Layout
+# 3. File Structure
 
-Create a new module:
+Create a new file:
 
 ```
 hmm_pytensor.py
 ```
 
-containing at least two functions:
+which defines the following public API:
 
-* `forward_log_prob_single` — core forward algorithm
-* `collapsed_hmm_loglik` — wrapper
+* `forward_log_prob_single(logp_emit, logp_init, logp_trans)`
+* `collapsed_hmm_loglik(logp_emit, logp_init, logp_trans)`
+
+No references to the rest of the GIMBAL model appear in Stage 1.
 
 ---
 
-# 4. Function Specifications
+# 4. Implementation Details
 
 ## 4.1 `forward_log_prob_single`
 
-**Location:** `hmm_pytensor.py`
+**Purpose:** perform the log-space forward recursion.
 
-**Signature:**
+### Function Signature
 
-```python
-import pytensor.tensor as pt
-
+```
 def forward_log_prob_single(
-    logp_emit: pt.TensorVariable,   # shape (T, S)
-    logp_init: pt.TensorVariable,   # shape (S,)
-    logp_trans: pt.TensorVariable,  # shape (S, S)
-) -> pt.TensorVariable:
+    logp_emit,   # (T, S)
+    logp_init,   # (S,)
+    logp_trans,  # (S, S)
+):
     """
-    Compute collapsed HMM log-likelihood for one sequence using
-    the forward algorithm in log-space.
-
-    Returns
-    -------
-    logp : scalar TensorVariable
-        The collapsed log-likelihood log p(y[0:T-1] | params)
+    Compute collapsed HMM log-likelihood for one sequence using the
+    forward algorithm in log-space.
+    Returns a scalar PyTensor variable.
     """
 ```
 
-**Implementation details:**
+### Step 1 — Initialization
 
-1. Extract shapes:
-
-```python
-T = logp_emit.shape[0]
-S = logp_emit.shape[1]
+```
+alpha_prev = logp_init + logp_emit[0]    # shape (S,)
 ```
 
-2. Initialization:
+### Step 2 — Define one forward step
 
-```python
-alpha_prev = logp_init + logp_emit[0]   # (S,)
 ```
-
-3. Define step function:
-
-```python
 def step(alpha_prev, logp_emit_t):
     # alpha_prev: (S,)
     # logp_trans: (S, S)
-    # alpha_prev[:, None] + logp_trans: (S, S)
-    alpha_pred = pt.logsumexp(alpha_prev.dimshuffle(0, "x") + logp_trans, axis=0)
+
+    # alpha_prev[i] + log A[i,j]
+    alpha_pred = pt.logsumexp(
+        alpha_prev.dimshuffle(0, "x") + logp_trans,
+        axis=0,
+    )
+
     alpha_t = logp_emit_t + alpha_pred
     return alpha_t
 ```
 
-4. Run recursion using `pt.scan`:
+### Step 3 — Run recursion with `pt.scan`
 
-```python
+```
 alpha_all, _ = pt.scan(
     fn=step,
     sequences=logp_emit[1:],
     outputs_info=alpha_prev,
 )
-alpha_last = alpha_all[-1]
+```
+
+### Step 4 — Final state (`T=1` handled automatically)
+
+```
+alpha_last = pt.switch(
+    pt.eq(logp_emit.shape[0], 1),
+    alpha_prev,
+    alpha_all[-1],
+)
+```
+
+### Step 5 — Collapse over final states
+
+```
 logp = pt.logsumexp(alpha_last)
 return logp
 ```
-
 
 ---
 
 ## 4.2 `collapsed_hmm_loglik`
 
-A small wrapper for clarity.
-
-**Signature:**
-
-```python
-def collapsed_hmm_loglik(
-    logp_emit: pt.TensorVariable,   # (T, S)
-    logp_init: pt.TensorVariable,   # (S,)
-    logp_trans: pt.TensorVariable,  # (S, S)
-) -> pt.TensorVariable:
-    """Public API for collapsed HMM log-likelihood."""
+```
+def collapsed_hmm_loglik(logp_emit, logp_init, logp_trans):
+    return forward_log_prob_single(logp_emit, logp_init, logp_trans)
 ```
 
-**Implementation:**
-
-```python
-return forward_log_prob_single(logp_emit, logp_init, logp_trans)
-```
+This wrapper is provided for readability and future extension.
 
 ---
 
-# 5. PyMC Wrapper Example
+# 5. PyMC Example Model (Gaussian Emissions)
 
-Below is an example model for **1D Gaussian emission HMM**.
+This demonstrates how to use the collapsed HMM in PyMC.
 
-**Model builder:**
+### Public API
 
-```python
-import pymc as pm
-import pytensor.tensor as pt
-from hmm_pytensor import collapsed_hmm_loglik
+Implement in a new file or notebook:
 
+* `build_gaussian_hmm_model(y, S)`
+* `simulate_gaussian_hmm(T, S, mu_true, sigma_true, pi_true, A_true)`
+
+## 5.1 Gaussian Emission Model Builder
+
+```
 def build_gaussian_hmm_model(y, S):
     T = y.shape[0]
-
     with pm.Model() as model:
-        # Unconstrained initial + transition logits
+        # Initial and transition logits
         init_logits = pm.Normal("init_logits", 0, 1, shape=S)
         trans_logits = pm.Normal("trans_logits", 0, 1, shape=(S, S))
 
@@ -201,12 +190,12 @@ def build_gaussian_hmm_model(y, S):
         mu = pm.Normal("mu", 0, 5, shape=S)
         sigma = pm.Exponential("sigma", 1.0)
 
-        # Build logp_emit (T, S)
-        y_t = pt.shape_padright(y, 1)   # (T,1)
-        mu_s = mu.dimshuffle("x", 0)  # (1,S)
-        logp_emit = pm.logp(pm.Normal.dist(mu_s, sigma), y_t)  # (T,S)
+        # Construct logp_emit (T, S)
+        y_t = pt.shape_padright(y, 1)   # (T, 1)
+        mu_s = mu.dimshuffle("x", 0)    # (1, S)
+        logp_emit = pm.logp(pm.Normal.dist(mu_s, sigma), y_t)  # (T, S)
 
-        # Collapsed HMM likelihood
+        # Collapsed HMM
         hmm_ll = collapsed_hmm_loglik(logp_emit, logp_init, logp_trans)
         pm.Potential("hmm_loglik", hmm_ll)
 
@@ -215,88 +204,95 @@ def build_gaussian_hmm_model(y, S):
 
 ---
 
-# 6. Synthetic Data Generator
+# 6. Synthetic Gaussian HMM Generator
 
-In the demo notebook, define:
-
-```python
-import numpy as np
-
+```
 def simulate_gaussian_hmm(T, S, mu_true, sigma_true, pi_true, A_true, random_state=None):
     rng = np.random.default_rng(random_state)
-
     z = np.zeros(T, dtype=int)
-    y = np.zeros(T, dtype=float)
+    y = np.zeros(T)
 
     # Initial
     z[0] = rng.choice(S, p=pi_true)
-    y[0] = rng.normal(mu_true[z[0]], sigma_true)
+    sigma_arr = np.broadcast_to(sigma_true, (S,))
+    y[0] = rng.normal(mu_true[z[0]], sigma_arr[z[0]])
 
+    # Transitions
     for t in range(1, T):
         z[t] = rng.choice(S, p=A_true[z[t-1]])
-        y[t] = rng.normal(mu_true[z[t]], sigma_true)
+        y[t] = rng.normal(mu_true[z[t]], sigma_arr[z[t]])
 
     return y, z
 ```
 
 ---
 
-# 7. Demo Notebook: `hmm_demo_gaussians`
+# 7. Demo Notebook — `hmm_demo_gaussians.ipynb`
 
-Workflow:
+This notebook should:
 
-1. Simulate data using the generator.
-2. Build PyMC model with `build_gaussian_hmm_model`.
-3. Sample using nutpie or NUTS.
-4. Check parameter recovery.
-5. (Optional) Posterior decoding using forward–backward outside PyMC.
+1. Simulate data (`simulate_gaussian_hmm`).
+2. Build the model (`build_gaussian_hmm_model`).
+3. Sample with nutpie if available, otherwise PyMC NUTS.
+4. Plot diagnostics:
 
----
-
-# 8. Tests
-
-Add tests either in a file or notebook:
-
-### 8.1 Forward algorithm correctness
-
-* For tiny HMM (S=2, T=3):
-
-  * Manually enumerate all state sequences in NumPy.
-  * Compare with `forward_log_prob_single`.
-
-### 8.2 Numerical stability
-
-* Use random parameters; ensure finite log-likelihood.
-
-### 8.3 PyMC integration
-
-* Build small model; evaluate logp & grads; ensure no NaNs.
+   * ESS, R-hat
+   * Posterior means for `mu`, `sigma`
+5. Optional: perform Viterbi decoding outside PyMC for qualitative inspection.
 
 ---
 
-# 9. Coding Style and Names
+# 8. Validation Tests
 
-* Use PyTensor as `pt`.
-* Function names:
+## 8.1 Tiny HMM brute-force
+
+* Choose `S=2`, `T=3`.
+* Manually enumerate 8 state sequences.
+* Compare NumPy log p(y | params) to PyTensor result.
+* Must match within `1e-6`.
+
+## 8.2 T=1 edge case
+
+* `logp_emit` is `(1, S)`.
+* Check:
+
+```
+log p = logsumexp(logp_init + logp_emit[0])
+```
+
+## 8.3 Gradient sanity check
+
+* Call `model.compile_dlogp()` and evaluate.
+* All gradients must be finite; no NaNs.
+
+## 8.4 Performance sanity check
+
+* Use moderate `T` (100–300) and `S` (2–4).
+* Check sampling speed under nutpie and stability of logp.
+
+---
+
+# 9. Coding Style & Conventions
+
+* Import PyTensor as `import pytensor.tensor as pt`.
+* Public functions:
 
   * `forward_log_prob_single`
   * `collapsed_hmm_loglik`
   * `build_gaussian_hmm_model`
   * `simulate_gaussian_hmm`
+* Avoid references to skeleton, cameras, or directions.
+* Keep Stage 1 orthogonal to all later stages.
 
 ---
 
-# 10. Summary of Required Outputs
+# 10. Completion Criteria
 
-1. `hmm_pytensor.py` with:
+Stage 1 is *complete* when the following are true:
 
-   * `forward_log_prob_single`
-   * `collapsed_hmm_loglik`
+* `hmm_pytensor.py` exists and passes tiny-HMM and T=1 tests.
+* Gaussian emission model compiles and samples without NaNs or divergences.
+* Demo notebook shows correct parameter recovery on synthetic data.
+* Forward algorithm has stable gradients.
 
-2. A PyMC model builder using the collapsed HMM.
-
-3. Synthetic HMM generator.
-
-4. Notebook demonstrating end-to-end recovery.
-
-This completes **Stage 1** and prepares the system for Stage 2.
+At that point, Stage 2 (refactor of emissions and kinematic pipelines) can begin.
