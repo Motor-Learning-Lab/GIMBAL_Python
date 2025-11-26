@@ -288,6 +288,80 @@ def validate_initial_points(
             raise ValueError(f"RV '{name}' contains non-finite values (NaN or Inf)")
 
 
+def validate_stage2_outputs(
+    model: pm.Model,
+    T: int,
+    K: int,
+    C: int,
+) -> None:
+    """
+    Validate Stage 2 → Stage 3 interface tensor shapes.
+
+    This function checks that the refactored PyMC model produces all required
+    outputs with correct shapes for Stage 3 HMM integration.
+
+    Parameters
+    ----------
+    model : pm.Model
+        PyMC model to validate
+    T : int
+        Number of timesteps
+    K : int
+        Number of joints
+    C : int
+        Number of cameras
+
+    Raises
+    ------
+    ValueError
+        If any required tensor is missing or has wrong shape
+
+    Examples
+    --------
+    >>> validate_stage2_outputs(model, T=50, K=10, C=4)
+    ✓ All Stage 2 outputs have correct shapes
+    """
+    required_vars = {
+        "U": (T, K, 3),
+        "x_all": (T, K, 3),
+        "y_pred": (None, T, K, 2),  # First dim can be symbolic (C) from pm.Data
+        "log_obs_t": (T,),
+    }
+
+    for var_name, expected_shape in required_vars.items():
+        if var_name not in model.named_vars:
+            raise ValueError(
+                f"Required variable '{var_name}' not found in model. "
+                f"Available: {list(model.named_vars.keys())}"
+            )
+
+        var = model.named_vars[var_name]
+        actual_shape = tuple(var.type.shape)
+
+        # Check shapes, allowing None (symbolic) in expected positions
+        if len(actual_shape) != len(expected_shape):
+            raise ValueError(
+                f"Variable '{var_name}' has wrong number of dimensions:\n"
+                f"  Expected: {len(expected_shape)} dims {expected_shape}\n"
+                f"  Got: {len(actual_shape)} dims {actual_shape}"
+            )
+
+        for i, (expected_dim, actual_dim) in enumerate(
+            zip(expected_shape, actual_shape)
+        ):
+            # Allow None to match any value (symbolic dimension)
+            if expected_dim is None:
+                continue
+            if actual_dim != expected_dim:
+                raise ValueError(
+                    f"Variable '{var_name}' dimension {i} mismatch:\n"
+                    f"  Expected: {expected_shape}\n"
+                    f"  Got: {actual_shape}"
+                )
+
+    print("✓ All Stage 2 outputs have correct shapes")
+
+
 def compile_model_with_initialization(
     model: pm.Model,
     init_result: InitializationResult,

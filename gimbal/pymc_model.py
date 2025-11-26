@@ -320,8 +320,9 @@ def build_camera_observation_model(
         )
 
         # --- Root joint (initialized from triangulated positions) ---
+        # Shape: x_root will be (T, 3)
         # Handle NaN values in init_result.x_init by interpolation
-        x_root_init = init_result.x_init[:, 0, :].copy()
+        x_root_init = init_result.x_init[:, 0, :].copy()  # (T, 3)
         if np.isnan(x_root_init).any():
             x_root_init = _interpolate_nans(x_root_init)
 
@@ -330,10 +331,11 @@ def build_camera_observation_model(
         )
 
         # --- Directional vectors (Gaussian-normalize parameterization) ---
+        # Each u_k will be shape (T, 3), normalized to unit vectors
         u_all = []
 
         for k in range(1, K):
-            # Sample unconstrained 3D vectors
+            # Sample unconstrained 3D vectors: (T, 3)
             raw_u_k = pm.Normal(
                 f"raw_u_{k}",
                 mu=0.0,
@@ -342,18 +344,19 @@ def build_camera_observation_model(
                 initval=u_init[:, k, :],  # u_init are already normalized
             )
 
-            # Normalize to unit length along the last axis
-            norm_raw = pt.sqrt((raw_u_k**2).sum(axis=-1, keepdims=True))
-            u_k = pm.Deterministic(f"u_{k}", raw_u_k / norm_raw)
+            # Normalize to unit length along the last axis with epsilon for stability
+            norm_raw = pt.sqrt((raw_u_k**2).sum(axis=-1, keepdims=True) + 1e-8)
+            u_k = pm.Deterministic(f"u_{k}", raw_u_k / norm_raw)  # (T, 3)
             u_all.append(u_k)
 
         # --- Child joints ---
-        x_joints = [x_root]
+        # Build skeleton by traversing kinematic tree
+        x_joints = [x_root]  # List will contain (T, 3) for each joint
 
         for k_idx, k in enumerate(range(1, K)):
             parent_k = parents[k]
 
-            # Bone lengths over time
+            # Bone lengths over time: (T,)
             length_k = pm.Normal(
                 f"length_{k}",
                 mu=rho[k_idx],
@@ -362,7 +365,8 @@ def build_camera_observation_model(
                 initval=rho_init[k_idx] * np.ones(T),
             )
 
-            # Child joint position
+            # Child joint position: x[k] = x[parent[k]] + length[k] * u[k]
+            # Shape: (T, 3) = (T, 3) + (T, 1) * (T, 3)
             x_k = pm.Deterministic(
                 f"x_{k}", x_joints[parent_k] + length_k[:, None] * u_all[k_idx]
             )
@@ -370,10 +374,18 @@ def build_camera_observation_model(
 
         # Stack all joint positions: (T, K, 3)
         x_all = pt.stack(x_joints, axis=1)
+        pm.Deterministic("x_all", x_all)  # Expose for Stage 3 interface
+
+        # Stack directional vectors: (T, K, 3)
+        # Root direction is zero (unused), non-root from u_all
+        U = pt.stack([pt.zeros((T, 3))] + u_all, axis=1)  # (T, K, 3)
+        pm.Deterministic("U", U)  # Expose for Stage 3 interface
 
         # --- Camera projection ---
-        proj_param = pm.Data("camera_proj", camera_proj)
-        y_pred = pm.Deterministic("y_pred", project_points_pytensor(x_all, proj_param))
+        proj_param = pm.Data("camera_proj", camera_proj)  # (C, 3, 4)
+        y_pred = pm.Deterministic(
+            "y_pred", project_points_pytensor(x_all, proj_param)
+        )  # (C, T, K, 2)
 
         # --- Observation likelihood ---
         obs_sigma = pm.HalfNormal(
@@ -382,6 +394,7 @@ def build_camera_observation_model(
 
         if use_mixture:
             # --- Mixture likelihood with outlier detection ---
+            # Compute per-timestep log-likelihood: log_obs_t shape (T,)
             inlier_prob_init = (
                 init_result.inlier_prob if hasattr(init_result, "inlier_prob") else 0.9
             )
@@ -398,38 +411,69 @@ def build_camera_observation_model(
                 valid_mask[:, :, :, 0] & valid_mask[:, :, :, 1]
             )  # (C, T, K)
 
-            # Extract only valid observations
-            y_obs_valid = y_observed[valid_obs_mask]  # Shape: (N_valid, 2)
-            y_pred_valid = y_pred[valid_obs_mask]  # Shape: (N_valid, 2)
-
-            # Normal component (inliers)
-            # logp for each observation is log N(y_u | mu_u, sigma) + log N(y_v | mu_v, sigma)
-            normal_logp = pm.logp(
-                pm.Normal.dist(mu=y_pred_valid, sigma=obs_sigma), y_obs_valid
-            ).sum(
+            # Compute log-likelihood per observation point (C, T, K)
+            # Normal component (inliers) - compute for all points
+            # Shape: y_pred is (C, T, K, 2), y_observed is (C, T, K, 2)
+            normal_logp_per_coord = pm.logp(
+                pm.Normal.dist(mu=y_pred, sigma=obs_sigma), y_observed
+            )  # (C, T, K, 2)
+            normal_logp_per_point = normal_logp_per_coord.sum(
                 axis=-1
-            )  # Sum over (u, v) dimensions
+            )  # (C, T, K) - sum over (u,v)
 
             # Uniform component (outliers)
-            # log p(y | outlier) = log(1 / (width * height))
             image_width, image_height = image_size
-            uniform_logp_u = -pt.log(float(image_width))
-            uniform_logp_v = -pt.log(float(image_height))
-            uniform_logp = uniform_logp_u + uniform_logp_v  # scalar
+            uniform_logp = -pt.log(float(image_width)) - pt.log(
+                float(image_height)
+            )  # scalar
 
-            # Log mixture for each observation
-            # log p(y) = log( w * N(y|pred,sigma) + (1-w) * U(y|bounds) )
-            #          = logaddexp( log(w) + log N(...), log(1-w) + log U(...) )
-            log_mix = pt.log(inlier_prob) + normal_logp
-            log_mix = pt.logaddexp(log_mix, pt.log(1 - inlier_prob) + uniform_logp)
+            # Log mixture for each observation point
+            log_mix_per_point = pt.logaddexp(
+                pt.log(inlier_prob) + normal_logp_per_point,
+                pt.log(1 - inlier_prob) + uniform_logp,
+            )  # (C, T, K)
 
-            # Total likelihood (only sum over valid observations)
-            pm.Potential("y_mixture", log_mix.sum())
+            # Apply valid mask and sum per timestep
+            # Set invalid observations to zero contribution
+            log_mix_masked = pt.where(
+                valid_obs_mask, log_mix_per_point, 0.0
+            )  # (C, T, K)
+
+            # Sum over cameras and joints to get per-timestep likelihood: (T,)
+            log_obs_t = log_mix_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
+            pm.Deterministic("log_obs_t", log_obs_t)  # Expose for Stage 3 interface
+
+            # Total likelihood
+            pm.Potential("y_mixture", log_obs_t.sum())
 
         else:
             # --- Simple Gaussian likelihood ---
-            # PyMC automatically handles NaN values in observed data
-            y_obs = pm.Normal("y_obs", mu=y_pred, sigma=obs_sigma, observed=y_observed)
+            # Compute per-timestep log-likelihood: log_obs_t shape (T,)
+
+            # Compute log-likelihood per observation: (C, T, K, 2)
+            logp_per_coord = pm.logp(
+                pm.Normal.dist(mu=y_pred, sigma=obs_sigma), y_observed
+            )  # (C, T, K, 2)
+
+            # Sum over (u,v) coordinates: (C, T, K)
+            logp_per_point = logp_per_coord.sum(axis=-1)
+
+            # Mask out NaN observations (PyMC logp returns -inf for NaN observations)
+            # We need to explicitly handle this for per-timestep summation
+            valid_mask = ~np.isnan(y_observed)  # (C, T, K, 2)
+            valid_obs_mask = (
+                valid_mask[:, :, :, 0] & valid_mask[:, :, :, 1]
+            )  # (C, T, K)
+
+            # Set invalid observations to zero contribution
+            logp_masked = pt.where(valid_obs_mask, logp_per_point, 0.0)  # (C, T, K)
+
+            # Sum over cameras and joints to get per-timestep likelihood: (T,)
+            log_obs_t = logp_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
+            pm.Deterministic("log_obs_t", log_obs_t)  # Expose for Stage 3 interface
+
+            # Total likelihood - use Potential instead of observed RV
+            pm.Potential("y_obs", log_obs_t.sum())
 
     # Optional: Validate initialization values
     if validate_init_points:
