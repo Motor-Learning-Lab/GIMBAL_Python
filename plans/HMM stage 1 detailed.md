@@ -1,3 +1,15 @@
+# Stage 1 — Detailed Specification: Collapsed HMM Engine in PyTensor/PyMC (Updated)
+
+**Changes incorporated:**
+
+* Added finite-difference gradient validation requirement
+* Added explicit normalization assumptions + violation checks in validation (not runtime)
+* Added plan for Viterbi decoding in Stage‑1 *notebook only*
+* Added explicit separation of implementation code vs validation code
+* Removed performance benchmarks per decision
+* Added clarifications on emission tensor shapes
+* Added notes that label-switching solutions will be handled in Stage 3, not here
+
 # Stage 1 — Detailed Specification: Collapsed HMM Engine in PyTensor/PyMC
 
 This document provides a **complete, implementation-ready specification** of Stage 1. It is intended for Copilot / Sonnet 4.5 and contains algorithms, file structure, tests, diagnostics, naming conventions, and detailed step-by-step instructions.
@@ -296,3 +308,73 @@ Stage 1 is *complete* when the following are true:
 * Forward algorithm has stable gradients.
 
 At that point, Stage 2 (refactor of emissions and kinematic pipelines) can begin.
+
+---
+
+# 11. Additional Validation Requirements (Added)
+
+The following validation tasks must be implemented **in the Stage‑1 notebook** (not in the module):
+
+## 11.1 Finite‑Difference Gradient Validation
+
+* Implement a helper that compares AD gradients of `collapsed_hmm_loglik` against numerical finite differences.
+* Check several random parameter settings.
+* Confirm gradients are correct within a tolerance (e.g. `1e‑4`).
+
+## 11.2 Normalization Assumption Checks
+
+* Add notebook tests that verify:
+
+  * `logp_init` sums to 1 in probability space.
+  * Each row of `logp_trans` sums to 1.
+* If violations exceed `1e‑6`, issue a warning.
+
+## 11.3 Viterbi Decoding (Notebook‑Only)
+
+* Implement Viterbi decoding to sanity‑check state structure in simulated data.
+* Not included in `hmm_pytensor.py`.
+
+## 11.4 Brute‑Force Tiny‑HMM Test
+
+* Use Sonnet’s tiny‑HMM code to enumerate all state paths for `S=2, T=3`.
+* Validate equality with forward algorithm within `1e‑6`.
+
+## 11.5 Clear Separation of Implementation vs Validation
+
+* Module code (`hmm_pytensor.py`) contains only forward algorithm and wrapper.
+* All testing, diagnostics, and debugging live in the notebook.
+
+---
+
+# 12. Troubleshooting Notes (Added)
+
+Common issues to watch for during Stage 1:
+
+### 12.1 NaNs in gradients
+
+* Usually caused by extreme logits creating `-inf` transitions.
+* Normalize logits before passing into HMM.
+
+### 12.2 logp = -inf
+
+* Often due to a column of `logp_emit` being entirely `-inf`.
+* Verify emission builder for shape errors.
+
+### 12.3 Slow sampling
+
+* Caused by recompilation or unintended Python loops.
+* Ensure forward recursion uses PyTensor operations only.
+
+### 12.4 Shape mismatches
+
+* Most common bug source.
+* Ensure `logp_emit` is `(T,S)` and `logp_obs` is scalar per timestep.
+
+### 12.5 Divergences
+
+* Often due to extremely sharp transition logits.
+* Add mild Normal(0,1) priors and avoid extreme initializations.
+
+---
+
+(refactor of emissions and kinematic pipelines) can begin.

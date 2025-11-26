@@ -1,3 +1,16 @@
+# Collapsed HMM Integration Plan — 3 Stage Overview (Updated)
+
+**Changes incorporated:**
+
+* Added finite‑difference gradient validation requirement (Stage 1)
+* Added explicit normalization assumptions + violation checks
+* Added label‑switching strategies for Stage 3 (not implemented yet)
+* Added dimensionality‑management strategies (per‑joint HMM, PCA)
+* Clarified emission‑shape documentation
+* Added Viterbi decoding to Stage 1 *notebook only*
+* Explicitly avoided performance benchmarks at this stage
+* Added notes on separating implementation vs validation code
+
 # Collapsed HMM Integration Plan — 3 Stage Overview
 
 This document defines the end-to-end plan for integrating a **collapsed Hidden Markov Model (HMM)** into the current GIMBAL-style PyMC kinematic model. It is a clean, self-contained specification suitable for Copilot / Sonnet 4.5.
@@ -39,9 +52,7 @@ Build and validate:
 
 ## Status After Stage 1
 
-You will have a drop-in library function that computes:
-[ \log p(y_{0:T-1} \mid \pi, A, \theta) ]
-for arbitrary emissions, with proven correctness.
+You will have a drop-in library function that computes: (\log p(y_{0:T-1} \mid \pi, A, \theta)) for arbitrary emissions, with proven correctness.
 
 ---
 
@@ -102,21 +113,16 @@ Hidden states represent high-level **pose regimes**, influencing the **prior ove
 
   * Canonical direction: `mu[k, s, :]` from normalized Gaussian
   * Concentration: `kappa[k, s] ~ HalfNormal(...)`
-* Emission log-likelihood from directional prior:
-  [ \log p(U_t | z_t = s) = \sum_k \kappa[k,s] (u_{k,t} \cdot \mu[k,s]) ]
-  Canonical directions are in **global coordinates**, not parent-relative.
+* Emission log-likelihood from directional prior: (\log p(U_t | z_t = s) = \sum_k \kappa[k,s] (u_{k,t} \cdot \mu[k,s])) Canonical directions are in **global coordinates**, not parent-relative.
 * Observation log-likelihood handled via Stage-2 API.
-* Total per-step, per-state logp:
-  `logp_emit[t, s] = log_dir_emit[t, s] + logp_obs[t]`
+* Total per-step, per-state logp: `logp_emit[t, s] = log_dir_emit[t, s] + logp_obs[t]`
 
 ## HMM Parameters
 
 * Initial distribution: `pi[s]`
-* Transition matrix: `A[i, j]`
-  Built from logits:
+* Transition matrix: `A[i, j]` Built from logits:
 * `init_logits[s] ~ Normal(0,1)`
-* `trans_logits[s,j] ~ Normal(0,1)`
-  And normalized inside the model.
+* `trans_logits[s,j] ~ Normal(0,1)` And normalized inside the model.
 
 ## Integration Steps
 
