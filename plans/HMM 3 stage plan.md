@@ -1,144 +1,151 @@
-# 🚀 Collapsed HMM Integration Plan — Clean 3-Stage Overview (Rewritten 2025)
+# 🚀 Collapsed HMM Integration Plan — Clean 3-Stage Overview (Rewritten, Updated 2025)
 
-This document defines the **complete end-to-end integration plan** for adding a collapsed Hidden Markov Model (HMM) over joint-direction priors into the PyMC version of the GIMBAL-style kinematic model. It is the simplified, modernized version of the original plan, aligned with:
+This document defines the **complete end-to-end plan** for adding a collapsed Hidden Markov Model (HMM) over joint-direction priors into the PyMC kinematic model.
 
-* Stage-1 completion report
-* Updated Phase-2 specification
-* Clarity > Simplicity > Heavy Engineering
+Updated to align with:
 
-It consists of **three independent, cleanly separated stages**.
+- Stage-1 completion report  
+- Updated **Stage 2** specification  
+- Clarity > Simplicity > Heavy Engineering  
 
 ---
 
 # ✅ Stage 1 — Collapsed HMM Engine (Completed)
 
-**Goal:** Implement and validate a reusable, numerically stable PyTensor collapsed HMM log-likelihood.
+**Goal:** Implement and validate a numerically stable PyTensor collapsed HMM log-likelihood.
 
 **Deliverables:**
 
-* `hmm_pytensor.py`
+- `hmm_pytensor.py`:  
+  - `forward_log_prob_single`  
+  - `collapsed_hmm_loglik`
+- Gaussian-emission demo in `hmm_pymc_utils.py`
 
-  * `forward_log_prob_single`
-  * `collapsed_hmm_loglik`
-* Gaussian-emission demo in `hmm_pymc_utils.py`
-* Notebook validation:
+**Validation (in notebooks):**
 
-  * Tiny HMM brute force enumeration
-  * Gradient & finite-difference checks
-  * Normalization checks
-  * Viterbi decoding (not in library code)
+- Tiny-HMM brute force enumeration  
+- Gradient & finite-difference checks  
+- Normalization tests  
+- (Optional) Viterbi decoding
 
 **Properties:**
 
-* Pure PyTensor (no JAX)
-* Scan-based forward algorithm
-* Stable gradients
-* Independent of kinematics
-* Validation lives in notebooks
-
-Stage 1 provides the **computational primitive** that Stage 3 will call.
+- Pure PyTensor (`scan`, `logsumexp`)
+- Gradient-safe  
+- Handles edge case `T=1`  
+- Validation code lives outside the library
 
 ---
 
 # 🚧 Stage 2 — Direction & Emission Refactor (Current Work)
 
-**Goal:** Refactor the PyMC kinematic model so that direction, projection, and likelihood pipelines are clean, readable, and exposed through a stable interface consumed by Stage 3.
+**Goal:** Provide a clean, readable, modular PyMC kinematic+emission model with a stable interface for Stage 3.
 
-This stage **does not** introduce HMM logic.
-This stage **does not** alter probabilistic behavior.
+### Required Outputs (Stage-2 → Stage-3 contract)
 
-### Phase 2 must output the following quantities:
+| Name        | Shape        | Meaning                             |
+|-------------|--------------|-------------------------------------|
+| `U`         | (T, K, 3)    | Unit joint directions (global)      |
+| `x_all`     | (T, K, 3)    | 3D joint positions                  |
+| `y_pred`    | (C, T, K, 2) | 2D projections                      |
+| `log_obs_t` | (T,)         | Per-timestep observation logp       |
 
-| Name        | Shape          | Meaning                              |
-| ----------- | -------------- | ------------------------------------ |
-| `U`         | (T, K, 3)      | Unit joint directions (global frame) |
-| `x_all`     | (T, K, 3)      | 3D joint positions                   |
-| `y_pred`    | (C, T, K, 2)   | Projected 2D keypoints per camera    |
-| `log_obs_t` | (T,) or scalar | Observation log-likelihood           |
-
-These will be consumed unchanged by Stage 3.
+These are used **unchanged** in Stage 3.
 
 ### Deliverables:
 
-* Clean `project_points_pytensor` (canonical PyTensor projector).
-* Clean `build_directional_kinematics` helper (directions & 3D joint positions).
-* Clean or optional `build_camera_likelihood` helper.
-* A readable, linear `build_camera_observation_model`.
-* Shape comments and clear documentation.
-* Removal/simplification of unused options only when they obscure clarity.
+- Clean `project_points_pytensor`
+- Clean `build_directional_kinematics`
+- Optional `build_camera_likelihood`
+- Linear, readable `build_camera_observation_model`
+- Shape comments
+- Removal of unused or confusing branches
 
-### Non-goals:
+### Non-Goals:
 
-* No canonical directions `mu`
-* No `kappa`
-* No HMM states
-* No changes to Stage-1 code
-* No performance tuning
-* No new folders or heavy abstractions
+- No HMM logic  
+- No canonical directions  
+- No `kappa`  
+- No performance optimization  
+- No architectural shifts  
 
 ---
 
-# 🎯 Stage 3 — HMM Over Directional Priors (Next Phase)
+# 🎯 Stage 3 — HMM Over Directional Priors
 
-**Goal:** Add state-dependent directional priors and use the Stage-1 collapsed HMM over pose regimes.
+**Goal:** Add state-dependent directional priors and apply the collapsed HMM over time.
 
-This stage uses Stage-2 outputs **without modifying** the emission model.
+### Components:
 
-### Components of Stage 3:
+For each joint `k` and hidden state `s`:
 
-For each joint *k* and state *s*:
-
-* **Canonical direction**: `mu[k, s, :]` (unit vector)
-* **Concentration**: `kappa[k, s] ~ HalfNormal(...)`
+- `mu[k, s, :]` — canonical direction (unit vector)  
+- `kappa[k, s]` — concentration parameter (`HalfNormal` or `Gamma`)  
 
 ### Directional log-emissions:
 
-[
-\log p(U_t \mid z_t = s) = \sum_k \kappa_{k,s} (U_{t,k} \cdot \mu_{k,s})
-]
+\[
+\log p(U_t \mid z_t=s) = \sum_k \kappa_{k,s} \left(U_{t,k} \cdot \mu_{k,s}\right) + \log C_3(\kappa_{k,s})
+\]
+
+where `C₃(κ)` is the vMF normalizing constant in 3D.
 
 ### Combined emissions:
 
 ```
-log_dir_emit[t, s]  # From U, mu, kappa
-log_obs_t[t]        # From Stage 2
+log_dir_emit[t, s]
+log_obs_t[t]
 logp_emit[t, s] = log_dir_emit[t, s] + log_obs_t[t]
 ```
 
 ### HMM Integration:
 
-Use Stage-1 engine:
-
-```
+```python
 hmm_ll = collapsed_hmm_loglik(logp_emit, logp_init, logp_trans)
 pm.Potential("directional_hmm_prior", hmm_ll)
 ```
 
-### Non-goals of Stage 3:
+### Non-goals:
 
-* No changes to projection
-* No changes to observation likelihood
-* No pose dictionaries or alternative HMM formulations
-* No dynamic emissions inside the scan
+- No changes to projection or likelihood  
+- No pose dictionaries  
+- No dynamic emissions inside scan  
 
 ---
 
-# 🧩 Complete Architecture Summary
+# 🧩 Architecture Summary (With Shapes)
 
 ```
 Stage 1: HMM Engine (done)
-    collapsed_hmm_loglik(logp_emit, logp_init, logp_trans)
-                 ↑
-                 │
+    collapsed_hmm_loglik(logp_emit[T,S], logp_init[S], logp_trans[S,S])
+                     ↑
+                     │
 Stage 3: Directional HMM
     logp_emit[t,s] = log_dir_emit[t,s] + log_obs_t[t]
-                 ↑                ↑
-                 │                │
-Stage 2: Kinematics + Emissions (current)
-    U[t,k,3], x_all[t,k,3], y_pred[c,t,k,2], log_obs_t[t]
-                 ↑
-                 │
-Base PyMC kinematic model (cleaned and documented)
+                     ↑                ↑
+                     │                │
+Stage 2: Kinematics + Emissions
+    U[T,K,3], x_all[T,K,3], y_pred[C,T,K,2], log_obs_t[T]
+                     ↑
+                     │
+Base PyMC kinematic model (clean, documented)
 ```
 
-This plan is now aligned, minimal, and ready for implementation by any engineer or by Copilot.
+---
+
+# ⚠️ Known Limitations and Expected Issues
+
+- State label switching  
+- Possible local modes when κ is large  
+- Root direction unused (set to zeros)  
+- vMF normalization approximation may be needed  
+
+---
+
+# ✔ Final Output of the Full 3-Stage Plan
+
+- Stage 1: HMM engine  
+- Stage 2: Clean emissions + kinematics  
+- Stage 3: Direction-HMM prior  
+
+This revised plan is simple, modular, and consistent with the actual codebase and Stage-2 specification.
