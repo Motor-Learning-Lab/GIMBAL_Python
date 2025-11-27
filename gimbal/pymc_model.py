@@ -85,6 +85,9 @@ def build_camera_observation_model(
     image_size: tuple[int, int] = (640, 480),
     prior_hyperparams: Optional[dict[str, float]] = None,
     validate_init_points: bool = False,
+    use_directional_hmm: bool = False,
+    hmm_num_states: Optional[int] = None,
+    hmm_kwargs: Optional[dict] = None,
     **kwargs,
 ) -> pm.Model:
     """
@@ -134,6 +137,18 @@ def build_camera_observation_model(
         If True, validate initialization values against model structure
         (shapes, dtypes, finite values). Raises ValueError on mismatch.
         Useful for debugging initialization issues.
+    use_directional_hmm : bool, default=False
+        If True, add a directional HMM prior over joint directions (Stage 3).
+        Requires hmm_num_states to be specified.
+    hmm_num_states : int, optional
+        Number of hidden states in the directional HMM. Required when
+        use_directional_hmm=True.
+    hmm_kwargs : dict, optional
+        Additional keyword arguments for add_directional_hmm_prior():
+        - 'name_prefix': str, prefix for HMM variable names (default: "dir_hmm")
+        - 'share_kappa_across_joints': bool (default: False)
+        - 'share_kappa_across_states': bool (default: False)
+        - 'kappa_scale': float, scale for kappa prior (default: 5.0)
     **kwargs : dict
         Additional configuration options:
         - 'sigma_dir': Standard deviation for raw directional vectors (default: 1.0)
@@ -474,6 +489,22 @@ def build_camera_observation_model(
 
             # Total likelihood - use Potential instead of observed RV
             pm.Potential("y_obs", log_obs_t.sum())
+
+        # --- Stage 3: Optional Directional HMM Prior ---
+        if use_directional_hmm:
+            if hmm_num_states is None:
+                raise ValueError(
+                    "hmm_num_states must be provided when use_directional_hmm=True"
+                )
+
+            from gimbal.hmm_directional import add_directional_hmm_prior
+
+            _hmm_result = add_directional_hmm_prior(
+                U=U,
+                log_obs_t=log_obs_t,
+                S=hmm_num_states,
+                **(hmm_kwargs or {}),
+            )
 
     # Optional: Validate initialization values
     if validate_init_points:
