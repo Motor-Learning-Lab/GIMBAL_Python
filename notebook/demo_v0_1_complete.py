@@ -1,11 +1,11 @@
 # %% [markdown]
-# # GIMBAL Stage 1-3 Complete Integration Demo
+# # GIMBAL v0.1 Complete Integration Demo
 #
-# This notebook demonstrates the complete three-stage GIMBAL HMM integration pipeline:
+# This notebook demonstrates the complete three-phase GIMBAL HMM integration pipeline:
 #
-# - **Stage 1:** Collapsed HMM engine with forward algorithm
-# - **Stage 2:** Camera observation model with kinematics and 2D projections
-# - **Stage 3:** Directional HMM prior over joint directions
+# - **v0.1.1:** Collapsed HMM engine with forward algorithm
+# - **v0.1.2:** Camera observation model with kinematics and 2D projections
+# - **v0.1.3:** Directional HMM prior over joint directions
 #
 # We'll generate synthetic data with state-dependent poses, build the full model, sample with PyMC, and visualize the results.
 #
@@ -13,8 +13,8 @@
 #
 # 1. Import libraries and setup
 # 2. Generate synthetic motion data with 3 pose states
-# 3. Build Stage 2 camera observation model
-# 4. Add Stage 3 directional HMM prior
+# 3. Build v0.1.2 camera observation model
+# 4. Add v0.1.3 directional HMM prior
 # 5. Sample from the posterior
 # 6. Analyze and visualize results
 
@@ -288,12 +288,12 @@ plt.show()
 print("Synthetic data visualization complete")
 
 # %% [markdown]
-# ## 4. Build Complete Model (Stages 1-3)
+# ## 4. Build Complete Model (v0.1.1-1.3)
 #
 # Now we'll build the full GIMBAL model:
-# - **Stage 2**: Camera observation model (kinematics + 2D projections)
-# - **Stage 3**: Directional HMM prior (canonical directions per state)
-# - **Stage 1**: Collapsed HMM engine (called internally by Stage 3)
+# - **v0.1.2**: Camera observation model (kinematics + 2D projections)
+# - **v0.1.3**: Directional HMM prior (canonical directions per state)
+# - **v0.1.1**: Collapsed HMM engine (called internally by v0.1.3)
 
 # %%
 # Create initialization result
@@ -317,8 +317,8 @@ print(f"  u_init shape: {init_result.u_init.shape}")
 print(f"  rho (bone lengths): {init_result.rho}")
 
 # %%
-# Build the complete model with Stage 3 directional HMM
-print("Building PyMC model with Stage 3 directional HMM...")
+# Build the complete model with v0.1.3 directional HMM
+print("Building PyMC model with v0.1.3 directional HMM...")
 
 model = build_camera_observation_model(
     y_observed=y_observed,
@@ -326,7 +326,7 @@ model = build_camera_observation_model(
     parents=parents,
     init_result=init_result,
     use_mixture=False,  # Use simple Gaussian for speed
-    use_directional_hmm=True,  # Enable Stage 3!
+    use_directional_hmm=True,  # Enable v0.1.3!
     hmm_num_states=S,
     hmm_kwargs={
         "name_prefix": "pose_hmm",
@@ -338,7 +338,7 @@ model = build_camera_observation_model(
 
 print("\nModel built successfully!")
 print(f"Number of free random variables: {len(model.free_RVs)}")
-print(f"\nKey Stage 3 variables:")
+print(f"\nKey v0.1.3 variables:")
 print(
     f"  - pose_hmm_mu (canonical directions): shape {model['pose_hmm_mu'].eval().shape}"
 )
@@ -356,9 +356,9 @@ with model:
 
 print(f"Initial model log-likelihood: {initial_logp:.2f}")
 print("\nThis combines:")
-print("  - Stage 2: Camera observation likelihood")
-print("  - Stage 3: Directional HMM prior")
-print("  - Stage 1: Collapsed HMM marginalization (called internally)")
+print("  - v0.1.2: Camera observation likelihood")
+print("  - v0.1.3: Directional HMM prior")
+print("  - v0.1.1: Collapsed HMM marginalization (called internally)")
 
 # %% [markdown]
 # ## 5. Sample from the Posterior
@@ -500,9 +500,9 @@ print(f"For proper comparison, apply Hungarian algorithm post-hoc relabeling.")
 #
 # ### What We Demonstrated
 #
-# ✅ **Stage 1 (HMM Engine)**: Collapsed forward algorithm running internally
-# ✅ **Stage 2 (Camera Model)**: 3D kinematics projected to 2D observations
-# ✅ **Stage 3 (Directional HMM)**: State-dependent canonical directions learned from data
+# ✅ **v0.1.1 (HMM Engine)**: Collapsed forward algorithm running internally
+# ✅ **v0.1.2 (Camera Model)**: 3D kinematics projected to 2D observations
+# ✅ **v0.1.3 (Directional HMM)**: State-dependent canonical directions learned from data
 #
 # ### Key Results
 #
@@ -513,7 +513,7 @@ print(f"For proper comparison, apply Hungarian algorithm post-hoc relabeling.")
 # ### Important Notes
 #
 # **Label Switching:** HMM states are not identifiable - chains may assign different labels to the same pose pattern. For production use:
-# 1. Apply Hungarian algorithm post-hoc relabeling (see `stage3-completion-report.md`)
+# 1. Apply Hungarian algorithm post-hoc relabeling (see `v0.1.3-completion-report.md`)
 # 2. Use feature-based state alignment across draws
 # 3. Compute posterior summaries only after relabeling
 #
@@ -528,7 +528,7 @@ print(f"For proper comparison, apply Hungarian algorithm post-hoc relabeling.")
 #
 # ### References
 #
-# - Stage 3 specification: `plans/HMM stage 3 detailed.md`
-# - Completion report: `plans/stage3-completion-report.md`
-# - Test suite: `test_stage3_directional_hmm.py`
-# - Minimal example: `test_hmm_stage3.py`
+# - v0.1.3 specification: `plans/v0.1.3-detailed-spec.md`
+# - Completion report: `plans/v0.1.3-completion-report.md`
+# - Test suite: `test_v0_1_3_directional_hmm.py`
+# - Minimal example: `test_hmm_v0_1_3.py`

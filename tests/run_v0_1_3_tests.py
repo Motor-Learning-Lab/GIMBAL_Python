@@ -1,10 +1,12 @@
-"""Simple test runner for Stage 3 tests without pytest."""
+"""Simple test runner for v0.1.3 tests without pytest."""
 
 import sys
+from pathlib import Path
 
-sys.path.insert(0, ".")
+# Add parent directory to path to import gimbal
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from test_stage3_directional_hmm import (
+from test_v0_1_3_directional_hmm import (
     test_kappa_sharing_options,
     test_directional_hmm_shapes,
     test_numerical_stability_extreme_log_obs,
@@ -15,7 +17,7 @@ from test_stage3_directional_hmm import (
 
 
 def run_tests():
-    """Run all Stage 3 tests."""
+    """Run all v0.1.3 tests."""
     tests = [
         ("Kappa sharing options", test_kappa_sharing_options),
         ("Directional HMM shapes", test_directional_hmm_shapes),
@@ -25,7 +27,7 @@ def run_tests():
         ),
         ("Gradient computation", test_gradient_computation),
         ("LogP normalization", test_logp_normalization),
-        ("Integration with Stage 2", test_integration_with_stage2),
+        ("Integration with v0.1.2", test_integration_with_stage2),
     ]
 
     passed = 0

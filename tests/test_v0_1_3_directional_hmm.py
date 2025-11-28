@@ -1,12 +1,12 @@
 """
-Test suite for Stage 3 — Directional HMM Prior
+Test suite for v0.1.3 — Directional HMM Prior
 
 This module tests the directional HMM implementation in hmm_directional.py,
 including:
 - Shape validation for all tensors
 - Numerical stability with extreme values
 - Gradient computation
-- Integration with Stage 2 camera model
+- Integration with v0.1.2 camera model
 - kappa sharing options
 """
 
@@ -291,7 +291,7 @@ def test_logp_normalization():
 
 
 def test_integration_with_stage2():
-    """Test that Stage 3 integrates correctly with Stage 2 camera model."""
+    """Test that v0.1.3 integrates correctly with v0.1.2 camera model."""
     try:
         from gimbal.pymc_model import build_camera_observation_model
         from gimbal.fit_params import InitializationResult
@@ -329,7 +329,7 @@ def test_integration_with_stage2():
         metadata={"method": "test_synthetic"},
     )
 
-    # Build model with Stage 3
+    # Build model with v0.1.3
     with pm.Model():
         model = build_camera_observation_model(
             y_observed=y_observed,
@@ -347,21 +347,21 @@ def test_integration_with_stage2():
             },
         )
 
-        # Check that Stage 3 variables exist
-        assert "test_hmm_mu" in model.named_vars, "Stage 3 mu should be in model"
+        # Check that v0.1.3 variables exist
+        assert "test_hmm_mu" in model.named_vars, "v0.1.3 mu should be in model"
         assert (
-            "test_hmm_kappa_full" in model.named_vars
-        ), "Stage 3 kappa should be in model"
+            "test_hmm_kappa" in model.named_vars
+        ), "v0.1.3 kappa should be in model"
         assert (
-            "test_hmm_loglik" in model.named_vars
-        ), "Stage 3 hmm_loglik should be in model"
-        assert "test_hmm_potential" in [
-            p.name for p in model.potentials
-        ], "Stage 3 potential should be in model"
+            "test_hmm_hmm_loglik" in model.named_vars
+        ), "v0.1.3 hmm_loglik should be in model"
+        assert "test_hmm_hmm_loglik" in [
+            pot.name for pot in model.potentials
+        ], "v0.1.3 potential should be in model"
 
-        # Check that Stage 2 interface variables still exist
-        assert "U" in model.named_vars, "Stage 2 U should be in model"
-        assert "log_obs_t" in model.named_vars, "Stage 2 log_obs_t should be in model"
+        # Check that v0.1.2 interface variables still exist
+        assert "U" in model.named_vars, "v0.1.2 U should be in model"
+        assert "log_obs_t" in model.named_vars, "v0.1.2 log_obs_t should be in model"
 
         # Validate shapes
         mu = model["test_hmm_mu"]
@@ -379,4 +379,4 @@ def test_integration_with_stage2():
 
 if __name__ == "__main__":
     # Run tests directly
-    print("Run tests using run_stage3_tests.py")
+    print("Run tests using run_v0_1_3_tests.py")

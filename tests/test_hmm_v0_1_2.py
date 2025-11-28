@@ -1,5 +1,5 @@
 """
-Test Stage 2 refactoring of pymc_model.py
+Test v0.1.2 refactoring of pymc_model.py
 
 This script validates that the refactored model:
 1. Builds without errors
@@ -7,7 +7,7 @@ This script validates that the refactored model:
 3. Compiles with nutpie
 4. Samples successfully
 
-Run with: pixi run python test_stage2_refactor.py
+Run with: pixi run python test_hmm_v0_1_2.py
 """
 
 import numpy as np
@@ -38,7 +38,7 @@ def create_synthetic_data(T=20, K=5, C=3, seed=42):
 
 
 def test_shape_validation():
-    """Test 1: Verify Stage 2 output shapes."""
+    """Test 1: Verify v0.1.2 output shapes.""
     print("\n" + "=" * 60)
     print("TEST 1: Shape Validation")
     print("=" * 60)
@@ -63,7 +63,7 @@ def test_shape_validation():
     )
 
     # Validate shapes
-    print("Validating Stage 2 output shapes...")
+    print("Validating v0.1.2 output shapes...")
     validate_stage2_outputs(model, T=T, K=K, C=C)
 
     print("✓ TEST 1 PASSED\n")
@@ -97,7 +97,7 @@ def test_mixture_mode():
     )
 
     # Validate shapes
-    print("Validating Stage 2 output shapes...")
+    print("Validating v0.1.2 output shapes...")
     validate_stage2_outputs(model, T=T, K=K, C=C)
 
     print("✓ TEST 2 PASSED\n")
@@ -196,7 +196,7 @@ def test_log_obs_t_values():
 def main():
     """Run all validation tests."""
     print("\n" + "=" * 60)
-    print("STAGE 2 REFACTORING VALIDATION TESTS")
+    print("v0.1.2 REFACTORING VALIDATION TESTS")
     print("=" * 60)
 
     try:
@@ -215,14 +215,14 @@ def main():
         print("\n" + "=" * 60)
         print("✓ ALL TESTS PASSED")
         print("=" * 60)
-        print("\nStage 2 refactoring is complete:")
+        print("\nv0.1.2 refactoring is complete:")
         print("  ✓ U exposed as (T, K, 3)")
         print("  ✓ x_all exposed as (T, K, 3)")
         print("  ✓ y_pred has shape (C, T, K, 2)")
-        print("  ✓ log_obs_t has shape (T,) [CRITICAL FOR STAGE 3]")
+        print("  ✓ log_obs_t has shape (T,) [CRITICAL FOR v0.1.3]")
         print("  ✓ Gradients compute without errors")
         print("  ✓ Both Gaussian and Mixture modes work")
-        print("\nReady for Stage 3 HMM integration!")
+        print("\nReady for v0.1.3 HMM integration!")
 
     except Exception as e:
         print("\n" + "=" * 60)

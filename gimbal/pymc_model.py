@@ -389,12 +389,12 @@ def build_camera_observation_model(
 
         # Stack all joint positions: (T, K, 3)
         x_all = pt.stack(x_joints, axis=1)
-        pm.Deterministic("x_all", x_all)  # Expose for Stage 3 interface
+        pm.Deterministic("x_all", x_all)  # Expose for v0.1.3 interface
 
         # Stack directional vectors: (T, K, 3)
         # Root direction is zero (unused), non-root from u_all
         U = pt.stack([pt.zeros((T, 3))] + u_all, axis=1)  # (T, K, 3)
-        pm.Deterministic("U", U)  # Expose for Stage 3 interface
+        pm.Deterministic("U", U)  # Expose for v0.1.3 interface
 
         # --- Camera projection ---
         proj_param = pm.Data("camera_proj", camera_proj)  # (C, 3, 4)
@@ -455,11 +455,11 @@ def build_camera_observation_model(
             )  # (C, T, K)
 
             # Sum over cameras and joints to get per-timestep likelihood: (T,)
-            log_obs_t = log_mix_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
-            pm.Deterministic("log_obs_t", log_obs_t)  # Expose for Stage 3 interface
+            log_obs_t = log_lik_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
+            pm.Deterministic("log_obs_t", log_obs_t)  # Expose for v0.1.3 interface
 
             # Total likelihood
-            pm.Potential("y_mixture", log_obs_t.sum())
+            pm.Potential("y_obs", log_obs_t.sum())
 
         else:
             # --- Simple Gaussian likelihood ---
@@ -485,12 +485,12 @@ def build_camera_observation_model(
 
             # Sum over cameras and joints to get per-timestep likelihood: (T,)
             log_obs_t = logp_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
-            pm.Deterministic("log_obs_t", log_obs_t)  # Expose for Stage 3 interface
+            pm.Deterministic("log_obs_t", log_obs_t)  # Expose for v0.1.3 interface
 
             # Total likelihood - use Potential instead of observed RV
             pm.Potential("y_obs", log_obs_t.sum())
 
-        # --- Stage 3: Optional Directional HMM Prior ---
+        # --- v0.1.3: Optional Directional HMM Prior ---
         if use_directional_hmm:
             if hmm_num_states is None:
                 raise ValueError(

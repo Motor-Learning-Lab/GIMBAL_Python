@@ -5,7 +5,7 @@ This module provides a generic collapsed HMM implementation that computes
 the marginal log-likelihood by integrating out discrete hidden states using
 the forward algorithm in log-space.
 
-Stage 1 implementation - independent of cameras, skeletons, and kinematics.
+v0.1.1 implementation - independent of cameras, skeletons, and kinematics.
 """
 
 import pytensor.tensor as pt

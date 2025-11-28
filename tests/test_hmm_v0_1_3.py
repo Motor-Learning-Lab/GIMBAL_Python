@@ -1,13 +1,13 @@
 """
-Minimal Working Example for Stage 3 - Directional HMM
+Minimal Working Example for v0.1.3 - Directional HMM
 
-This script demonstrates the complete Stage 3 pipeline:
+This script demonstrates the complete v0.1.3 pipeline:
 1. Generate synthetic data with state-dependent directional patterns
 2. Build PyMC model with directional HMM prior
 3. Run nutpie sampling
 4. Visualize results
 
-This is a reference implementation for understanding Stage 3 behavior.
+This is a reference implementation for understanding v0.1.3 behavior.
 """
 
 import numpy as np
@@ -89,9 +89,9 @@ def generate_synthetic_directional_data(T=50, K=5, S=3, seed=42):
 
 
 def main():
-    """Run the minimal Stage 3 example."""
+    """Run the minimal v0.1.3 example."""
     print("=" * 70)
-    print("Stage 3 Directional HMM - Minimal Working Example")
+    print("v0.1.3 Directional HMM - Minimal Working Example")
     print("=" * 70)
 
     # --- 1. Generate Synthetic Data ---
@@ -106,11 +106,11 @@ def main():
     # --- 2. Build PyMC Model with Directional HMM ---
     print("\n[2/4] Building PyMC model with directional HMM prior...")
     with pm.Model() as model:
-        # Stage 2 interface: U and log_obs_t as Data
+        # v0.1.2 interface: U and log_obs_t as Data
         U = pm.Data("U", U_data)
         log_obs_t = pm.Data("log_obs_t", log_obs_t_data)
 
-        # Stage 3: Add directional HMM prior
+        # v0.1.3: Add directional HMM prior
         hmm_result = add_directional_hmm_prior(
             U=U,
             log_obs_t=log_obs_t,
@@ -188,13 +188,13 @@ def main():
             print(f"    State {s} -> [{probs_str}]")
 
         print("\n" + "=" * 70)
-        print("Stage 3 Example Complete!")
+        print("v0.1.3 Example Complete!")
         print("=" * 70)
         print("\nNote: This is a minimal example. For production use:")
         print("  - Apply post-hoc label switching correction (Hungarian algorithm)")
         print("  - Validate convergence (R-hat, ESS)")
         print("  - Use longer chains and more draws")
-        print("  - Integrate with full Stage 2 camera observation model")
+        print("  - Integrate with full v0.1.2 camera observation model")
 
     except Exception as e:
         print(f"\n  Sampling failed: {e}")

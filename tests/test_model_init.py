@@ -1,7 +1,8 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path().resolve()))
+# Add parent directory to path to import gimbal
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 import pymc as pm

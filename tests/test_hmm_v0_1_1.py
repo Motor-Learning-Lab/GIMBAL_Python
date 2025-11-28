@@ -1,5 +1,5 @@
 """
-Validation tests for Stage 1 HMM implementation.
+Validation tests for v0.1.1 HMM implementation.
 
 Includes:
 - Tiny HMM brute-force verification
@@ -285,7 +285,7 @@ def test_normalization_checks():
 
 def run_all_tests():
     """
-    Run all Stage 1 validation tests.
+    Run all v0.1.1 validation tests.
 
     Returns
     -------
@@ -293,7 +293,7 @@ def run_all_tests():
         True if all tests passed
     """
     print("=" * 60)
-    print("Stage 1 HMM Validation Test Suite")
+    print("v0.1.1 HMM Validation Test Suite")
     print("=" * 60)
 
     results = {}

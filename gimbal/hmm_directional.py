@@ -1,13 +1,13 @@
 """
-Stage 3 — Directional HMM Prior over Joint Directions
+v0.1.3 — Directional HMM Prior over Joint Directions
 
 This module provides the directional HMM prior that operates on top of the
-Stage 2 camera observation model. It implements:
+v0.1.2 camera observation model. It implements:
 
 - Canonical directions (mu) via normalized Gaussian vectors
 - Concentrations (kappa) with flexible sharing options
 - vMF-inspired dot-product directional emissions
-- Integration with Stage 1 collapsed HMM engine
+- Integration with v0.1.1 collapsed HMM engine
 - Numerical stabilization for nutpie compatibility
 
 The main entry point is `add_directional_hmm_prior()`, which should be called
@@ -89,14 +89,14 @@ def add_directional_hmm_prior(
 
     This function must be called inside a `with pm.Model():` context.
     It creates canonical direction parameters, computes directional emissions,
-    combines them with observation likelihoods, and calls the Stage 1 HMM engine.
+    combines them with observation likelihoods, and calls the v0.1.1 HMM engine.
 
     Parameters
     ----------
     U : (T, K, 3) tensor
         Unit direction vectors for all non-root joints (root row unused).
     log_obs_t : (T,) tensor
-        Per-timestep observation log-likelihood from Stage 2.
+        Per-timestep observation log-likelihood from v0.1.2.
     S : int
         Number of hidden states in the directional HMM.
     name_prefix : str, optional
@@ -190,7 +190,7 @@ def add_directional_hmm_prior(
     log_obs_t_exp = log_obs_t.dimshuffle(0, "x")  # (T, 1)
     logp_emit_raw = log_dir_emit + log_obs_t_exp  # (T, S)
 
-    # Wrap in Deterministic to keep scan gradients happy (mirrors Stage 1 pattern)
+    # Wrap in Deterministic to keep scan gradients happy (mirrors v0.1.1 pattern)
     logp_emit = pm.Deterministic(f"{name_prefix}_logp_emit", logp_emit_raw)
 
     # -------------------------------------------------------------------------

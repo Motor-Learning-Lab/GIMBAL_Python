@@ -319,7 +319,7 @@ def validate_stage2_outputs(
     Examples
     --------
     >>> validate_stage2_outputs(model, T=50, K=10, C=4)
-    ✓ All Stage 2 outputs have correct shapes
+    ✓ All v0.1.2 outputs have correct shapes
     """
     required_vars = {
         "U": (T, K, 3),
@@ -359,7 +359,7 @@ def validate_stage2_outputs(
                     f"  Got: {actual_shape}"
                 )
 
-    print("✓ All Stage 2 outputs have correct shapes")
+    print("✓ All v0.1.2 outputs have correct shapes")
 
 
 def compile_model_with_initialization(
