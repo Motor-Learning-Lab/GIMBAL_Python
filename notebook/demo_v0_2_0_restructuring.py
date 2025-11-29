@@ -36,6 +36,28 @@ print("✓ Imports successful!")
 print(f"PyMC version: {pm.__version__}")
 print(f"NumPy version: {np.__version__}")
 
+# %%
+# Verify we're using the correct pymc_model.py and force reload
+import importlib
+import gimbal.pymc_model as pymc_model
+
+print("Using pymc_model from:", pymc_model.__file__)
+print("Expected path: C:\\Repositories\\GIMBAL_Python\\gimbal\\pymc_model.py")
+
+# Force reload to pick up any changes
+importlib.reload(pymc_model)
+print("✓ Module reloaded successfully!")
+
+# Re-import to get the updated version
+from gimbal import build_camera_observation_model
+
+# %% [markdown]
+# ### ⚠️ Important: Module Reload
+#
+# If you see a `NameError: name 'log_lik_masked' is not defined`, it means the Jupyter kernel is using stale bytecode.
+#
+# **Solution:** Run the cell above to force a module reload, or restart the kernel and run all cells from the beginning.
+
 # %% [markdown]
 # ## 2. Generate Synthetic Data (New API)
 #
@@ -279,10 +301,10 @@ except Exception as e:
 mu_samples = prior_pred.prior["dir_hmm_mu"].values  # (chains, draws, S, K, 3)
 
 # Plot posterior mean canonical directions
-fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+fig = plt.figure(figsize=(15, 4))
 
 for s in range(data.config.S):
-    ax = axes[s]
+    ax = fig.add_subplot(1, 3, s + 1, projection="3d")
 
     # Get mean direction for joint 1 across all samples
     mu_mean = mu_samples[:, :, s, 1, :].mean(axis=(0, 1))  # (3,)
@@ -319,12 +341,13 @@ for s in range(data.config.S):
 
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1, 1)
+    ax.set_zlim(-1, 1)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
     ax.set_title(f"State {s} - Joint 1 Direction")
     ax.legend()
     ax.grid(True, alpha=0.3)
-    ax.set_aspect("equal")
 
 plt.tight_layout()
 plt.show()
