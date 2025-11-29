@@ -1,7 +1,7 @@
 [workspace]
 name = "gimbal-python"
 channels = ["conda-forge"]
-platforms = ["linux-64"]
+platforms = ["linux-64", "win-64"]
 
 [dependencies]
 python = "3.11.*"

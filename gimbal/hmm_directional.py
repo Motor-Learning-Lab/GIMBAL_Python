@@ -83,6 +83,7 @@ def add_directional_hmm_prior(
     share_kappa_across_joints: bool = False,
     share_kappa_across_states: bool = False,
     kappa_scale: float = 5.0,
+    prior_config: dict | None = None,
 ) -> dict:
     """
     Add a directional HMM prior over U into the current PyMC model.
@@ -110,6 +111,10 @@ def add_directional_hmm_prior(
         If False, `kappa` is state-specific. Default: False.
     kappa_scale : float, optional
         Scale parameter for HalfNormal priors on `kappa`. Default: 5.0.
+    prior_config : dict, optional
+        Configuration for additional priors (e.g., anatomical constraints).
+        Reserved for future use in v0.2.1+. Currently unused.
+        Default: None (v0.1 behavior with no additional priors).
 
     Returns
     -------
@@ -135,7 +140,14 @@ def add_directional_hmm_prior(
     - Numerical stabilization is applied via per-timestep max subtraction before
       calling the HMM engine.
     - The function adds a `pm.Potential` to the model with the HMM log-likelihood.
+    - The `prior_config` parameter is reserved for future extensions (v0.2.1+)
+      and currently has no effect. This allows forward compatibility without
+      breaking existing v0.1 code.
     """
+    # Handle prior_config (reserved for future use)
+    if prior_config is None:
+        prior_config = {}
+
     # Extract dimensions
     T, K, _ = U.shape
 

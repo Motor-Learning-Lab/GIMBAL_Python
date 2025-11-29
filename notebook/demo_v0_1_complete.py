@@ -41,7 +41,13 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 
 # GIMBAL imports
-from gimbal.pymc_model import build_camera_observation_model
+from gimbal import (
+    build_camera_observation_model,
+    add_directional_hmm_prior,
+    generate_demo_sequence,
+    DEMO_V0_1_SKELETON,
+    SyntheticDataConfig,
+)
 from gimbal.fit_params import InitializationResult
 
 print("Libraries imported successfully!")
@@ -59,170 +65,45 @@ print(f"NumPy version: {np.__version__}")
 # Each state has characteristic joint directions that the HMM will learn.
 
 # %%
-# Configuration
-T = 60  # Number of timesteps
-K = 6  # Number of joints (including root at index 0)
-C = 3  # Number of cameras
-S = 3  # Number of hidden states
+# Configuration - now using centralized utilities
+config = SyntheticDataConfig(
+    T=60,  # Number of timesteps
+    C=3,  # Number of cameras
+    S=3,  # Number of hidden states
+    random_seed=42,
+)
 
-# Skeleton structure (simple chain for demo)
-parents = np.array([-1, 0, 1, 2, 3, 4])  # Root -> joint1 -> joint2 -> ...
+# Generate complete synthetic dataset
+print("Generating synthetic data...")
+data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
 
-# Set random seed for reproducibility
-rng = np.random.default_rng(42)
+# Extract variables for compatibility with rest of notebook
+T = config.T
+K = len(DEMO_V0_1_SKELETON.joint_names)
+C = config.C
+S = config.S
+parents = DEMO_V0_1_SKELETON.parents
+bone_lengths = DEMO_V0_1_SKELETON.bone_lengths
 
-print(f"Configuration:")
+x_true = data.x_true
+u_true = data.u_true
+true_states = data.true_states
+canonical_mu = data.canonical_mu
+y_observed = data.y_observed
+camera_proj = data.camera_proj
+trans_probs = data.trans_probs
+
+print("Configuration:")
 print(f"  Timesteps: {T}")
 print(f"  Joints: {K}")
 print(f"  Cameras: {C}")
 print(f"  States: {S}")
-
-# %%
-# Define canonical directions for each state
-# State 0: Upright (mostly +z direction)
-# State 1: Forward lean (+x and +z)
-# State 2: Sideways lean (+y and +z)
-
-canonical_mu = np.zeros((S, K, 3))
-
-# State 0: Upright
-canonical_mu[0, 1:, 2] = 1.0  # All joints point up (except root)
-
-# State 1: Forward lean
-canonical_mu[1, 1:, 0] = 0.6  # Forward component
-canonical_mu[1, 1:, 2] = 0.8  # Still mostly up
-
-# State 2: Sideways lean
-canonical_mu[2, 1:, 1] = 0.7  # Sideways component
-canonical_mu[2, 1:, 2] = 0.7  # Still mostly up
-
-# Normalize to unit vectors
-for s in range(S):
-    for k in range(1, K):  # Skip root
-        norm = np.linalg.norm(canonical_mu[s, k])
-        if norm > 0:
-            canonical_mu[s, k] /= norm
-
-print("Canonical directions defined for 3 states")
-print(f"State 0 (upright) direction sample: {canonical_mu[0, 1]}")
-print(f"State 1 (forward) direction sample: {canonical_mu[1, 1]}")
-print(f"State 2 (sideways) direction sample: {canonical_mu[2, 1]}")
-
-# %%
-# Generate state sequence with persistence
-trans_probs = np.array(
-    [
-        [0.85, 0.10, 0.05],  # From state 0: mostly stay
-        [0.10, 0.80, 0.10],  # From state 1: mostly stay
-        [0.05, 0.10, 0.85],  # From state 2: mostly stay
-    ]
-)
-
-true_states = np.zeros(T, dtype=int)
-true_states[0] = rng.choice(S)
-
-for t in range(1, T):
-    true_states[t] = rng.choice(S, p=trans_probs[true_states[t - 1]])
-
-print(f"Generated state sequence")
-print(f"State distribution: {np.bincount(true_states)}")
+print(f"\nState distribution: {np.bincount(true_states)}")
 print(f"State transitions: {len(np.where(np.diff(true_states) != 0)[0])}")
-
-# %%
-# Generate 3D positions and directions based on states
-# Start with a simple skeleton in a chain
-bone_lengths = np.array([0, 10.0, 10.0, 8.0, 8.0, 6.0])  # Root has length 0
-
-x_true = np.zeros((T, K, 3))
-u_true = np.zeros((T, K, 3))
-
-kappa_true = 8.0  # Concentration for directional noise
-
-for t in range(T):
-    s = true_states[t]
-
-    # Root position (random walk)
-    if t == 0:
-        x_true[t, 0] = [0, 0, 100]  # Start at height 100
-    else:
-        x_true[t, 0] = x_true[t - 1, 0] + rng.normal(0, 1.0, 3)
-
-    # Generate directions with noise around canonical direction
-    for k in range(1, K):
-        # Add noise to canonical direction
-        u_noisy = canonical_mu[s, k] + rng.normal(0, 1.0 / kappa_true, 3)
-        u_noisy /= np.linalg.norm(u_noisy) + 1e-8
-        u_true[t, k] = u_noisy
-
-        # Compute position from parent
-        parent = parents[k]
-        x_true[t, k] = x_true[t, parent] + bone_lengths[k] * u_true[t, k]
-
-print(f"Generated 3D skeletal motion")
 print(f"Position range: [{x_true.min():.1f}, {x_true.max():.1f}]")
 print(f"Mean bone length: {bone_lengths[1:].mean():.1f}")
-
-# %%
-# Generate synthetic camera projection matrices
-camera_proj = np.zeros((C, 3, 4))
-
-for c in range(C):
-    # Camera positioned in a circle around the scene
-    angle = 2 * np.pi * c / C
-    camera_pos = np.array([150 * np.cos(angle), 150 * np.sin(angle), 100])
-
-    # Look at origin
-    look_at = np.array([0, 0, 100])
-    up = np.array([0, 0, 1])
-
-    # Simple projection matrix (orthographic-like for simplicity)
-    # In practice, use proper camera calibration
-    focal_length = 500
-    A = np.eye(3) * focal_length
-    b = -A @ camera_pos
-
-    camera_proj[c] = np.column_stack([A, b])
-
-print(f"Generated {C} camera projection matrices")
-print(f"Camera 0 translation: {camera_proj[0, :, 3]}")
-
-# %%
-# Project 3D points to 2D and add observation noise
-y_observed = np.zeros((C, T, K, 2))
-
-obs_noise = 5.0  # pixels
-
-for c in range(C):
-    for t in range(T):
-        for k in range(K):
-            # Homogeneous coordinates
-            x_h = np.append(x_true[t, k], 1)
-
-            # Project
-            y_proj = camera_proj[c] @ x_h
-
-            # Perspective division (if needed, here we use orthographic)
-            if y_proj[2] != 0:
-                y_2d = y_proj[:2] / y_proj[2]
-            else:
-                y_2d = y_proj[:2]
-
-            # Add noise
-            y_observed[c, t, k] = y_2d + rng.normal(0, obs_noise, 2)
-
-# Add some random occlusions (NaN values)
-n_occlusions = int(0.05 * C * T * K)  # 5% occlusions
-for _ in range(n_occlusions):
-    c_occ = rng.integers(0, C)
-    t_occ = rng.integers(0, T)
-    k_occ = rng.integers(0, K)
-    y_observed[c_occ, t_occ, k_occ] = np.nan
-
-print(f"Generated 2D observations with noise")
 print(f"Observation range: [{np.nanmin(y_observed):.1f}, {np.nanmax(y_observed):.1f}]")
-print(
-    f"Occlusions: {np.sum(np.isnan(y_observed[:, :, :, 0]))} / {C*T*K} ({100*n_occlusions/(C*T*K):.1f}%)"
-)
+print(f"Occlusions: {np.sum(np.isnan(y_observed[:, :, :, 0]))} / {C*T*K}")
 
 # %% [markdown]
 # ## 3. Visualize Synthetic Data
@@ -306,7 +187,7 @@ init_result = InitializationResult(
     rho=bone_lengths[1:],  # Mean bone lengths
     sigma2=np.ones(K - 1) * 0.5,  # Bone length variance
     u_init=u_true,
-    obs_sigma=obs_noise,
+    obs_sigma=config.obs_noise_std,
     inlier_prob=0.95,  # High inlier probability
     metadata={"method": "synthetic_truth"},
 )

@@ -76,7 +76,67 @@ def project_points_pytensor(
     return y
 
 
-def build_camera_observation_model(
+def build_camera_observation_model_simple(
+    y_obs: np.ndarray,
+    proj_param: np.ndarray,
+    parents: np.ndarray,
+    bone_lengths: np.ndarray,  # Not used, kept for API compatibility
+    **kwargs,
+):
+    """
+    Simplified API for build_camera_observation_model with automatic DLT initialization.
+
+    This is a convenience wrapper for v0.2.0 demos and notebooks that automatically
+    performs DLT triangulation for initialization.
+
+    Parameters
+    ----------
+    y_obs : ndarray, shape (C, T, K, 2)
+        Observed 2D keypoints from C cameras over T frames for K joints.
+    proj_param : ndarray, shape (C, 3, 4)
+        Camera projection matrices.
+    parents : ndarray, shape (K,)
+        Parent joint indices for skeleton tree structure.
+    bone_lengths : ndarray, shape (K-1,)
+        Mean bone lengths from skeleton config (not used, DLT calculates automatically).
+    **kwargs
+        Additional arguments passed to build_camera_observation_model.
+
+    Returns
+    -------
+    tuple
+        (model, U, x_all, y_pred, log_obs_t) - Same as stage 2 output in v0.1 demos
+    """
+    from .fit_params import initialize_from_observations_dlt
+
+    # Perform DLT initialization (automatically calculates bone lengths)
+    init_result = initialize_from_observations_dlt(
+        y_observed=y_obs,
+        camera_proj=proj_param,
+        parents=parents,
+    )
+
+    # Call the full function with init_result (use current model context)
+    model_obj = _build_camera_observation_model_full(
+        y_observed=y_obs,
+        camera_proj=proj_param,
+        parents=parents,
+        init_result=init_result,
+        use_mixture=False,  # Simple Gaussian for v0.2.0 demos
+        **kwargs,
+    )
+
+    # Extract key variables for v0.1 compatibility from current model
+    current_model = pm.modelcontext(None)
+    U = current_model["U"]
+    x_all = current_model["x_all"]
+    y_pred = current_model["y_pred"]
+    log_obs_t = current_model["log_obs_t"]
+
+    return model_obj, U, x_all, y_pred, log_obs_t
+
+
+def _build_camera_observation_model_full(
     y_observed: np.ndarray,
     camera_proj: np.ndarray,
     parents: np.ndarray,
@@ -316,8 +376,8 @@ def build_camera_observation_model(
     u_init = init_result.u_init
     obs_sigma_init = init_result.obs_sigma
 
-    # Build PyMC model
-    model = pm.Model()
+    # Build PyMC model using the current model context if available
+    model = pm.modelcontext(None)
 
     with model:
         # --- Skeletal parameters (with configurable priors) ---
@@ -455,7 +515,7 @@ def build_camera_observation_model(
             )  # (C, T, K)
 
             # Sum over cameras and joints to get per-timestep likelihood: (T,)
-            log_obs_t = log_lik_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
+            log_obs_t = log_mix_masked.sum(axis=(0, 2))  # Sum over C and K dimensions
             pm.Deterministic("log_obs_t", log_obs_t)  # Expose for v0.1.3 interface
 
             # Total likelihood

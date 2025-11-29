@@ -28,7 +28,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from .model import (
+from .torch_legacy.model import (
     GimbalParameters,
     HeadingPriorParameters,
     OutlierMixtureParameters,
@@ -127,7 +127,7 @@ def estimate_outlier_parameters(
     proj: (C, 3, 4)
     """
 
-    from .camera import project_points
+    from .torch_legacy.camera import project_points
 
     T, K, C, _ = y_obs.shape
     device = x_gt.device
@@ -415,7 +415,7 @@ def _estimate_observation_parameters_numpy(
     outlier_threshold_px: float = 15.0,
 ) -> Tuple[float, float]:
     """Estimate observation noise and inlier probability from reprojection errors."""
-    from .camera import project_points
+    from .torch_legacy.camera import project_points
 
     C, T, K, _ = y_observed.shape
 

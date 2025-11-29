@@ -1,9 +1,31 @@
 """
-Custom PyMC distributions for GIMBAL.
+Experimental / Legacy PyMC distributions for directional data.
 
-This module implements directional distributions needed for GIMBAL that are not
-available in the core PyMC library:
-- VonMisesFisher: Distribution on the unit sphere S^2 for directional vectors
+⚠️ **NOTE:** The main GIMBAL-HMM pipeline (Stage 3) currently uses a
+dot-product energy directional prior (see `hmm_directional.py`), not the
+full VonMisesFisher distribution defined here.
+
+This module is kept for:
+- Experiments with full vMF distributions
+- Backwards compatibility with earlier code
+- Validation and testing purposes
+
+The VonMisesFisher distribution implementation may be useful for future work,
+but is not currently part of the v0.1+ PyMC HMM pipeline.
+
+Historical Context
+------------------
+Early GIMBAL experiments used full vMF distributions for directional priors.
+The current Stage 3 implementation uses a simpler and more computationally
+efficient dot-product energy formulation: kappa * (U · mu), which captures
+the essential directional clustering without the complexity of the full vMF
+normalization constant.
+
+If you need the main GIMBAL functionality, use:
+    from gimbal import add_directional_hmm_prior
+
+This module implements:
+- VonMisesFisher: Full distribution on the unit sphere S^2 for directional vectors
 """
 
 import numpy as np
