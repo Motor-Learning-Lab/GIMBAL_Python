@@ -64,6 +64,19 @@ from .pymc_model import (
 )
 from .hmm_directional import add_directional_hmm_prior
 
+# v0.2.1: Data-driven priors pipeline
+from .triangulation import triangulate_multi_view
+from .data_cleaning import (
+    CleaningConfig,
+    clean_keypoints_2d,
+    clean_keypoints_3d,
+)
+from .direction_statistics import compute_direction_statistics
+from .prior_building import (
+    build_priors_from_statistics,
+    get_gamma_shape_rate,
+)
+
 # Skeleton and synthetic data utilities
 from .skeleton_config import DEMO_V0_1_SKELETON, SkeletonConfig, validate_skeleton
 from .synthetic_data import (
@@ -83,6 +96,14 @@ __all__ = [
     "collapsed_hmm_loglik",
     "build_camera_observation_model",
     "add_directional_hmm_prior",
+    # v0.2.1: Data-driven priors
+    "triangulate_multi_view",
+    "CleaningConfig",
+    "clean_keypoints_2d",
+    "clean_keypoints_3d",
+    "compute_direction_statistics",
+    "build_priors_from_statistics",
+    "get_gamma_shape_rate",
     # Skeleton configuration
     "DEMO_V0_1_SKELETON",
     "SkeletonConfig",

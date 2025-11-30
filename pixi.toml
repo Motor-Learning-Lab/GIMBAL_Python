@@ -15,6 +15,7 @@ nutpie = "*"
 arviz = "*"
 preliz = "*"
 ipywidgets = "*"
+pytest = "*"
 
 [tasks]
 # Run the synthetic GIMBAL demo

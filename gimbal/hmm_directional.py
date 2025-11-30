@@ -79,6 +79,7 @@ def add_directional_hmm_prior(
     log_obs_t: pt.TensorVariable,
     S: int,
     *,
+    joint_names: list[str] | None = None,
     name_prefix: str = "dir_hmm",
     share_kappa_across_joints: bool = False,
     share_kappa_across_states: bool = False,
@@ -100,6 +101,9 @@ def add_directional_hmm_prior(
         Per-timestep observation log-likelihood from v0.1.2.
     S : int
         Number of hidden states in the directional HMM.
+    joint_names : list of str, optional
+        Names of all joints (length K+1, including root at index 0).
+        Required when using prior_config. Default: None.
     name_prefix : str, optional
         Prefix for variable names (e.g., "dir_hmm" → "dir_hmm_mu", etc.).
         Default: "dir_hmm".
@@ -110,11 +114,16 @@ def add_directional_hmm_prior(
         If True, `kappa` is shared across states (shape `(K,)` broadcast to `(S, K)`).
         If False, `kappa` is state-specific. Default: False.
     kappa_scale : float, optional
-        Scale parameter for HalfNormal priors on `kappa`. Default: 5.0.
+        Scale parameter for HalfNormal priors on `kappa` (v0.1 mode only).
+        Ignored when prior_config is provided. Default: 5.0.
     prior_config : dict, optional
-        Configuration for additional priors (e.g., anatomical constraints).
-        Reserved for future use in v0.2.1+. Currently unused.
-        Default: None (v0.1 behavior with no additional priors).
+        Data-driven prior configuration from build_priors_from_statistics().
+        When provided, completely replaces v0.1 default priors with:
+        - Projected Normal for mu: Normal(mu_mean, mu_sd) then normalize
+        - Gamma for kappa: Gamma(mode, sd) converted to (shape, rate)
+        Structure: {'joint_name': {'mu_mean': ndarray, 'mu_sd': float,
+                                     'kappa_mode': float, 'kappa_sd': float}}
+        Default: None (v0.1 behavior with uninformative priors).
 
     Returns
     -------
@@ -140,26 +149,85 @@ def add_directional_hmm_prior(
     - Numerical stabilization is applied via per-timestep max subtraction before
       calling the HMM engine.
     - The function adds a `pm.Potential` to the model with the HMM log-likelihood.
-    - The `prior_config` parameter is reserved for future extensions (v0.2.1+)
-      and currently has no effect. This allows forward compatibility without
-      breaking existing v0.1 code.
+    - When prior_config is provided (v0.2.1+), it completely overrides v0.1 defaults
+      with data-driven priors. No merging occurs.
+    - Prior config applies per-state: each state gets the same empirical prior means,
+      but samples different canonical directions from those distributions.
     """
-    # Handle prior_config (reserved for future use)
+    # Validate prior_config usage
+    if prior_config is not None and joint_names is None:
+        raise ValueError("joint_names must be provided when using prior_config")
+
+    # Handle prior_config
     if prior_config is None:
         prior_config = {}
 
     # Extract dimensions
-    T, K, _ = U.shape
+    # For v0.1 mode, U.shape[1] may be symbolic, but we need concrete K
+    # For v0.2.1 mode with prior_config, infer K from joint_names
+    if prior_config and joint_names:
+        # v0.2.1: Get K from joint_names
+        K = len(joint_names)
+        if K < 2:
+            raise ValueError(
+                f"joint_names must have at least 2 elements (root + 1 joint), got {K}"
+            )
+    else:
+        # v0.1: Try to get K from U shape
+        # If U.shape[1] is symbolic, this may fail - but for testing with concrete arrays it works
+        try:
+            K = int(U.shape[1])
+        except (TypeError, AttributeError):
+            # Symbolic shape - evaluate it
+            K = U.shape[1].eval() if hasattr(U.shape[1], "eval") else U.shape[1]
 
     # -------------------------------------------------------------------------
     # 1. Canonical Directions mu[s, k, :]
     # -------------------------------------------------------------------------
-    mu_raw = pm.Normal(
-        f"{name_prefix}_mu_raw",
-        mu=0.0,
-        sigma=1.0,
-        shape=(S, K, 3),
-    )
+    if prior_config:
+        # v0.2.1 mode: Data-driven priors with projected Normal
+        # Create mu_raw with data-driven priors per joint
+        mu_raw_list = []
+        for s in range(S):
+            mu_raw_state = []
+            for k in range(K):
+                joint_name = joint_names[k]  # Direct indexing, includes root at 0
+
+                if joint_name in prior_config:
+                    # Use empirical prior
+                    joint_prior = prior_config[joint_name]
+                    mu_mean = joint_prior["mu_mean"]  # (3,)
+                    mu_sd = joint_prior["mu_sd"]  # scalar
+
+                    mu_raw_jk = pm.Normal(
+                        f"{name_prefix}_mu_raw_s{s}_k{k}",
+                        mu=mu_mean,
+                        sigma=mu_sd,
+                        shape=(3,),
+                    )
+                else:
+                    # Fall back to uninformative prior for this joint
+                    mu_raw_jk = pm.Normal(
+                        f"{name_prefix}_mu_raw_s{s}_k{k}",
+                        mu=0.0,
+                        sigma=1.0,
+                        shape=(3,),
+                    )
+
+                mu_raw_state.append(mu_raw_jk)
+
+            mu_raw_state_stacked = pt.stack(mu_raw_state, axis=0)  # (K, 3)
+            mu_raw_list.append(mu_raw_state_stacked)
+
+        mu_raw = pt.stack(mu_raw_list, axis=0)  # (S, K, 3)
+    else:
+        # v0.1 mode: Uninformative priors
+        mu_raw = pm.Normal(
+            f"{name_prefix}_mu_raw",
+            mu=0.0,
+            sigma=1.0,
+            shape=(S, K, 3),
+        )
 
     # Normalize to unit vectors with epsilon for numerical stability
     norm_mu = pt.sqrt((mu_raw**2).sum(axis=-1, keepdims=True) + 1e-8)
@@ -171,14 +239,54 @@ def add_directional_hmm_prior(
     # -------------------------------------------------------------------------
     # 2. Concentrations kappa
     # -------------------------------------------------------------------------
-    kappa = _build_kappa(
-        name_prefix=name_prefix,
-        S=S,
-        K=K,
-        share_kappa_across_joints=share_kappa_across_joints,
-        share_kappa_across_states=share_kappa_across_states,
-        kappa_scale=kappa_scale,
-    )  # (S, K)
+    if prior_config:
+        # v0.2.1 mode: Data-driven Gamma priors per joint
+        from gimbal.prior_building import get_gamma_shape_rate
+
+        kappa_list = []
+        for s in range(S):
+            kappa_state = []
+            for k in range(K):
+                joint_name = joint_names[k]  # Direct indexing
+
+                if joint_name in prior_config:
+                    # Use Gamma prior from empirical stats
+                    joint_prior = prior_config[joint_name]
+                    kappa_mode = joint_prior["kappa_mode"]
+                    kappa_sd = joint_prior["kappa_sd"]
+
+                    # Convert to shape/rate parameterization
+                    shape, rate = get_gamma_shape_rate(kappa_mode, kappa_sd)
+
+                    kappa_jk = pm.Gamma(
+                        f"{name_prefix}_kappa_s{s}_k{k}",
+                        alpha=shape,
+                        beta=rate,
+                    )
+                else:
+                    # Fall back to HalfNormal
+                    kappa_jk = pm.HalfNormal(
+                        f"{name_prefix}_kappa_s{s}_k{k}",
+                        sigma=kappa_scale,
+                    )
+
+                kappa_state.append(kappa_jk)
+
+            kappa_state_stacked = pt.stack(kappa_state, axis=0)  # (K,)
+            kappa_list.append(kappa_state_stacked)
+
+        kappa = pt.stack(kappa_list, axis=0)  # (S, K)
+        kappa = pm.Deterministic(f"{name_prefix}_kappa_full", kappa)
+    else:
+        # v0.1 mode: Use existing flexible sharing
+        kappa = _build_kappa(
+            name_prefix=name_prefix,
+            S=S,
+            K=K,
+            share_kappa_across_joints=share_kappa_across_joints,
+            share_kappa_across_states=share_kappa_across_states,
+            kappa_scale=kappa_scale,
+        )  # (S, K)
 
     # -------------------------------------------------------------------------
     # 3. Directional Log-Emission log_dir_emit[t, s]
