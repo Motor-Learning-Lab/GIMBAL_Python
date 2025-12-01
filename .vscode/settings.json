@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.pixi/envs/default/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "pixi.environment": "default",
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "jupyter.kernels.trusted": [
+    "/home/opher/.local/share/jupyter/kernels/gimbal-python"
+  ]
+}
