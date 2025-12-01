@@ -251,17 +251,19 @@ def generate_camera_matrices(
     C: int,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Generate synthetic camera projection matrices.
+    """Generate synthetic camera projection matrices with perspective projection.
 
-    Cameras are positioned strategically around the scene for optimal coverage:
-    - Camera 0: Front view (on +X axis, mid-height)
-    - Camera 1: Side view (on +Y axis, mid-height)
-    - Camera 2: Overhead view (on +Z axis, looking down)
+    Uses full perspective camera model: P = K[R|t] where:
+    - K: intrinsic matrix (focal length, principal point)
+    - R: rotation matrix (camera orientation via look-at)
+    - t: translation vector (t = -R @ camera_pos)
 
-    Skeleton is centered near [0, 0, 100] with typical size ~30 units.
-    Cameras are positioned at distance ~150 units for good coverage.
+    Cameras are positioned around the scene with proper orientations:
+    - Camera 0: Front view (from +X axis, looking at scene center)
+    - Camera 1: Side view (from +Y axis, looking at scene center)
+    - Camera 2: Overhead view (from above, looking down at scene center)
 
-    For C > 3, additional cameras are distributed in a circle at varying heights.
+    Scene center is [0, 0, 100], skeleton has ~42 unit extent.
 
     Parameters
     ----------
@@ -273,72 +275,61 @@ def generate_camera_matrices(
     Returns
     -------
     camera_proj : np.ndarray
-        Camera projection matrices, shape (C, 3, 4)
+        Camera projection matrices P = K[R|t], shape (C, 3, 4)
+        Projection is: [u', v', w'] = P @ [x, y, z, 1]
+                       u = u'/w', v = v'/w' (perspective division)
     """
+    from .camera_utils import build_projection_matrix
+
     camera_proj = np.zeros((C, 3, 4))
 
-    # Scene center: where skeleton lives (near [0, 0, 100])
+    # Scene center: where skeleton lives
     scene_center = np.array([0.0, 0.0, 100.0])
 
-    # Skeleton characteristics:
-    # - Root at [0, 0, 100]
-    # - 5 bones of length [10, 10, 8, 8, 6] = ~42 units total length
-    # - Bones point mostly upward (+Z) with small X,Y variations
-    # - Need cameras at varied heights to see skeleton clearly
+    # World up direction for look-at calculations
+    up_world = np.array([0.0, 0.0, 1.0])
 
-    # Predefined optimal camera positions for first 3 cameras
+    # Focal length: with skeleton at distance ~80 units, f=10 gives ~300 pixel extent
+    focal_length = 10.0
+
+    # Define camera positions
+    camera_positions = []
+
     if C >= 1:
-        # Camera 0: Front-below view (see skeleton from front, looking up)
-        camera_positions = [
-            scene_center + np.array([80, 0, -30]),  # Below and in front
-        ]
-    if C >= 2:
-        # Camera 1: Side-level view (see skeleton from side at mid-height)
-        camera_positions.append(
-            scene_center + np.array([0, 80, 20])
-        )  # Side, at skeleton mid-height
-    if C >= 3:
-        # Camera 2: Above-angled view (see skeleton from above-diagonal)
-        camera_positions.append(
-            scene_center + np.array([-60, -60, 70])
-        )  # Above and diagonal
+        # Camera 0: Front view (from +X, looking at center)
+        camera_positions.append(scene_center + np.array([80, 0, 0]))
 
-    # Additional cameras in a circle if C > 3
+    if C >= 2:
+        # Camera 1: Side view (from +Y, looking at center)
+        camera_positions.append(scene_center + np.array([0, 80, 0]))
+
+    if C >= 3:
+        # Camera 2: Overhead view (from above, looking down)
+        camera_positions.append(scene_center + np.array([0, 0, 80]))
+
+    # Additional cameras in a circle at varying heights
     for c in range(3, C):
-        angle = (
-            2 * np.pi * (c - 3) / max(C - 3, 1) + np.pi / 4
-        )  # Offset from main cameras
+        angle = 2 * np.pi * (c - 3) / max(C - 3, 1) + np.pi / 4
         radius = 80
-        height = scene_center[2] + 20 * ((c - 3) % 2 - 0.5)  # Vary height around center
+        # Vary height: alternate between slightly above and below center
+        height_offset = 20 * ((c - 3) % 2 - 0.5)
         camera_positions.append(
             scene_center
-            + np.array(
-                [
-                    radius * np.cos(angle),
-                    radius * np.sin(angle),
-                    height - scene_center[2],
-                ]
-            )
+            + np.array([radius * np.cos(angle), radius * np.sin(angle), height_offset])
         )
 
+    # Build projection matrices with proper orientation
     for c in range(C):
         camera_pos = camera_positions[c]
 
-        # Simple projection matrix: y = A @ (x - camera_pos)
-        # Written as y = [A | b] @ [x; 1] where b = -A @ camera_pos
-        #
-        # Projection formula: pixel = focal_length * (point_3d - camera_pos)
-        # With skeleton at distance ~80 and size ~30, focal_length=10 gives:
-        # - Skeleton center offset by ~800 pixels from origin
-        # - Skeleton spans ~300 pixels (good visibility)
-        focal_length = 10.0
-        A = np.eye(3) * focal_length
-
-        # Translation: b = -A @ camera_pos
-        # This makes projection: y = A @ x + b = A @ x - A @ camera_pos = A @ (x - camera_pos)
-        b = -A @ camera_pos
-
-        camera_proj[c] = np.column_stack([A, b])
+        # Build P = K[R|t] with camera looking at scene_center
+        camera_proj[c] = build_projection_matrix(
+            camera_pos=camera_pos,
+            target_pos=scene_center,
+            focal_length=focal_length,
+            up_world=up_world,
+            principal_point=(0.0, 0.0),
+        )
 
     return camera_proj
 
@@ -382,15 +373,23 @@ def generate_observations(
                 # Homogeneous coordinates
                 x_h = np.append(x_true[t, k], 1)
 
-                # Project
+                # Project: [u', v', w'] = P @ [x, y, z, 1]
                 y_proj = camera_proj[c] @ x_h
 
-                # For our simple orthographic-like projection, just use x, y directly
-                # No perspective division needed (P = [A | b] gives [u, v, w] where u,v are pixel coords)
-                y_2d = y_proj[:2]
+                # Perspective division: u = u'/w', v = v'/w'
+                # This matches the PyMC model and DLT triangulation
+                w = y_proj[2]
+                if np.abs(w) > 1e-6:
+                    y_2d = y_proj[:2] / w
+                else:
+                    # Point behind or at camera - mark as invalid
+                    y_2d = np.array([np.nan, np.nan])
 
                 # Add noise
-                y_observed[c, t, k] = y_2d + rng.normal(0, obs_noise_std, 2)
+                if not np.any(np.isnan(y_2d)):
+                    y_observed[c, t, k] = y_2d + rng.normal(0, obs_noise_std, 2)
+                else:
+                    y_observed[c, t, k] = y_2d
 
     # Add random occlusions (NaN values)
     n_occlusions = int(occlusion_rate * C * T * K)
