@@ -19,6 +19,184 @@ import pytensor.tensor as pt
 from gimbal.hmm_pytensor import collapsed_hmm_loglik
 
 
+def _add_single_state_directional_prior(
+    U: pt.TensorVariable,
+    log_obs_t: pt.TensorVariable,
+    K: int,
+    *,
+    joint_names: list[str] | None = None,
+    name_prefix: str = "dir_hmm",
+    kappa_scale: float = 5.0,
+    prior_config: dict | None = None,
+) -> dict:
+    """
+    Special case for S=1: single-state "HMM" with no transitions.
+
+    This bypasses all the multi-state machinery to avoid PyTensor optimizer
+    warnings. With S=1, there are no transitions, so the model reduces to
+    per-timestep directional priors on U.
+
+    Parameters match add_directional_hmm_prior but S is fixed to 1.
+    """
+    S = 1
+
+    # -------------------------------------------------------------------------
+    # 1. Canonical Direction mu (single state, so shape is just (K, 3))
+    # -------------------------------------------------------------------------
+    if prior_config:
+        # v0.2.1 mode: Data-driven priors
+        mu_raw_list = []
+        for k in range(K):
+            joint_name = joint_names[k]
+
+            if joint_name in prior_config:
+                joint_prior = prior_config[joint_name]
+                mu_mean = joint_prior["mu_mean"]
+                mu_sd = joint_prior["mu_sd"]
+
+                mu_raw_k = pm.Normal(
+                    f"{name_prefix}_mu_raw_s0_k{k}",
+                    mu=mu_mean,
+                    sigma=mu_sd,
+                    shape=(3,),
+                )
+            else:
+                mu_raw_k = pm.Normal(
+                    f"{name_prefix}_mu_raw_s0_k{k}",
+                    mu=0.0,
+                    sigma=1.0,
+                    shape=(3,),
+                )
+
+            mu_raw_list.append(mu_raw_k)
+
+        mu_raw = pt.stack(mu_raw_list, axis=0)  # (K, 3)
+    else:
+        # v0.1 mode: Uninformative priors
+        mu_raw = pm.Normal(
+            f"{name_prefix}_mu_raw",
+            mu=0.0,
+            sigma=1.0,
+            shape=(K, 3),
+        )
+
+    # Normalize to unit vectors
+    norm_mu = pt.sqrt((mu_raw**2).sum(axis=-1, keepdims=True) + 1e-8)
+    mu_normalized = mu_raw / norm_mu  # (K, 3)
+
+    # Add state dimension for consistency: (1, K, 3)
+    mu = pm.Deterministic(
+        f"{name_prefix}_mu",
+        mu_normalized.dimshuffle("x", 0, 1),
+    )
+
+    # -------------------------------------------------------------------------
+    # 2. Concentrations kappa (single state, so shape is just (K,))
+    # -------------------------------------------------------------------------
+    if prior_config:
+        # v0.2.1 mode: Data-driven kappa priors
+        from gimbal.prior_building import get_gamma_shape_rate
+
+        kappa_list = []
+        for k in range(K):
+            joint_name = joint_names[k]
+
+            if joint_name in prior_config:
+                joint_prior = prior_config[joint_name]
+                kappa_mode = joint_prior["kappa_mode"]
+                kappa_sd = joint_prior["kappa_sd"]
+
+                shape, rate = get_gamma_shape_rate(kappa_mode, kappa_sd)
+                kappa_k = pm.Gamma(
+                    f"{name_prefix}_kappa_s0_k{k}",
+                    alpha=shape,
+                    beta=rate,
+                )
+            else:
+                kappa_k = pm.HalfNormal(
+                    f"{name_prefix}_kappa_s0_k{k}",
+                    sigma=kappa_scale,
+                )
+
+            kappa_list.append(kappa_k)
+
+        kappa_vec = pt.stack(kappa_list, axis=0)  # (K,)
+    else:
+        # v0.1 mode
+        kappa_vec = pm.HalfNormal(
+            f"{name_prefix}_kappa",
+            sigma=kappa_scale,
+            shape=(K,),
+        )
+
+    # Add state dimension for consistency: (1, K)
+    kappa = pm.Deterministic(
+        f"{name_prefix}_kappa_full",
+        kappa_vec.dimshuffle("x", 0),
+    )
+
+    # -------------------------------------------------------------------------
+    # 3. Directional Emissions (simplified for S=1)
+    # -------------------------------------------------------------------------
+    # U: (T, K, 3)
+    # mu_normalized: (K, 3)
+    # Compute dot products directly without extra broadcasting
+    cosine = (U * mu_normalized.dimshuffle("x", 0, 1)).sum(axis=-1)  # (T, K)
+
+    # Apply kappa and sum over joints
+    log_dir_emit_raw = (kappa_vec.dimshuffle("x", 0) * cosine).sum(axis=-1)  # (T,)
+
+    # Add state dimension: (T, 1)
+    log_dir_emit = pm.Deterministic(
+        f"{name_prefix}_log_dir_emit",
+        log_dir_emit_raw.dimshuffle(0, "x"),
+    )
+
+    # -------------------------------------------------------------------------
+    # 4. Combine with Observation Likelihood
+    # -------------------------------------------------------------------------
+    logp_emit_raw = log_dir_emit_raw + log_obs_t  # (T,)
+    logp_emit = pm.Deterministic(
+        f"{name_prefix}_logp_emit",
+        logp_emit_raw.dimshuffle(0, "x"),  # (T, 1)
+    )
+
+    # -------------------------------------------------------------------------
+    # 5. Transition Parameters (deterministic for S=1)
+    # -------------------------------------------------------------------------
+    logp_init = pt.zeros(1)
+    logp_trans = pt.zeros((1, 1))
+
+    logp_init_det = pm.Deterministic(f"{name_prefix}_logp_init", logp_init)
+    logp_trans_det = pm.Deterministic(f"{name_prefix}_logp_trans", logp_trans)
+
+    # -------------------------------------------------------------------------
+    # 6. Log-Likelihood (simple sum for S=1)
+    # -------------------------------------------------------------------------
+    # No HMM forward algorithm needed - just sum emissions over time
+    hmm_loglik = pm.Deterministic(
+        f"{name_prefix}_loglik",
+        logp_emit_raw.sum(),  # Sum the (T,) vector
+    )
+
+    # Add potential
+    pm.Potential(f"{name_prefix}_potential", hmm_loglik)
+
+    # -------------------------------------------------------------------------
+    # 7. Return Dictionary
+    # -------------------------------------------------------------------------
+    return {
+        "mu": mu,
+        "kappa": kappa,
+        "logp_init": logp_init_det,
+        "logp_trans": logp_trans_det,
+        "log_dir_emit": log_dir_emit,
+        "logp_emit": logp_emit,
+        "hmm_loglik": hmm_loglik,
+        # Note: No init_logits or trans_logits for S=1
+    }
+
+
 def _build_kappa(
     name_prefix: str,
     S: int,
@@ -182,6 +360,20 @@ def add_directional_hmm_prior(
             K = U.shape[1].eval() if hasattr(U.shape[1], "eval") else U.shape[1]
 
     # -------------------------------------------------------------------------
+    # Special case: S=1 uses completely separate code path
+    # -------------------------------------------------------------------------
+    if S == 1:
+        return _add_single_state_directional_prior(
+            U=U,
+            log_obs_t=log_obs_t,
+            K=K,
+            joint_names=joint_names,
+            name_prefix=name_prefix,
+            kappa_scale=kappa_scale,
+            prior_config=prior_config,
+        )
+
+    # -------------------------------------------------------------------------
     # 1. Canonical Directions mu[s, k, :]
     # -------------------------------------------------------------------------
     if prior_config:
@@ -316,53 +508,82 @@ def add_directional_hmm_prior(
     # -------------------------------------------------------------------------
     # 5. HMM Parameters: Initial and Transition Log-Probabilities
     # -------------------------------------------------------------------------
-    init_logits = pm.Normal(f"{name_prefix}_init_logits", 0.0, 1.0, shape=(S,))
-    trans_logits = pm.Normal(f"{name_prefix}_trans_logits", 0.0, 1.0, shape=(S, S))
+    if S == 1:
+        # Special case: S=1 means no hidden states to infer
+        # Initial state is deterministic (always state 0)
+        # Transition is deterministic (always stay in state 0)
+        logp_init = pt.zeros(1)
+        logp_trans = pt.zeros((1, 1))
 
-    # Normalize to log-probabilities
-    logp_init = init_logits - pm.math.logsumexp(init_logits)
-    logp_trans = trans_logits - pm.math.logsumexp(trans_logits, axis=1, keepdims=True)
+        logp_init_det = pm.Deterministic(f"{name_prefix}_logp_init", logp_init)
+        logp_trans_det = pm.Deterministic(f"{name_prefix}_logp_trans", logp_trans)
+    else:
+        # Normal case: S > 1, sample transition parameters
+        init_logits = pm.Normal(f"{name_prefix}_init_logits", 0.0, 1.0, shape=(S,))
+        trans_logits = pm.Normal(f"{name_prefix}_trans_logits", 0.0, 1.0, shape=(S, S))
 
-    # Wrap in Deterministic for scan gradient compatibility
-    logp_init_det = pm.Deterministic(f"{name_prefix}_logp_init", logp_init)
-    logp_trans_det = pm.Deterministic(f"{name_prefix}_logp_trans", logp_trans)
+        # Normalize to log-probabilities
+        logp_init = init_logits - pm.math.logsumexp(init_logits)
+        logp_trans = trans_logits - pm.math.logsumexp(
+            trans_logits, axis=1, keepdims=True
+        )
+
+        # Wrap in Deterministic for scan gradient compatibility
+        logp_init_det = pm.Deterministic(f"{name_prefix}_logp_init", logp_init)
+        logp_trans_det = pm.Deterministic(f"{name_prefix}_logp_trans", logp_trans)
 
     # -------------------------------------------------------------------------
     # 6. Numerical Stabilization and HMM Engine Call
     # -------------------------------------------------------------------------
-    # Subtract per-timestep maximum for numerical stability
-    max_per_t = pm.math.max(logp_emit, axis=1, keepdims=True)  # (T, 1)
-    logp_emit_centered = logp_emit - max_per_t  # (T, S)
+    if S == 1:
+        # Single-state HMM: no transitions, no forward recursion needed.
+        # The chain is always in state 0, so the joint log-likelihood is just
+        # the sum over all per-timestep emissions for that state.
+        # logp_emit has shape (T, 1), we sum over both dimensions.
+        hmm_loglik = pm.Deterministic(
+            f"{name_prefix}_loglik",
+            logp_emit.sum(),
+        )
+    else:
+        # Multi-state HMM: use collapsed HMM engine with numerical stabilization.
+        # Subtract per-timestep maximum for numerical stability
+        max_per_t = pm.math.max(logp_emit, axis=1, keepdims=True)  # (T, 1)
+        logp_emit_centered = logp_emit - max_per_t  # (T, S)
 
-    # Sum of the constants we subtracted
-    offset = max_per_t.sum()  # scalar
+        # Sum of the constants we subtracted
+        offset = max_per_t.sum()  # scalar
 
-    # Call Stage-1 HMM engine
-    hmm_ll_centered = collapsed_hmm_loglik(
-        logp_emit_centered,
-        logp_init_det,
-        logp_trans_det,
-    )
+        # Call Stage-1 HMM engine
+        hmm_ll_centered = collapsed_hmm_loglik(
+            logp_emit_centered,
+            logp_init_det,
+            logp_trans_det,
+        )
 
-    hmm_loglik = pm.Deterministic(
-        f"{name_prefix}_loglik",
-        hmm_ll_centered + offset,
-    )
+        hmm_loglik = pm.Deterministic(
+            f"{name_prefix}_loglik",
+            hmm_ll_centered + offset,
+        )
 
-    # Add potential to model
+    # Add potential to model (both S=1 and S>1 cases)
     pm.Potential(f"{name_prefix}_potential", hmm_loglik)
 
     # -------------------------------------------------------------------------
     # 7. Return Dictionary of Created Variables
     # -------------------------------------------------------------------------
-    return {
+    result = {
         "mu": mu,
         "kappa": kappa,
-        "init_logits": init_logits,
-        "trans_logits": trans_logits,
         "logp_init": logp_init_det,
         "logp_trans": logp_trans_det,
         "log_dir_emit": log_dir_emit,
         "logp_emit": logp_emit,
         "hmm_loglik": hmm_loglik,
     }
+
+    # Only include init_logits and trans_logits if S > 1 (they're sampled)
+    if S > 1:
+        result["init_logits"] = init_logits
+        result["trans_logits"] = trans_logits
+
+    return result
