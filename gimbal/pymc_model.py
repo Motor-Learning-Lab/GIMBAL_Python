@@ -27,6 +27,61 @@ from .pymc_utils import (
 )
 
 
+def gamma_from_mode_sd(mode: float, sd: float) -> tuple[float, float]:
+    """
+    Convert desired mode and SD of a positive quantity into Gamma(alpha, beta)
+    where beta is the rate parameter (1/scale).
+
+    mode = (alpha - 1) / beta  for alpha > 1
+    var  = alpha / beta**2     and sd = sqrt(var)
+
+    Parameters
+    ----------
+    mode : float
+        Desired mode of the Gamma distribution (must be positive)
+    sd : float
+        Desired standard deviation (must be positive)
+
+    Returns
+    -------
+    alpha : float
+        Shape parameter of Gamma distribution
+    beta : float
+        Rate parameter (1/scale) of Gamma distribution
+
+    Raises
+    ------
+    ValueError
+        If mode or sd are not positive
+    """
+    if mode <= 0 or sd <= 0:
+        raise ValueError("mode and sd for Gamma must be positive")
+
+    import math
+
+    target = (sd**2) / (mode**2)
+
+    # Start from alpha = 2 as a reasonable guess
+    alpha = 2.0
+    for _ in range(20):
+        num = alpha
+        den = (alpha - 1.0) ** 2
+        f = num / den - target  # f(alpha) = alpha / (alpha-1)^2 - target
+
+        # Derivative: f'(alpha)
+        df = ((alpha - 1.0)**2 - alpha * 2.0 * (alpha - 1.0)) / (alpha - 1.0)**4
+        # If derivative is tiny, break
+        if abs(df) < 1e-8:
+            break
+        alpha_new = alpha - f / df
+        if alpha_new <= 1.01:  # keep it > 1
+            alpha_new = 1.01
+        alpha = alpha_new
+
+    beta = (alpha - 1.0) / mode
+    return float(alpha), float(beta)
+
+
 def project_points_pytensor(
     x: pt.TensorVariable, proj: pt.TensorVariable
 ) -> pt.TensorVariable:
@@ -330,7 +385,9 @@ def _build_camera_observation_model_full(
         "eta2_root_sigma",
         "rho_sigma",
         "sigma2_sigma",
-        "obs_sigma_sigma",
+        "obs_sigma_sigma",  # Kept for backward compatibility
+        "obs_sigma_mode",    # New: mode in pixels
+        "obs_sigma_sd",      # New: SD in pixels
         "inlier_prob_alpha",
         "inlier_prob_beta",
     }
@@ -360,11 +417,20 @@ def _build_camera_observation_model_full(
         "eta2_root_sigma": 0.1,
         "rho_sigma": 2.0,
         "sigma2_sigma": 0.1,
-        "obs_sigma_sigma": 10.0,
+        "obs_sigma_mode": 1.0,   # New: mode in pixels (tune later)
+        "obs_sigma_sd": 0.5,     # New: SD in pixels (tune later)
         "inlier_prob_alpha": 8,
         "inlier_prob_beta": 2,
     }
     hyperparams = {**default_hyperparams, **(prior_hyperparams or {})}
+    
+    # Backward compatibility: if obs_sigma_sigma is provided, ignore mode/sd
+    if "obs_sigma_sigma" in hyperparams:
+        warnings.warn(
+            "obs_sigma_sigma is deprecated. Use obs_sigma_mode and obs_sigma_sd instead. "
+            "Falling back to HalfNormal prior.",
+            DeprecationWarning,
+        )
 
     # Extract kwargs with defaults
     sigma_dir = kwargs.get("sigma_dir", 1.0)
@@ -463,9 +529,23 @@ def _build_camera_observation_model_full(
         )  # (C, T, K, 2)
 
         # --- Observation likelihood ---
-        obs_sigma = pm.HalfNormal(
-            "obs_sigma", sigma=hyperparams["obs_sigma_sigma"], initval=obs_sigma_init
-        )
+        # Use Gamma prior for obs_sigma (or HalfNormal for backward compatibility)
+        if "obs_sigma_sigma" in hyperparams and "obs_sigma_sigma" in (prior_hyperparams or {}):
+            # Backward compatibility: use HalfNormal if explicitly provided
+            obs_sigma = pm.HalfNormal(
+                "obs_sigma", sigma=hyperparams["obs_sigma_sigma"], initval=obs_sigma_init
+            )
+        else:
+            # New approach: Gamma prior with mode/SD
+            mode = hyperparams["obs_sigma_mode"]
+            sd = hyperparams["obs_sigma_sd"]
+            alpha, beta = gamma_from_mode_sd(mode, sd)
+            obs_sigma = pm.Gamma(
+                "obs_sigma",
+                alpha=alpha,
+                beta=beta,  # rate parameter
+                initval=obs_sigma_init,
+            )
 
         if use_mixture:
             # --- Mixture likelihood with outlier detection ---

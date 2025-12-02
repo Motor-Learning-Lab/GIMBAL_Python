@@ -573,7 +573,10 @@ def initialize_from_observations_anipose(
 
 
 def initialize_from_groundtruth(
-    x_gt: np.ndarray | Tensor, parents: np.ndarray | Tensor, return_numpy: bool = True
+    x_gt: np.ndarray | Tensor, 
+    parents: np.ndarray | Tensor, 
+    return_numpy: bool = True,
+    obs_noise_std: float | None = None,
 ) -> InitializationResult:
     """
     Initialize parameters from ground truth 3D positions.
@@ -588,6 +591,9 @@ def initialize_from_groundtruth(
         Skeleton parent indices
     return_numpy : bool
         If True, return numpy arrays; if False, return torch Tensors
+    obs_noise_std : float, optional
+        Observation noise standard deviation from data config.
+        If provided, used to set obs_sigma initialization (scaled by 1.5).
 
     Returns
     -------
@@ -635,13 +641,20 @@ def initialize_from_groundtruth(
         "triangulation_rate": 1.0,
     }
 
+    # Set obs_sigma based on obs_noise_std if available
+    if obs_noise_std is not None:
+        # Start a bit over the true noise; avoids under-estimation
+        obs_sigma_init = max(0.1, float(obs_noise_std) * 1.5)
+    else:
+        obs_sigma_init = 2.0  # fallback
+
     return InitializationResult(
         x_init=x_init,
         eta2=eta2,
         rho=rho,
         sigma2=sigma2,
         u_init=u_init,
-        obs_sigma=2.0,  # Default reasonable value
+        obs_sigma=obs_sigma_init,
         inlier_prob=0.85,  # Default reasonable value
         metadata=metadata,
     )

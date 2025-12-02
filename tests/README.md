@@ -29,6 +29,15 @@ This directory contains all test files for the GIMBAL project.
 - **`test_hmm_v0_1_3.py`** - Minimal working example demonstrating full v0.1.3 pipeline (195 lines)
 - **`run_v0_1_3_tests.py`** - Simple test runner for v0.1.3 tests without pytest
 
+### v0.2.1 (Data-Driven Priors & Sampling Diagnostics)
+- **`test_sampling_camera_model.py`** - Minimal sampling diagnostic script for camera model
+  - Tests Gamma prior on obs_sigma (mode/SD parameterization)
+  - Compares mixture vs non-mixture likelihoods
+  - Provides divergence, ESS, and RMSE metrics
+  - Isolates camera/kinematic issues from HMM
+  - Usage: `python tests/test_sampling_camera_model.py`
+  - See detailed documentation at end of this file
+
 ### Initialization & Utilities
 - **`test_dlt_init.py`** - Tests for DLT-based initialization
 - **`test_model_init.py`** - Tests for model initialization functions
@@ -84,3 +93,84 @@ Tests cover:
 - Numerical tolerances are set conservatively for robust CI/CD
 - Some tests may require specific dependencies (PyMC, nutpie, etc.)
 - See individual test files for detailed documentation
+
+---
+
+## Detailed: test_sampling_camera_model.py
+
+### Purpose
+Minimal script for testing the camera + kinematic observation model in isolation, with focus on the new Gamma prior for obs_sigma.
+
+### Configurations Tested
+
+**M1: No mixture, No HMM**
+- Simple Gaussian likelihood
+- No outlier detection
+- Gamma prior on obs_sigma
+- Baseline for convergence
+
+**M2: Mixture, No HMM**
+- Mixture likelihood (inliers + uniform outliers)
+- Robust to occlusions
+- Gamma prior on obs_sigma
+- Production camera model
+
+**M3: Mixture + HMM** (optional, currently commented out)
+- Full v0.2.1 model with directional HMM prior
+- Test only after M1/M2 work well
+
+### Output Metrics
+
+For each model:
+- **Divergences**: Count and percentage (target: <5%)
+- **ESS**: Effective Sample Size for x_root, obs_sigma, eta2_root, rho (target: >100)
+- **Root RMSE**: Reconstruction error vs ground truth (target: <1.0)
+- **obs_sigma posterior**: Compare to true value (0.5)
+
+### Typical Runtime
+- M1: ~2-3 minutes
+- M2: ~3-4 minutes
+- M3: ~5-7 minutes (when enabled)
+- Total: ~10 minutes
+
+### Interpreting Results
+
+**Good Results:**
+- Divergences < 5%
+- ESS > 100 for all variables
+- Root RMSE < 1.0
+- obs_sigma posterior ≈ 0.5 (true value)
+
+**Warning Signs:**
+- Divergences 5-10%
+- ESS 50-100 (marginal)
+- Root RMSE 1-2
+- obs_sigma posterior off by >50%
+
+**Bad Results:**
+- Divergences > 10%
+- ESS < 50 (inefficient sampling)
+- Root RMSE > 2
+- obs_sigma posterior way off
+
+### Next Steps Based on Results
+
+1. **If M1/M2 look good** (low divergences, good ESS):
+   - Uncomment M3 and test with HMM
+   - Proceed to full notebook pipeline
+
+2. **If M1/M2 have issues**:
+   - Adjust hyperparameters in `make_prior_hyperparams()`
+   - Try non-centered parameterization for eta2_root, sigma2
+   - Check initialization scaling
+
+3. **If M3 adds divergences**:
+   - Issue is in HMM, not camera model
+   - Focus on HMM parameterization/scaling
+   - See `../notebook/demo_v0_2_1_data_driven_priors.ipynb`
+
+### Related Files
+- `../notebook/demo_v0_2_1_data_driven_priors.ipynb`: Full pipeline demo
+- `../gimbal/pymc_model.py`: Model building with Gamma prior
+- `../gimbal/fit_params.py`: Initialization with obs_noise_std
+- `../IMPLEMENTATION_SUMMARY_v0_2_1.md`: Detailed change log
