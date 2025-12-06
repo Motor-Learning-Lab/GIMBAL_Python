@@ -1,8 +1,25 @@
-# GIMBAL Tests
+# Tests Directory
 
-This directory contains all test files for the GIMBAL project.
+Organized test suite for GIMBAL v0.2.1+
 
-## Test Organization
+## Structure
+
+- **unit/**: Unit tests for individual modules (fast, isolated tests)
+- **integration/**: Integration tests for multi-module features  
+- **smoke/**: Quick smoke tests for rapid validation
+- **diagnostics/**: Comprehensive diagnostic test suites
+  - `v0_2_1_divergence/`: Divergence testing for v0.2.1
+
+## Running Tests
+
+```bash
+# Run divergence diagnostic suite
+pixi run python tests/diagnostics/v0_2_1_divergence/test_runner.py
+```
+
+**Important**: Test outputs (reports, plots) go in `results/` directory, NOT in `tests/`.
+
+## Test Organization (Legacy)
 
 ### v0.1.1 (Collapsed HMM Engine)
 - **`test_hmm_v0_1_1.py`** - Comprehensive tests for the collapsed HMM forward algorithm
