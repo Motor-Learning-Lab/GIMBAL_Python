@@ -246,8 +246,8 @@ def _build_camera_observation_model_full(
         - 'rho_sigma': Bone length prior std (default: 2.0)
         - 'sigma2_sigma': Bone variance prior std (default: 0.1)
         - 'obs_sigma_sigma': Observation noise prior std (default: 10.0)
-        - 'inlier_prob_alpha': Inlier prob Beta prior alpha (default: 8)
-        - 'inlier_prob_beta': Inlier prob Beta prior beta (default: 2)
+        - 'inlier_prob_alpha': (DEPRECATED) Use logodds parameterization instead
+        - 'inlier_prob_beta': (DEPRECATED) Use logodds parameterization instead
     validate_init_points : bool, default=False
         If True, validate initialization values against model structure
         (shapes, dtypes, finite values). Raises ValueError on mismatch.
@@ -334,8 +334,6 @@ def _build_camera_observation_model_full(
     ...     prior_hyperparams={
     ...         'eta2_root_sigma': 0.05,
     ...         'rho_sigma': 1.0,
-    ...         'inlier_prob_alpha': 10,
-    ...         'inlier_prob_beta': 1
     ...     },
     ...     sigma_dir=0.5
     ... )
@@ -388,8 +386,8 @@ def _build_camera_observation_model_full(
         "obs_sigma_sigma",  # Kept for backward compatibility
         "obs_sigma_mode",    # New: mode in pixels
         "obs_sigma_sd",      # New: SD in pixels
-        "inlier_prob_alpha",
-        "inlier_prob_beta",
+        "inlier_prob_alpha",  # DEPRECATED: kept for backward compatibility
+        "inlier_prob_beta",   # DEPRECATED: kept for backward compatibility
     }
     KNOWN_KWARGS = {"sigma_dir"}
 
@@ -419,8 +417,6 @@ def _build_camera_observation_model_full(
         "sigma2_sigma": 0.1,
         "obs_sigma_mode": 1.0,   # New: mode in pixels (tune later)
         "obs_sigma_sd": 0.5,     # New: SD in pixels (tune later)
-        "inlier_prob_alpha": 8,
-        "inlier_prob_beta": 2,
     }
     hyperparams = {**default_hyperparams, **(prior_hyperparams or {})}
     
@@ -553,12 +549,16 @@ def _build_camera_observation_model_full(
             inlier_prob_init = (
                 init_result.inlier_prob if hasattr(init_result, "inlier_prob") else 0.9
             )
-            inlier_prob = pm.Beta(
-                "inlier_prob",
-                alpha=hyperparams["inlier_prob_alpha"],
-                beta=hyperparams["inlier_prob_beta"],
-                initval=inlier_prob_init,
+            # Use logodds parameterization instead of Beta to avoid boundary issues
+            # logodds = log(p / (1-p)), sample directly on unbounded space
+            logodds_init = np.log(inlier_prob_init / (1.0 - inlier_prob_init))
+            logodds = pm.Normal(
+                "logodds_inlier",
+                mu=0.0,
+                sigma=5.0,  # Prior centered at p=0.5, allows wide range
+                initval=logodds_init,
             )
+            inlier_prob = pm.Deterministic("inlier_prob", pm.math.sigmoid(logodds))
 
             # Mask out occluded observations (NaN values)
             valid_mask = ~np.isnan(y_observed)  # (C, T, K, 2)

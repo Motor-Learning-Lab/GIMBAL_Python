@@ -122,12 +122,12 @@ def test_ground_truth_initialization():
         print(f"  WARNING: inlier_prob = {inlier_prob} is out of (0, 1) range!")
         inlier_prob = np.clip(inlier_prob, 1e-10, 1 - 1e-10)
 
-    inlier_prob_logodds = np.log(inlier_prob / (1 - inlier_prob))
-    start_point["inlier_prob_logodds__"] = inlier_prob_logodds
-    print(f"  - inlier_prob_logodds__ = {inlier_prob_logodds}")
+    logodds_inlier = np.log(inlier_prob / (1 - inlier_prob))
+    start_point["logodds_inlier"] = logodds_inlier
+    print(f"  - logodds_inlier = {logodds_inlier}")
 
-    if np.isinf(inlier_prob_logodds):
-        print("  ERROR: inlier_prob_logodds is inf!")
+    if np.isinf(logodds_inlier):
+        print("  ERROR: logodds_inlier is inf!")
     print()
 
     print(f"[OK] Created starting point with {len(start_point)} parameters")
@@ -166,36 +166,81 @@ def test_ground_truth_initialization():
                     print("  [FAIL] Default initialization gives -inf!")
 
                     # Diagnose which parameter
-                    logp_dict = model.compile_logp(vars=model.free_RVs, sum=False)(
-                        test_point
-                    )
-                    print("\n  Log probability by parameter (default init):")
-                    for var_name, logp_val in logp_dict.items():
-                        status = "[OK]" if np.isfinite(logp_val) else "[FAIL]"
-                        print(f"    {status} {var_name}: {logp_val}")
+                    try:
+                        logp_list = model.compile_logp(vars=model.free_RVs, sum=False)(
+                            test_point
+                        )
+                        print("\n  Log probability by parameter (default init):")
+                        for var, logp_val in zip(model.free_RVs, logp_list):
+                            status = "[OK]" if np.isfinite(logp_val) else "[FAIL]"
+                            print(f"    {status} {var.name}: {logp_val}")
+                    except Exception as e:
+                        print(f"  Could not diagnose: {e}")
 
-                    # Check specifically for inlier_prob_logodds
-                    if "inlier_prob_logodds__" in test_point:
+                    # Check specifically for logodds_inlier
+                    if "logodds_inlier" in test_point:
                         print(
-                            f"\n  Default inlier_prob_logodds__ = {test_point['inlier_prob_logodds__']}"
+                            f"\n  Default logodds_inlier = {test_point['logodds_inlier']}"
                         )
                     else:
-                        print("\n  WARNING: inlier_prob_logodds__ not in model!")
+                        print("\n  WARNING: logodds_inlier not in model!")
 
-                    return False
+                    # If default init fails, try with ground truth starting point
+                    print("\n  Trying with ground truth starting point...")
+                    try:
+                        # Merge ground truth values into default initial point
+                        gt_point = test_point.copy()
+                        gt_point.update({
+                            "obs_sigma_log__": start_point["obs_sigma_log__"],
+                            "logodds_inlier": start_point["logodds_inlier"],
+                        })
+                        
+                        gt_logp = model.compile_logp()(gt_point)
+                        print(f"  Ground truth log probability: {gt_logp}")
+
+                        if np.isinf(gt_logp):
+                            print("  [FAIL] Ground truth initialization also gives -inf!")
+
+                            # Diagnose which parameter
+                            try:
+                                logp_list = model.compile_logp(vars=model.free_RVs, sum=False)(
+                                    gt_point
+                                )
+                                print("\n  Log probability by parameter (ground truth):")
+                                for var, logp_val in zip(model.free_RVs, logp_list):
+                                    if isinstance(logp_val, np.ndarray):
+                                        logp_scalar = logp_val.sum() if logp_val.size > 1 else float(logp_val)
+                                    else:
+                                        logp_scalar = float(logp_val)
+                                    status = "[OK]" if np.isfinite(logp_scalar) else "[FAIL]"
+                                    print(f"    {status} {var.name}: {logp_scalar}")
+                            except Exception as e:
+                                print(f"  Could not diagnose: {e}")
+
+                            return False
+                        else:
+                            print("  [OK] Ground truth initialization works!")
+                            return True
+
+                    except Exception as e:
+                        print(f"  [FAIL] Could not compute with ground truth initialization: {e}")
+                        import traceback
+
+                        traceback.print_exc()
+                        return False
                 else:
                     print("  [OK] Default initialization works!")
                     return True
 
             except Exception as e:
-                print(f"  [FAIL] Could not compute with default initialization: {e}")
+                print(f"  [FAIL] Log probability evaluation failed: {e}")
                 import traceback
 
                 traceback.print_exc()
                 return False
 
     except Exception as e:
-        print(f"[FAIL] Log probability evaluation failed: {e}")
+        print(f"[FAIL] Unexpected error during test: {e}")
         import traceback
 
         traceback.print_exc()
