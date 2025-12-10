@@ -20,6 +20,11 @@ sys.path.insert(0, str(repo_root))
 
 from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 from tests.diagnostics.v0_2_1_divergence.test_utils import build_test_model
+from tests.diagnostics.v0_2_1_divergence.extract_ground_truth import (
+    extract_complete_ground_truth,
+    transform_to_unconstrained_space,
+    verify_ground_truth_coverage,
+)
 
 
 def test_ground_truth_initialization():
@@ -92,44 +97,31 @@ def test_ground_truth_initialization():
         traceback.print_exc()
         return False
 
-    # Create ground truth starting point from actual data
-    print("Creating ground truth starting point...")
-    x_true = synth_data.x_true  # (T, K, 3)
-
-    start_point = {}
-
-    # Root joint positions
-    start_point["x_root"] = x_true[:, 0, :]  # (T, 3)
-
-    # Bone vectors from joint positions
-    for j in range(1, K):
-        parent_idx = DEMO_V0_1_SKELETON.parents[j]
-        if parent_idx >= 0:
-            bone_vec = x_true[:, j, :] - x_true[:, parent_idx, :]
-            start_point[f"raw_u_{j}"] = bone_vec  # (T, 3)
-
-    # Observation noise (log-transformed)
-    obs_sigma = config.obs_noise_std
-    start_point["obs_sigma_log__"] = np.log(obs_sigma)
-    print(f"  - obs_sigma = {obs_sigma}")
-    print(f"  - obs_sigma_log__ = {np.log(obs_sigma)}")
-
-    # Inlier probability (logit-transformed) - THE SUSPECT
-    inlier_prob = 1.0 - config.occlusion_rate
-    print(f"  - inlier_prob = {inlier_prob}")
-
-    if inlier_prob <= 0 or inlier_prob >= 1:
-        print(f"  WARNING: inlier_prob = {inlier_prob} is out of (0, 1) range!")
-        inlier_prob = np.clip(inlier_prob, 1e-10, 1 - 1e-10)
-
-    logodds_inlier = np.log(inlier_prob / (1 - inlier_prob))
-    start_point["logodds_inlier"] = logodds_inlier
-    print(f"  - logodds_inlier = {logodds_inlier}")
-
-    if np.isinf(logodds_inlier):
-        print("  ERROR: logodds_inlier is inf!")
+    # Extract complete ground truth parameters
+    print("Extracting complete ground truth parameters...")
+    gt_constrained = extract_complete_ground_truth(synth_data, DEMO_V0_1_SKELETON, S=S)
     print()
 
+    # Transform to unconstrained space (model's sampling space)
+    print("Transforming to unconstrained space...")
+    gt_unconstrained = transform_to_unconstrained_space(gt_constrained, model)
+    print()
+
+    # Verify coverage
+    print("Verifying parameter coverage...")
+    is_complete, missing, extra = verify_ground_truth_coverage(gt_unconstrained, model)
+
+    if not is_complete:
+        print(f"[FAIL] Missing {len(missing)} parameters:")
+        for name in missing:
+            print(f"  - {name}")
+        return False
+
+    print("[OK] All model parameters have ground truth values")
+    print()
+
+    # Use unconstrained values as starting point
+    start_point = gt_unconstrained
     print(f"[OK] Created starting point with {len(start_point)} parameters")
     print()
 
@@ -190,29 +182,41 @@ def test_ground_truth_initialization():
                     try:
                         # Merge ground truth values into default initial point
                         gt_point = test_point.copy()
-                        gt_point.update({
-                            "obs_sigma_log__": start_point["obs_sigma_log__"],
-                            "logodds_inlier": start_point["logodds_inlier"],
-                        })
-                        
+                        gt_point.update(
+                            {
+                                "obs_sigma_log__": start_point["obs_sigma_log__"],
+                                "logodds_inlier": start_point["logodds_inlier"],
+                            }
+                        )
+
                         gt_logp = model.compile_logp()(gt_point)
                         print(f"  Ground truth log probability: {gt_logp}")
 
                         if np.isinf(gt_logp):
-                            print("  [FAIL] Ground truth initialization also gives -inf!")
+                            print(
+                                "  [FAIL] Ground truth initialization also gives -inf!"
+                            )
 
                             # Diagnose which parameter
                             try:
-                                logp_list = model.compile_logp(vars=model.free_RVs, sum=False)(
-                                    gt_point
+                                logp_list = model.compile_logp(
+                                    vars=model.free_RVs, sum=False
+                                )(gt_point)
+                                print(
+                                    "\n  Log probability by parameter (ground truth):"
                                 )
-                                print("\n  Log probability by parameter (ground truth):")
                                 for var, logp_val in zip(model.free_RVs, logp_list):
                                     if isinstance(logp_val, np.ndarray):
-                                        logp_scalar = logp_val.sum() if logp_val.size > 1 else float(logp_val)
+                                        logp_scalar = (
+                                            logp_val.sum()
+                                            if logp_val.size > 1
+                                            else float(logp_val)
+                                        )
                                     else:
                                         logp_scalar = float(logp_val)
-                                    status = "[OK]" if np.isfinite(logp_scalar) else "[FAIL]"
+                                    status = (
+                                        "[OK]" if np.isfinite(logp_scalar) else "[FAIL]"
+                                    )
                                     print(f"    {status} {var.name}: {logp_scalar}")
                             except Exception as e:
                                 print(f"  Could not diagnose: {e}")
@@ -223,7 +227,9 @@ def test_ground_truth_initialization():
                             return True
 
                     except Exception as e:
-                        print(f"  [FAIL] Could not compute with ground truth initialization: {e}")
+                        print(
+                            f"  [FAIL] Could not compute with ground truth initialization: {e}"
+                        )
                         import traceback
 
                         traceback.print_exc()

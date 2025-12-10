@@ -1,0 +1,85 @@
+parameter,value_shape,value_min,value_max,value_mean,logp,is_finite,has_nan,has_inf,notes
+eta2_root,(),0.90469978798436,0.90469978798436,0.90469978798436,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+rho,"(5,)",0.95,0.95,0.95,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+sigma2,"(5,)",0.1,0.1,0.1,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+x_root,"(50, 3)",-7.902279680171214,104.53411657611836,34.20684233003003,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+raw_u_1,"(50, 3)",-2.493458643038299,9.997500470164539,3.814370744635051,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+raw_u_2,"(50, 3)",-2.497039575116705,9.999907577888393,3.8472353341825114,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+raw_u_3,"(50, 3)",-1.9794213820846753,7.998999232581298,3.040486050942881,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+raw_u_4,"(50, 3)",-2.1016765446429915,7.996024332317035,3.099532978376382,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+raw_u_5,"(50, 3)",-1.5548533005613292,5.9998064438579775,2.261886676182427,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+length_1,"(50,)",0.0,0.0,0.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+length_2,"(50,)",10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+length_3,"(50,)",10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+length_4,"(50,)",8.0,8.0,8.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+length_5,"(50,)",8.0,8.0,8.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+obs_sigma,scalar,0.5,0.5,0.5,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+logodds_inlier,(),2.9444389791664394,2.9444389791664394,2.9444389791664394,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s0_k0,"(3,)",0.0,0.0,0.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s0_k1,"(3,)",0.0,1.0,0.3333333333333333,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s0_k2,"(3,)",0.0,1.0,0.3333333333333333,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s0_k3,"(3,)",0.0,1.0,0.3333333333333333,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s0_k4,"(3,)",0.0,1.0,0.3333333333333333,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s0_k5,"(3,)",0.0,1.0,0.3333333333333333,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s1_k0,"(3,)",0.0,0.0,0.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s1_k1,"(3,)",0.0,0.8,0.4666666666666666,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s1_k2,"(3,)",0.0,0.8,0.4666666666666666,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s1_k3,"(3,)",0.0,0.8,0.4666666666666666,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s1_k4,"(3,)",0.0,0.8,0.4666666666666666,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_mu_raw_s1_k5,"(3,)",0.0,0.8,0.4666666666666666,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s0_k0,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s0_k1,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s0_k2,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s0_k3,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s0_k4,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s0_k5,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s1_k0,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s1_k1,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s1_k2,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s1_k3,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s1_k4,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_kappa_s1_k5,scalar,10.0,10.0,10.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_init_logits,"(2,)",0.0,0.0,0.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"
+dir_hmm_trans_logits,"(2, 2)",-1.7346010553881064,1.7346010553881064,0.0,,False,False,False,"error: TensorType does not support iteration.
+	Did you pa"

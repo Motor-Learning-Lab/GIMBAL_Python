@@ -444,6 +444,9 @@ def _estimate_observation_parameters_numpy(
     obs_sigma = np.std(errors[inlier_mask]) if inlier_mask.sum() > 0 else 2.0
     obs_sigma = max(obs_sigma, 0.5)
     inlier_prob = inlier_mask.sum() / len(errors)
+    # Clip to avoid boundary issues in logodds transformation
+    # Keep within reasonable prior support while respecting data
+    inlier_prob = np.clip(inlier_prob, 0.01, 0.99)
 
     return obs_sigma, inlier_prob
 
@@ -573,8 +576,8 @@ def initialize_from_observations_anipose(
 
 
 def initialize_from_groundtruth(
-    x_gt: np.ndarray | Tensor, 
-    parents: np.ndarray | Tensor, 
+    x_gt: np.ndarray | Tensor,
+    parents: np.ndarray | Tensor,
     return_numpy: bool = True,
     obs_noise_std: float | None = None,
 ) -> InitializationResult:

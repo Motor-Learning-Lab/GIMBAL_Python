@@ -3,9 +3,11 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add repo root to path
+repo_root = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(repo_root))
 
-from tests.diagnostics.v0_2_1_divergence.test_utils import (
+from test_utils import (
     get_standard_synth_data,
     build_test_model,
     sample_model,
