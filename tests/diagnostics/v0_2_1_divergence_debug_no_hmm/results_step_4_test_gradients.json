@@ -1,0 +1,22 @@
+{
+  "step": 4,
+  "description": "Test gradient compilation for NUTS sampler",
+  "checks": {
+    "model_build": {
+      "status": "PASS"
+    },
+    "initial_point": {
+      "status": "PASS"
+    },
+    "gradient_compilation": {
+      "status": "PASS",
+      "compile_time": 44.727686166763306
+    },
+    "gradient_evaluation": {
+      "status": "PASS",
+      "has_nan": false,
+      "has_inf": false
+    }
+  },
+  "overall_status": "PASS"
+}

@@ -1,0 +1,37 @@
+{
+  "test_group": 1,
+  "description": "Baseline without HMM",
+  "configuration": {
+    "test_group": 1,
+    "description": "Baseline without HMM",
+    "use_directional_hmm": false,
+    "T": 100,
+    "C": 3,
+    "S": 3,
+    "kappa": 10.0,
+    "obs_noise_std": 0.5,
+    "occlusion_rate": 0.02,
+    "draws": 20,
+    "tune": 100,
+    "chains": 1,
+    "seed": 42,
+    "eta2_root_sigma": 0.5,
+    "sigma2_sigma": 0.2
+  },
+  "metrics": {
+    "divergence_count": 20,
+    "total_samples": 20,
+    "divergence_rate": 1.0,
+    "runtime_seconds": 10.806863069534302,
+    "ess": {},
+    "r_hat": {}
+  },
+  "reconstruction": {
+    "mean_error": NaN,
+    "std_error": null
+  },
+  "timestamp": "2025-12-11T09:42:11.233282",
+  "environment": {
+    "python_version": "3.11.14"
+  }
+}

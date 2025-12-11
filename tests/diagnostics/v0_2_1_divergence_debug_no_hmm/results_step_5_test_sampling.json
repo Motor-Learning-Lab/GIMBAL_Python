@@ -1,0 +1,22 @@
+{
+  "step": 5,
+  "description": "Test if pm.sample() completes successfully",
+  "checks": {
+    "model_build": {
+      "status": "PASS"
+    },
+    "sampling": {
+      "status": "PASS",
+      "total_time": 23.096596717834473,
+      "n_draws": 20,
+      "n_chains": 1,
+      "n_divergences": 20,
+      "divergence_rate": 1.0
+    },
+    "trace_quality": {
+      "status": "PASS",
+      "max_rhat": NaN
+    }
+  },
+  "overall_status": "PASS_WITH_DIVERGENCES"
+}

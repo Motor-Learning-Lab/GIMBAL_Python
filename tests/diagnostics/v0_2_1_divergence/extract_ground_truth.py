@@ -329,7 +329,7 @@ if __name__ == "__main__":
     Test the extraction and transformation functions.
     """
     from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
-    from tests.diagnostics.v0_2_1_divergence.test_utils import build_test_model
+    from test_utils import build_test_model
 
     print("=" * 80)
     print("Testing Ground Truth Parameter Extraction")

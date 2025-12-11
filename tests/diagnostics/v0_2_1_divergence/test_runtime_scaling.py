@@ -1,14 +1,19 @@
 """
-Test Group 8: Runtime Scaling Tests
+Test Group 9: Runtime Scaling Tests
 
-Tests how runtime scales with T (timesteps) and S (states).
+Measures how runtime scales with T (timesteps) and S (HMM states).
 """
 
+import sys
 import time
 from pathlib import Path
 from typing import List, Dict, Any
 
-from tests.diagnostics.v0_2_1_divergence.test_utils import (
+# Add repo root to path
+repo_root = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(repo_root))
+
+from test_utils import (
     get_standard_synth_data,
     build_test_model,
     sample_model,

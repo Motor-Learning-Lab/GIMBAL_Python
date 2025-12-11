@@ -1,0 +1,67 @@
+{
+  "step": 1,
+  "description": "Verify synthetic data generation",
+  "configuration": {
+    "T": 100,
+    "C": 3,
+    "S": 3,
+    "seed": 42
+  },
+  "checks": {
+    "observations_uv": {
+      "has_nan": true,
+      "has_inf": false,
+      "min_value": -4.083791697433075,
+      "max_value": 6.013899181366343,
+      "shape": [
+        3,
+        100,
+        6,
+        2
+      ],
+      "dtype": "float64",
+      "is_valid": true
+    },
+    "camera_matrices": {
+      "has_nan": false,
+      "has_inf": false,
+      "min_value": -1000.0,
+      "max_value": 180.0,
+      "shape": [
+        3,
+        3,
+        4
+      ],
+      "dtype": "float64",
+      "is_valid": true
+    },
+    "joint_positions": {
+      "has_nan": false,
+      "has_inf": false,
+      "min_value": -17.119838503557123,
+      "max_value": 141.769591585811,
+      "shape": [
+        100,
+        6,
+        3
+      ],
+      "dtype": "float64",
+      "is_valid": true
+    },
+    "parents": {
+      "length": 6,
+      "values": [
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "is_valid": true
+    }
+  },
+  "issues": [],
+  "timestamp": "2025-12-10T23:28:38.367919",
+  "status": "PASSED"
+}

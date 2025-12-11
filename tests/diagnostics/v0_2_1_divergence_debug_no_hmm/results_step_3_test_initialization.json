@@ -1,0 +1,47 @@
+{
+  "step": 3,
+  "description": "Test initialization and log probability evaluation",
+  "checks": {
+    "model_build": {
+      "status": "PASS",
+      "message": "Model built successfully"
+    },
+    "initial_point": {
+      "status": "PASS",
+      "n_variables": 16,
+      "variables": [
+        "eta2_root_log__",
+        "rho_log__",
+        "sigma2_log__",
+        "x_root",
+        "raw_u_1",
+        "raw_u_2",
+        "raw_u_3",
+        "raw_u_4",
+        "raw_u_5",
+        "length_1",
+        "length_2",
+        "length_3",
+        "length_4",
+        "length_5",
+        "obs_sigma_log__",
+        "logodds_inlier"
+      ]
+    },
+    "initial_values": {
+      "status": "PASS",
+      "has_nan": false,
+      "has_inf": false
+    },
+    "logp_compilation": {
+      "status": "PASS",
+      "message": "Log probability compiled successfully"
+    },
+    "logp_evaluation": {
+      "status": "PASS",
+      "logp_value": -32499.284941281174,
+      "is_finite": true
+    }
+  },
+  "overall_status": "PASS"
+}

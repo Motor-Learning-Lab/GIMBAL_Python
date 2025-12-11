@@ -19,8 +19,8 @@ repo_root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(repo_root))
 
 from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
-from tests.diagnostics.v0_2_1_divergence.test_utils import build_test_model
-from tests.diagnostics.v0_2_1_divergence.extract_ground_truth import (
+from test_utils import build_test_model
+from extract_ground_truth import (
     extract_complete_ground_truth,
     transform_to_unconstrained_space,
     verify_ground_truth_coverage,
