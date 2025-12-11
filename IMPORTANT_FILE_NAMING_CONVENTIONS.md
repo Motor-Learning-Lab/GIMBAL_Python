@@ -142,6 +142,99 @@ tests/diagnostics/v0_2_1_divergence/
 
 ---
 
+## Best Practices for Diagnostic Plot Generation
+
+When writing tests that generate plots, follow these guidelines:
+
+### Non-Interactive Backend Configuration
+
+Always configure matplotlib to use a non-interactive backend at the start of your test module:
+
+```python
+import matplotlib
+matplotlib.use('Agg')  # Must be set BEFORE importing pyplot
+import matplotlib.pyplot as plt
+```
+
+**Why:** 
+- Prevents the test from hanging waiting for user interaction
+- Allows tests to run unattended in CI/CD or batch modes
+- Necessary for reliable agent handoff and automation
+
+### Plot Cleanup Pattern
+
+After saving every figure, explicitly close it to free memory:
+
+```python
+fig, ax = plt.subplots(figsize=(12, 8))
+# ... plot content ...
+fig.savefig(plot_path, dpi=150, bbox_inches='tight')
+plt.close(fig)  # Critical: prevents memory accumulation
+```
+
+**Why:**
+- Matplotlib keeps figures in memory by default
+- Accumulation can exhaust memory for long-running tests
+- Explicit cleanup ensures deterministic behavior
+
+### Plot Path Management
+
+Organize plot paths using the diagnostic directory structure:
+
+```python
+from pathlib import Path
+
+# Define output directory matching naming conventions
+test_name = "group_1_baseline_no_hmm"
+diagnostic_dir = Path("plots") / test_name
+diagnostic_dir.mkdir(parents=True, exist_ok=True)
+
+# Save with descriptive filenames
+fig.savefig(diagnostic_dir / f"{test_name}_trace.png", dpi=150, bbox_inches="tight")
+```
+
+**Result:** Plots automatically organize by test group with clear naming
+
+### Error Handling for Plot Generation
+
+Wrap plot generation in try-except to prevent test failures from plot issues:
+
+```python
+try:
+    fig, ax = plt.subplots(figsize=(12, 8))
+    # ... plot content ...
+    fig.savefig(plot_path, dpi=150, bbox_inches='tight')
+except Exception as e:
+    print(f"Warning: Plot generation failed: {e}")
+    # Test continues even if visualization fails
+finally:
+    plt.close('all')  # Ensure cleanup happens regardless
+```
+
+**Why:**
+- Visualization is auxiliary to test results
+- Test failure should not depend on plot generation success
+- Allows troubleshooting visualization issues separately
+
+### Embedding Plots in Reports
+
+To include generated plots in markdown reports:
+
+```markdown
+## Diagnostic Visualization
+
+![Trace Plot](plots/group_1_baseline_no_hmm/group_1_baseline_no_hmm_trace.png)
+
+*Figure 1: Posterior trace showing parameter evolution over iterations.*
+```
+
+**File path format:**
+- Use relative paths from the report location to the plot file
+- Include descriptive figure captions
+- Reference specific plot features in accompanying text
+
+---
+
 ## Example: Complete Test Group
 
 For Test Group 1 from `v0.2.1_divergence_test_plan.md`:

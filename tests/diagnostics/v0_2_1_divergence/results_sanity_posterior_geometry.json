@@ -1,0 +1,30 @@
+{
+  "test_group": "sanity",
+  "description": "Posterior geometry diagnostic analysis",
+  "configuration": {
+    "model": "camera_observation",
+    "use_mixture": false,
+    "tune": 500,
+    "draws": 50,
+    "chains": 1,
+    "num_free_variables": 15,
+    "data_shape": {
+      "cameras": 3,
+      "frames": 100,
+      "joints": 6
+    }
+  },
+  "metrics": {
+    "total_samples": 50,
+    "divergences": 50,
+    "divergence_rate_percent": 100.0,
+    "timestamp": "2025-12-11T11:01:18.731577"
+  },
+  "diagnostic_plots": [
+    "sanity_posterior_geometry_trace_key_params.png",
+    "sanity_posterior_geometry_energy.png",
+    "sanity_posterior_geometry_parallel.png",
+    "sanity_posterior_geometry_posterior_scatter.png",
+    "sanity_posterior_geometry_diagnostics_rhat_ess.png"
+  ]
+}

@@ -22,7 +22,7 @@
     "divergence_count": 20,
     "total_samples": 20,
     "divergence_rate": 1.0,
-    "runtime_seconds": 10.806863069534302,
+    "runtime_seconds": 23.18336248397827,
     "ess": {},
     "r_hat": {}
   },
@@ -30,7 +30,7 @@
     "mean_error": NaN,
     "std_error": null
   },
-  "timestamp": "2025-12-11T09:42:11.233282",
+  "timestamp": "2025-12-11T10:19:03.120806",
   "environment": {
     "python_version": "3.11.14"
   }
