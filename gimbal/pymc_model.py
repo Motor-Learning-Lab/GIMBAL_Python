@@ -287,7 +287,9 @@ def _build_camera_observation_model_full(
         - sigma2: (K-1,), bone length variances (Gamma prior, 100% CV)
 
         **Dynamics:**
-        - x_root: (T, 3), root trajectory (GaussianRandomWalk with Gamma-constrained variance)
+        - x0_root: (3,), initial root position (Normal, anchored to DLT estimate)
+        - eps_root: (T-1, 3), root increments (Normal with Gamma-constrained variance)
+        - x_root: (T, 3), root trajectory (Deterministic = x0 + cumsum(eps))
         - raw_u_{k}: (T, 3), raw directional vectors for joint k=1..K-1
         - u_{k}: (T, 3), normalized directional vectors (Deterministic)
         - length_{k}: (T,), bone lengths over time for joint k=1..K-1
@@ -496,9 +498,11 @@ def _build_camera_observation_model_full(
             initval=sigma2_init,
         )
 
-        # --- Root joint (centered GRW with Gamma prior - simpler, more stable) ---
-        # Keep centered parameterization but with informative Gamma prior on eta2
-        # This is simpler than non-centered and works well with Gamma priors
+        # --- Root joint (centered GRW with anchored initial position) ---
+        # CRITICAL: Must anchor x_root[0] to DLT initialization via init_dist
+        # Without this, PyMC defaults to Normal(0, 100) which is catastrophically
+        # wrong when camera coordinates expect root at ~1-2m scale, causing
+        # extreme curvature and 100% divergences.
         # Shape: x_root will be (T, 3)
 
         # Handle NaN values in init_result.x_init by interpolation
@@ -506,9 +510,34 @@ def _build_camera_observation_model_full(
         if np.isnan(x_root_init).any():
             x_root_init = _interpolate_nans(x_root_init)
 
-        # Centered random walk with Gamma-constrained variance
-        x_root = pm.GaussianRandomWalk(
-            "x_root", mu=0, sigma=pt.sqrt(eta2_root), shape=(T, 3), initval=x_root_init
+        # Anchored random walk: initial position centered at DLT estimate
+        # with 1.0m std (weakly informative in world units)
+        # Use a separate RV for x0 to avoid shape issues with init_dist
+        ROOT_ANCHOR_SCALE = 1.0  # meters, reasonable for skeletal tracking
+        x0_root = pm.Normal(
+            "x0_root",
+            mu=x_root_init[0, :],
+            sigma=ROOT_ANCHOR_SCALE,
+            shape=(3,),
+            initval=x_root_init[0, :],
+        )
+
+        # Increments: epsilon[t] ~ Normal(0, sqrt(eta2)) for t=1..T-1
+        eps_root = pm.Normal(
+            "eps_root",
+            mu=0.0,
+            sigma=pt.sqrt(eta2_root),
+            shape=(T - 1, 3),
+            initval=np.diff(x_root_init, axis=0),
+        )
+
+        # Build trajectory: x[t] = x0 + cumsum(eps)
+        x_root = pm.Deterministic(
+            "x_root",
+            pt.concatenate(
+                [x0_root[None, :], x0_root + pt.extra_ops.cumsum(eps_root, axis=0)],
+                axis=0,
+            ),
         )
 
         # --- Directional vectors (Gaussian-normalize parameterization) ---

@@ -27,7 +27,9 @@ This module assumes a FIXED naming scheme matching GIMBAL PyMC models:
 - eta2_root: scalar, root temporal variance
 - rho: (K-1,), mean bone lengths for non-root joints
 - sigma2: (K-1,), bone length variances
-- x_root: (T, 3), root trajectory (GaussianRandomWalk with Gamma prior)
+- x0_root: (3,), initial root position (anchored to DLT estimate)
+- eps_root: (T-1, 3), root increments
+- x_root: (T, 3), root trajectory (Deterministic = x0 + cumsum(eps))
 - u_{k}: (T, 3), directional vectors for joint k=1..K-1
 - length_{k}: (T,), bone lengths over time for joint k=1..K-1
 - obs_sigma: scalar, observation noise
@@ -164,15 +166,31 @@ def build_initial_points_for_nutpie(
         # sigma2 in init_result is already (K-1,) - non-root joints only
         initial_points["sigma2"] = init_result.sigma2.astype(np.float64)
 
-    # 3. Root trajectory (T, 3)
-    if "x_root" in model.named_vars:
+    # 3. Root trajectory (now with anchored initial position)
+    # x0_root: (3,) initial position
+    # eps_root: (T-1, 3) increments
+    if "x0_root" in model.named_vars and "eps_root" in model.named_vars:
         x_root = init_result.x_init[:, 0, :].copy()
-        # Interpolate NaN values (can occur with incomplete triangulation)
+        if np.isnan(x_root).any():
+            x_root = _interpolate_nans(x_root)
+            warnings.warn(
+                f"x_root (for x0/eps init) contained {np.isnan(init_result.x_init[:, 0, :]).sum()} NaN values, "
+                "interpolated for initialization",
+                UserWarning,
+            )
+        # Initial position
+        initial_points["x0_root"] = x_root[0, :].astype(np.float64)
+        # Increments (differences)
+        eps_init = np.diff(x_root, axis=0)  # (T-1, 3)
+        initial_points["eps_root"] = eps_init.astype(np.float64)
+    # Fallback for legacy models with direct x_root
+    elif "x_root" in model.named_vars:
+        x_root = init_result.x_init[:, 0, :].copy()
         if np.isnan(x_root).any():
             x_root = _interpolate_nans(x_root)
             warnings.warn(
                 f"x_root contained {np.isnan(init_result.x_init[:, 0, :]).sum()} NaN values, "
-                "interpolated for initialization",
+                "interpolated for initialization (legacy model)",
                 UserWarning,
             )
         initial_points["x_root"] = x_root.astype(np.float64)

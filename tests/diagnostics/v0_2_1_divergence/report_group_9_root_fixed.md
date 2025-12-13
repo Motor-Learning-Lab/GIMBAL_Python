@@ -1,6 +1,6 @@
 # Test Group 9: Root Random-Walk Funnel Diagnostic
 
-**Generated:** 2025-12-13T12:31:43.057888
+**Generated:** 2025-12-13T13:13:03.056344
 
 ## Purpose
 
@@ -19,20 +19,20 @@ Isolate whether the hierarchical root random walk (RW) structure is a major cont
 ### Baseline: New Base Code (Non-centered Root + Gamma Priors)
 
 - Divergences: 1000/1000 (100.00%)
-- Runtime: 119.1s
+- Runtime: 52.6s
 - Max R-hat: 14462920.057
 
 ### Variant: Fixed Root (DLT-based, No Dynamics)
 
-- Divergences: 0/1000 (0.00%)
-- Runtime: 525.5s
-- Max R-hat: 1.211
+- Divergences: 1/1000 (0.10%)
+- Runtime: 395.9s
+- Max R-hat: 1.897
 
 ## Comparison
 
 - **Divergence reduction factor:** 1000.0×
 - **Baseline divergence rate:** 100.00%
-- **Fixed-root divergence rate:** 0.00%
+- **Fixed-root divergence rate:** 0.10%
 
 ## Interpretation
 
