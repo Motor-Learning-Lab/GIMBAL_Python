@@ -27,7 +27,7 @@ This module assumes a FIXED naming scheme matching GIMBAL PyMC models:
 - eta2_root: scalar, root temporal variance
 - rho: (K-1,), mean bone lengths for non-root joints
 - sigma2: (K-1,), bone length variances
-- x_root: (T, 3), root trajectory
+- x_root: (T, 3), root trajectory (GaussianRandomWalk with Gamma prior)
 - u_{k}: (T, 3), directional vectors for joint k=1..K-1
 - length_{k}: (T,), bone lengths over time for joint k=1..K-1
 - obs_sigma: scalar, observation noise

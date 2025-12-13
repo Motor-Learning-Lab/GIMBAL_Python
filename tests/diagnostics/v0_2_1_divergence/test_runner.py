@@ -31,6 +31,18 @@ from tests.diagnostics.v0_2_1_divergence.test_bone_length_variance import (
 from tests.diagnostics.v0_2_1_divergence.test_runtime_scaling import (
     run_runtime_scaling_tests,
 )
+from tests.diagnostics.v0_2_1_divergence.test_group_9_root_fixed import (
+    run_group_9_root_fixed,
+)
+from tests.diagnostics.v0_2_1_divergence.test_group_10_direct_3d import (
+    run_group_10_direct_3d,
+)
+from tests.diagnostics.v0_2_1_divergence.test_group_11_redundancy_fixed import (
+    run_group_11_redundancy_fixed,
+)
+from tests.diagnostics.v0_2_1_divergence.test_group_11_redundancy_priors import (
+    run_group_11_redundancy_priors,
+)
 from tests.diagnostics.v0_2_1_divergence.report_generator import generate_report
 
 
@@ -150,6 +162,62 @@ def main():
         print(f"[OK] Completed {len(results)} runtime scaling tests")
     except Exception as e:
         print(f"[FAIL] Error in runtime scaling tests: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+    # Test Group 9: Root RW Funnel Diagnostic
+    print("\n" + "=" * 80)
+    print("Test Group 9: Root RW Funnel Diagnostic")
+    print("=" * 80)
+    try:
+        results = run_group_9_root_fixed()
+        all_results.append(results)
+        print(f"[OK] Completed Test Group 9 (Root RW)")
+    except Exception as e:
+        print(f"[FAIL] Error in Test Group 9: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+    # Test Group 10: Camera Likelihood Conditioning
+    print("\n" + "=" * 80)
+    print("Test Group 10: Camera Likelihood Conditioning Diagnostic")
+    print("=" * 80)
+    try:
+        results = run_group_10_direct_3d()
+        all_results.append(results)
+        print(f"[OK] Completed Test Group 10 (Camera Conditioning)")
+    except Exception as e:
+        print(f"[FAIL] Error in Test Group 10: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+    # Test Group 11.1: Parameter Redundancy (Fixed)
+    print("\n" + "=" * 80)
+    print("Test Group 11.1: Parameter Redundancy Diagnostic (Fixed)")
+    print("=" * 80)
+    try:
+        results = run_group_11_redundancy_fixed()
+        all_results.append(results)
+        print(f"[OK] Completed Test Group 11.1 (Redundancy - Fixed)")
+    except Exception as e:
+        print(f"[FAIL] Error in Test Group 11.1: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+    # Test Group 11.2: Parameter Redundancy (Strong Priors)
+    print("\n" + "=" * 80)
+    print("Test Group 11.2: Parameter Redundancy Diagnostic (Strong Priors)")
+    print("=" * 80)
+    try:
+        results = run_group_11_redundancy_priors()
+        all_results.append(results)
+        print(f"[OK] Completed Test Group 11.2 (Redundancy - Strong Priors)")
+    except Exception as e:
+        print(f"[FAIL] Error in Test Group 11.2: {e}")
         import traceback
 
         traceback.print_exc()

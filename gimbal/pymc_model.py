@@ -27,7 +27,9 @@ from .pymc_utils import (
 )
 
 
-def gamma_from_mode_sd(mode: float, sd: float) -> tuple[float, float]:
+def gamma_from_mode_sd(
+    mode: float | np.ndarray, sd: float | np.ndarray
+) -> tuple[float, float] | tuple[np.ndarray, np.ndarray]:
     """
     Convert desired mode and SD of a positive quantity into Gamma(alpha, beta)
     where beta is the rate parameter (1/scale).
@@ -37,49 +39,58 @@ def gamma_from_mode_sd(mode: float, sd: float) -> tuple[float, float]:
 
     Parameters
     ----------
-    mode : float
+    mode : float or array-like
         Desired mode of the Gamma distribution (must be positive)
-    sd : float
+    sd : float or array-like
         Desired standard deviation (must be positive)
 
     Returns
     -------
-    alpha : float
+    alpha : float or ndarray
         Shape parameter of Gamma distribution
-    beta : float
+    beta : float or ndarray
         Rate parameter (1/scale) of Gamma distribution
 
     Raises
     ------
     ValueError
         If mode or sd are not positive
+
+    Notes
+    -----
+    If arrays are provided, operates element-wise.
     """
-    if mode <= 0 or sd <= 0:
+    mode_arr = np.atleast_1d(mode)
+    sd_arr = np.atleast_1d(sd)
+
+    if np.any(mode_arr <= 0) or np.any(sd_arr <= 0):
         raise ValueError("mode and sd for Gamma must be positive")
 
-    import math
-
-    target = (sd**2) / (mode**2)
+    target = (sd_arr**2) / (mode_arr**2)
 
     # Start from alpha = 2 as a reasonable guess
-    alpha = 2.0
+    alpha = np.full_like(target, 2.0)
     for _ in range(20):
         num = alpha
         den = (alpha - 1.0) ** 2
         f = num / den - target  # f(alpha) = alpha / (alpha-1)^2 - target
 
         # Derivative: f'(alpha)
-        df = ((alpha - 1.0)**2 - alpha * 2.0 * (alpha - 1.0)) / (alpha - 1.0)**4
+        df = ((alpha - 1.0) ** 2 - alpha * 2.0 * (alpha - 1.0)) / (alpha - 1.0) ** 4
         # If derivative is tiny, break
-        if abs(df) < 1e-8:
+        converged = np.abs(df) < 1e-8
+        if np.all(converged):
             break
         alpha_new = alpha - f / df
-        if alpha_new <= 1.01:  # keep it > 1
-            alpha_new = 1.01
+        alpha_new = np.maximum(alpha_new, 1.01)  # keep it > 1
         alpha = alpha_new
 
-    beta = (alpha - 1.0) / mode
-    return float(alpha), float(beta)
+    beta = (alpha - 1.0) / mode_arr
+
+    # Return scalar if input was scalar
+    if alpha.size == 1:
+        return float(alpha[0]), float(beta[0])
+    return alpha.astype(np.float64), beta.astype(np.float64)
 
 
 def project_points_pytensor(
@@ -241,13 +252,10 @@ def _build_camera_observation_model_full(
         Image dimensions (width, height) for uniform outlier distribution.
         Required when use_mixture=True.
     prior_hyperparams : dict[str, float], optional
-        Override default prior hyperparameters. Flat dictionary structure:
-        - 'eta2_root_sigma': Root temporal variance prior (default: 0.1)
-        - 'rho_sigma': Bone length prior std (default: 2.0)
-        - 'sigma2_sigma': Bone variance prior std (default: 0.1)
-        - 'obs_sigma_sigma': Observation noise prior std (default: 10.0)
-        - 'inlier_prob_alpha': (DEPRECATED) Use logodds parameterization instead
-        - 'inlier_prob_beta': (DEPRECATED) Use logodds parameterization instead
+        **DEPRECATED.** Hyperparameters are now data-driven from DLT initialization.
+        Prior hyperparameters previously controlled prior widths but are no longer used.
+        The model now uses Gamma priors with mode/SD derived from init_result.
+        Legacy keys (eta2_root_sigma, rho_sigma, sigma2_sigma) are ignored with a warning.
     validate_init_points : bool, default=False
         If True, validate initialization values against model structure
         (shapes, dtypes, finite values). Raises ValueError on mismatch.
@@ -274,12 +282,12 @@ def _build_camera_observation_model_full(
         PyMC model ready for sampling. Contains the following random variables:
 
         **Skeletal parameters:**
-        - eta2_root: scalar, root temporal variance
-        - rho: (K-1,), mean bone lengths for non-root joints
-        - sigma2: (K-1,), bone length variances
+        - eta2_root: scalar, root temporal variance (Gamma prior, 100% CV)
+        - rho: (K-1,), mean bone lengths for non-root joints (Gamma prior, 100% CV)
+        - sigma2: (K-1,), bone length variances (Gamma prior, 100% CV)
 
         **Dynamics:**
-        - x_root: (T, 3), root trajectory (GaussianRandomWalk)
+        - x_root: (T, 3), root trajectory (GaussianRandomWalk with Gamma-constrained variance)
         - raw_u_{k}: (T, 3), raw directional vectors for joint k=1..K-1
         - u_{k}: (T, 3), normalized directional vectors (Deterministic)
         - length_{k}: (T,), bone lengths over time for joint k=1..K-1
@@ -379,20 +387,31 @@ def _build_camera_observation_model_full(
         )
 
     # Define known hyperparameters and kwargs
+    # NOTE: Skeletal variance priors (eta2_root, rho, sigma2) are now data-driven
+    # from DLT initialization. Only observation noise parameters remain configurable.
     KNOWN_HYPERPARAMS = {
-        "eta2_root_sigma",
-        "rho_sigma",
-        "sigma2_sigma",
+        "eta2_root_sigma",  # DEPRECATED: ignored with warning
+        "rho_sigma",  # DEPRECATED: ignored with warning
+        "sigma2_sigma",  # DEPRECATED: ignored with warning
         "obs_sigma_sigma",  # Kept for backward compatibility
-        "obs_sigma_mode",    # New: mode in pixels
-        "obs_sigma_sd",      # New: SD in pixels
+        "obs_sigma_mode",  # Mode for observation noise Gamma prior
+        "obs_sigma_sd",  # SD for observation noise Gamma prior
         "inlier_prob_alpha",  # DEPRECATED: kept for backward compatibility
-        "inlier_prob_beta",   # DEPRECATED: kept for backward compatibility
+        "inlier_prob_beta",  # DEPRECATED: kept for backward compatibility
     }
     KNOWN_KWARGS = {"sigma_dir"}
 
-    # Check for unrecognized hyperparameters
+    # Warn about deprecated skeletal variance hyperparameters
     if prior_hyperparams is not None:
+        deprecated_skeletal = {"eta2_root_sigma", "rho_sigma", "sigma2_sigma"}
+        used_deprecated = deprecated_skeletal & set(prior_hyperparams.keys())
+        if used_deprecated:
+            warnings.warn(
+                f"Skeletal variance hyperparameters {used_deprecated} are deprecated and ignored. "
+                f"Priors are now data-driven from DLT initialization with 50% CV.",
+                DeprecationWarning,
+            )
+
         unknown_hyperparams = set(prior_hyperparams.keys()) - KNOWN_HYPERPARAMS
         if unknown_hyperparams:
             warnings.warn(
@@ -410,18 +429,15 @@ def _build_camera_observation_model_full(
             UserWarning,
         )
 
-    # Merge defaults with user-provided hyperparameters
+    # Merge defaults with user-provided hyperparameters (only for obs_sigma)
     default_hyperparams = {
-        "eta2_root_sigma": 0.1,
-        "rho_sigma": 2.0,
-        "sigma2_sigma": 0.1,
-        "obs_sigma_mode": 1.0,   # New: mode in pixels (tune later)
-        "obs_sigma_sd": 0.5,     # New: SD in pixels (tune later)
+        "obs_sigma_mode": 1.0,  # Mode in pixels (tune later)
+        "obs_sigma_sd": 0.5,  # SD in pixels (tune later)
     }
     hyperparams = {**default_hyperparams, **(prior_hyperparams or {})}
-    
+
     # Backward compatibility: if obs_sigma_sigma is provided, ignore mode/sd
-    if "obs_sigma_sigma" in hyperparams:
+    if prior_hyperparams and "obs_sigma_sigma" in prior_hyperparams:
         warnings.warn(
             "obs_sigma_sigma is deprecated. Use obs_sigma_mode and obs_sigma_sd instead. "
             "Falling back to HalfNormal prior.",
@@ -442,27 +458,55 @@ def _build_camera_observation_model_full(
     model = pm.modelcontext(None)
 
     with model:
-        # --- Skeletal parameters (with configurable priors) ---
-        eta2_root = pm.HalfNormal(
-            "eta2_root", sigma=hyperparams["eta2_root_sigma"], initval=eta2_init[0]
+        # --- Skeletal parameters (with Gamma priors for variance parameters) ---
+        # Use Gamma priors derived from DLT initialization to prevent funneling
+        # Floor constraints: mode >= 0.01 for reasonable physical scales
+        # Relaxed coefficient of variation (100% CV) for more flexibility
+
+        # Root temporal variance: data-driven Gamma prior with 100% CV
+        eta2_root_mode = max(0.01, float(eta2_init[0]))
+        eta2_root_sd = eta2_root_mode * 1.0  # 100% coefficient of variation (relaxed)
+        alpha_eta2_root, beta_eta2_root = gamma_from_mode_sd(
+            eta2_root_mode, eta2_root_sd
         )
-        rho = pm.HalfNormal(
-            "rho", sigma=hyperparams["rho_sigma"], shape=K - 1, initval=rho_init
+        eta2_root = pm.Gamma(
+            "eta2_root",
+            alpha=alpha_eta2_root,
+            beta=beta_eta2_root,
+            initval=eta2_init[0],
         )
-        sigma2 = pm.HalfNormal(
+
+        # Bone length scales: data-driven Gamma priors with 100% CV
+        rho_mode = np.maximum(0.01, rho_init)
+        rho_sd = rho_mode * 1.0
+        alpha_rho, beta_rho = gamma_from_mode_sd(rho_mode, rho_sd)
+        rho = pm.Gamma(
+            "rho", alpha=alpha_rho, beta=beta_rho, shape=K - 1, initval=rho_init
+        )
+
+        # Direction variances: data-driven Gamma priors with 100% CV
+        sigma2_mode = np.maximum(0.01, sigma2_init)
+        sigma2_sd = sigma2_mode * 1.0
+        alpha_sigma2, beta_sigma2 = gamma_from_mode_sd(sigma2_mode, sigma2_sd)
+        sigma2 = pm.Gamma(
             "sigma2",
-            sigma=hyperparams["sigma2_sigma"],
+            alpha=alpha_sigma2,
+            beta=beta_sigma2,
             shape=K - 1,
             initval=sigma2_init,
         )
 
-        # --- Root joint (initialized from triangulated positions) ---
+        # --- Root joint (centered GRW with Gamma prior - simpler, more stable) ---
+        # Keep centered parameterization but with informative Gamma prior on eta2
+        # This is simpler than non-centered and works well with Gamma priors
         # Shape: x_root will be (T, 3)
+
         # Handle NaN values in init_result.x_init by interpolation
         x_root_init = init_result.x_init[:, 0, :].copy()  # (T, 3)
         if np.isnan(x_root_init).any():
             x_root_init = _interpolate_nans(x_root_init)
 
+        # Centered random walk with Gamma-constrained variance
         x_root = pm.GaussianRandomWalk(
             "x_root", mu=0, sigma=pt.sqrt(eta2_root), shape=(T, 3), initval=x_root_init
         )
@@ -526,10 +570,14 @@ def _build_camera_observation_model_full(
 
         # --- Observation likelihood ---
         # Use Gamma prior for obs_sigma (or HalfNormal for backward compatibility)
-        if "obs_sigma_sigma" in hyperparams and "obs_sigma_sigma" in (prior_hyperparams or {}):
+        if "obs_sigma_sigma" in hyperparams and "obs_sigma_sigma" in (
+            prior_hyperparams or {}
+        ):
             # Backward compatibility: use HalfNormal if explicitly provided
             obs_sigma = pm.HalfNormal(
-                "obs_sigma", sigma=hyperparams["obs_sigma_sigma"], initval=obs_sigma_init
+                "obs_sigma",
+                sigma=hyperparams["obs_sigma_sigma"],
+                initval=obs_sigma_init,
             )
         else:
             # New approach: Gamma prior with mode/SD
