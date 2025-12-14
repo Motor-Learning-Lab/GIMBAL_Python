@@ -9,7 +9,7 @@ Configuration:
     - Baseline: Full camera likelihood (2D projections with Gaussian noise)
     - Variant: Direct 3D likelihood (Gaussian on 3D positions with tau_3d=0.02m)
     - T = 100, C = 3, S = 3
-    - draws = 200, tune = 200, chains = 1
+    - draws = 500, tune = 500, chains = 2
     - seed = 42
 
 Expected outcomes:
@@ -20,12 +20,12 @@ Expected outcomes:
 Reference: plans/v0.2.1_divergence_plan_2.md, Issue #2, Test Group 10
 
 Implementation Checklist:
-* [x] File path: tests/diagnostics/v0_2_1_divergence/test_group_10_direct_3d.py
-* [x] Results file: tests/diagnostics/v0_2_1_divergence/results_group_10_direct_3d.json
-* [x] Report file: tests/diagnostics/v0_2_1_divergence/report_group_10_direct_3d.md
+* [x] File path: tests/diagnostics/v0_2_1_divergence/test_tg10_i2_direct_3d.py
+* [x] Results file: tests/diagnostics/v0_2_1_divergence/results_tg10_i2_direct_3d.json
+* [x] Report file: tests/diagnostics/v0_2_1_divergence/report_tg10_i2_direct_3d.md
 * [x] Uses test_utils.get_standard_synth_data(T=100, C=3, S=3, seed=42)
 * [x] Uses DLT initialization via gimbal.fit_params.initialize_from_observations_dlt
-* [x] Sampler via test_utils.sample_model(model, draws=200, tune=200, chains=1)
+* [x] Sampler via test_utils.sample_model(model, draws=500, tune=500, chains=2)
 * [x] Baseline uses test_utils.build_test_model(..., use_directional_hmm=False)
 * [x] Variant replaces camera likelihood with direct 3D Gaussian (tau_3d=0.02)
 * [x] Uses x_true = synth_data["joint_positions"] with shape (T, K, 3)
@@ -298,7 +298,7 @@ def run_variant_direct_3d(
     }
 
 
-def run_group_10_direct_3d() -> Dict[str, Any]:
+def run_tg10_i2_direct_3d() -> Dict[str, Any]:
     """
     Run Test Group 10: Camera likelihood conditioning diagnostic.
 
@@ -318,9 +318,9 @@ def run_group_10_direct_3d() -> Dict[str, Any]:
         "T": 100,
         "C": 3,
         "S": 3,
-        "draws": 200,
-        "tune": 200,
-        "chains": 1,
+        "draws": 500,
+        "tune": 500,
+        "chains": 2,
         "seed": 42,
         "tau_3d": 0.02,  # 2 cm, as specified in plan
         "eta2_root_sigma": 0.5,
@@ -378,7 +378,7 @@ def run_group_10_direct_3d() -> Dict[str, Any]:
     }
 
     # Save results
-    results_path = Path(__file__).parent / "results_group_10_direct_3d.json"
+    results_path = Path(__file__).parent / "results_tg10_i2_direct_3d.json"
     with open(results_path, "w") as f:
         results_serializable = {k: v for k, v in results.items()}
         json.dump(results_serializable, f, indent=2)
@@ -392,7 +392,7 @@ def run_group_10_direct_3d() -> Dict[str, Any]:
 
 def generate_report(results: Dict[str, Any]):
     """Generate markdown report for Test Group 10."""
-    report_path = Path(__file__).parent / "report_group_10_direct_3d.md"
+    report_path = Path(__file__).parent / "report_tg10_i2_direct_3d.md"
 
     camera_metrics = results["variants"]["camera"]["metrics"]
     direct_3d_metrics = results["variants"]["direct_3d"]["metrics"]
@@ -490,7 +490,7 @@ if __name__ == "__main__":
     # Fix Windows OpenMP conflict
     os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-    results = run_group_10_direct_3d()
+    results = run_tg10_i2_direct_3d()
     print("\n" + "=" * 70)
     print("Test Group 10 Complete")
     print("=" * 70)

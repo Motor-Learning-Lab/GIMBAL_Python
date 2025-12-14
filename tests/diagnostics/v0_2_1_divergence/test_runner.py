@@ -31,17 +31,17 @@ from tests.diagnostics.v0_2_1_divergence.test_bone_length_variance import (
 from tests.diagnostics.v0_2_1_divergence.test_runtime_scaling import (
     run_runtime_scaling_tests,
 )
-from tests.diagnostics.v0_2_1_divergence.test_group_9_root_fixed import (
-    run_group_9_root_fixed,
+from tests.diagnostics.v0_2_1_divergence.test_tg09_i1_root_fixed import (
+    run_tg09_i1_root_fixed,
 )
-from tests.diagnostics.v0_2_1_divergence.test_group_10_direct_3d import (
-    run_group_10_direct_3d,
+from tests.diagnostics.v0_2_1_divergence.test_tg10_i2_direct_3d import (
+    run_tg10_i2_direct_3d,
 )
-from tests.diagnostics.v0_2_1_divergence.test_group_11_redundancy_fixed import (
-    run_group_11_redundancy_fixed,
+from tests.diagnostics.v0_2_1_divergence.test_tg11a_i3_redundancy_fixed import (
+    run_tg11a_i3_redundancy_fixed,
 )
-from tests.diagnostics.v0_2_1_divergence.test_group_11_redundancy_priors import (
-    run_group_11_redundancy_priors,
+from tests.diagnostics.v0_2_1_divergence.test_tg11b_i3_redundancy_priors import (
+    run_tg11b_i3_redundancy_priors,
 )
 from tests.diagnostics.v0_2_1_divergence.report_generator import generate_report
 
@@ -171,7 +171,7 @@ def main():
     print("Test Group 9: Root RW Funnel Diagnostic")
     print("=" * 80)
     try:
-        results = run_group_9_root_fixed()
+        results = run_tg09_i1_root_fixed()
         all_results.append(results)
         print(f"[OK] Completed Test Group 9 (Root RW)")
     except Exception as e:
@@ -185,7 +185,7 @@ def main():
     print("Test Group 10: Camera Likelihood Conditioning Diagnostic")
     print("=" * 80)
     try:
-        results = run_group_10_direct_3d()
+        results = run_tg10_i2_direct_3d()
         all_results.append(results)
         print(f"[OK] Completed Test Group 10 (Camera Conditioning)")
     except Exception as e:
@@ -199,7 +199,7 @@ def main():
     print("Test Group 11.1: Parameter Redundancy Diagnostic (Fixed)")
     print("=" * 80)
     try:
-        results = run_group_11_redundancy_fixed()
+        results = run_tg11a_i3_redundancy_fixed()
         all_results.append(results)
         print(f"[OK] Completed Test Group 11.1 (Redundancy - Fixed)")
     except Exception as e:
@@ -213,7 +213,7 @@ def main():
     print("Test Group 11.2: Parameter Redundancy Diagnostic (Strong Priors)")
     print("=" * 80)
     try:
-        results = run_group_11_redundancy_priors()
+        results = run_tg11b_i3_redundancy_priors()
         all_results.append(results)
         print(f"[OK] Completed Test Group 11.2 (Redundancy - Strong Priors)")
     except Exception as e:

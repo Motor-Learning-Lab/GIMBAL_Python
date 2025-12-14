@@ -1,32 +1,36 @@
 """
-Test Group 9: Root Random-Walk Funnel Diagnostic
+Test Group 11.1: Parameter Redundancy Diagnostic (Fixed Directions/Lengths)
 
 Purpose:
-    Isolate whether the hierarchical root random walk (RW) structure is a major
-    contributor to sampling divergences.
+    Isolate whether redundant degrees of freedom (root motion vs directions vs
+    bone lengths) significantly worsen posterior geometry by hard-fixing
+    directions and lengths to ground truth.
 
 Configuration:
-    - Baseline: Full hierarchical RW with free sigma_root (centered parameterization)
-    - Variant: Fixed root trajectory using DLT initialization (no sigma_root, no RW)
+    - Baseline: Full model (root RW + free directions + free lengths)
+    - Variant: Fixed directions and lengths to ground truth (only root RW free)
     - T = 100, C = 3, S = 3
     - draws = 200, tune = 200, chains = 1
     - seed = 42
 
 Expected outcomes:
-    - If divergences drop substantially in variant → root RW hierarchy is major contributor
-    - If divergences persist → other issues (camera conditioning, redundancy) dominate
+    - Substantial divergence reduction when directions/lengths fixed → redundancy
+      between root, directions, and lengths is a major contributor
+    - Little change → redundancy is not dominant; focus on Issues #1 and #2
 
-Reference: plans/v0.2.1_divergence_plan_2.md, Issue #1, Test Group 9
+Reference: plans/v0.2.1_divergence_plan_2.md, Issue #3, Test Group 11.1
 
 Implementation Checklist:
-* [x] File path: tests/diagnostics/v0_2_1_divergence/test_group_9_root_fixed.py
-* [x] Results file: tests/diagnostics/v0_2_1_divergence/results_group_9_root_fixed.json
-* [x] Report file: tests/diagnostics/v0_2_1_divergence/report_group_9_root_fixed.md
+* [x] File path: tests/diagnostics/v0_2_1_divergence/test_tg11a_i3_redundancy_fixed.py
+* [x] Results file: tests/diagnostics/v0_2_1_divergence/results_tg11a_i3_redundancy_fixed.json
+* [x] Report file: tests/diagnostics/v0_2_1_divergence/report_tg11a_i3_redundancy_fixed.md
 * [x] Uses test_utils.get_standard_synth_data(T=100, C=3, S=3, seed=42)
 * [x] Uses DLT initialization via gimbal.fit_params.initialize_from_observations_dlt
-* [x] Sampler via test_utils.sample_model(model, draws=200, tune=200, chains=1)
+* [x] Sampler via test_utils.sample_model(model, draws=500, tune=500, chains=2)
 * [x] Baseline uses test_utils.build_test_model(..., use_directional_hmm=False)
-* [x] Variant replaces root RW with pm.Data using DLT initialization
+* [x] Variant fixes u_all and lengths using GT-derived values
+* [x] Computes u_true from ground-truth joint positions and parents
+* [x] Uses lengths_true = synth_data["bone_lengths"]
 * [x] No changes to gimbal/pymc_model.py
 * [x] Writes JSON metrics and markdown report; does not claim issue is "solved"
 """
@@ -56,31 +60,66 @@ from test_utils import (
 import gimbal
 
 
-def build_test_model_root_fixed(
+def compute_ground_truth_directions(
+    x_true: np.ndarray,
+    parents: np.ndarray,
+) -> np.ndarray:
+    """
+    Compute ground-truth directional vectors from joint positions.
+
+    Parameters
+    ----------
+    x_true : ndarray, shape (T, K, 3)
+        Ground-truth 3D joint positions
+    parents : ndarray, shape (K,)
+        Parent indices for each joint (root has parent -1)
+
+    Returns
+    -------
+    u_true : ndarray, shape (T, K, 3)
+        Ground-truth directional unit vectors
+    """
+    T, K, _ = x_true.shape
+    u_true = np.zeros_like(x_true)
+
+    for k in range(K):
+        p = int(parents[k])
+        if p < 0:
+            # Root joint - no parent, leave as zeros
+            continue
+
+        # Vector from parent to child
+        v = x_true[:, k, :] - x_true[:, p, :]
+
+        # Normalize to unit vector
+        norms = np.linalg.norm(v, axis=-1, keepdims=True)
+        u_true[:, k, :] = v / (norms + 1e-12)
+
+    return u_true
+
+
+def build_test_model_fixed_redundancy(
     synth_data: Dict[str, Any],
     eta2_root_sigma: float = 0.5,
-    sigma2_sigma: float = 0.2,
 ) -> pm.Model:
     """
-    Build PyMC model with fixed root trajectory (no hierarchical RW).
+    Build PyMC model with fixed directions and lengths (only root RW free).
 
-    This variant removes the root RW by fixing x_root to DLT initialization,
-    keeping all other model components (directions, lengths, camera likelihood)
-    identical to the baseline.
+    This variant removes redundant degrees of freedom by fixing directional
+    vectors and bone lengths to ground truth, keeping only the root random walk
+    and camera likelihood.
 
     Parameters
     ----------
     synth_data : dict
         Synthetic data dictionary
     eta2_root_sigma : float
-        Not used in this variant (kept for signature compatibility)
-    sigma2_sigma : float
-        Bone length variance hyperparameter
+        Root variance hyperparameter
 
     Returns
     -------
     pm.Model
-        PyMC model with fixed root trajectory
+        PyMC model with fixed directions and lengths
     """
     # Initialize from observations using DLT
     init_result = gimbal.fit_params.initialize_from_observations_dlt(
@@ -89,74 +128,59 @@ def build_test_model_root_fixed(
         parents=synth_data["parents"],
     )
 
-    # Extract dimensions
-    T, K, _ = synth_data["joint_positions"].shape
+    # Extract dimensions and ground truth
+    x_true = synth_data["joint_positions"]  # (T, K, 3)
+    T, K, _ = x_true.shape
     C = synth_data["camera_matrices"].shape[0]
 
-    # Build model manually to replace root RW
+    # Compute ground-truth directions
+    u_true = compute_ground_truth_directions(x_true, synth_data["parents"])
+
+    # Ground-truth bone lengths
+    lengths_true = synth_data["bone_lengths"]  # (K,) static reference lengths
+
+    # Build model with fixed directions and lengths
     with pm.Model() as model:
         # =====================================================================
-        # FIXED ROOT (replaces hierarchical RW)
+        # Root dynamics (same as baseline)
         # =====================================================================
-        x_root = pm.Data("x_root", init_result.x_init[:, 0, :])  # (T, 3)
-
-        # =====================================================================
-        # Bone lengths (same as baseline)
-        # =====================================================================
-        # Prior on bone length means
-        rho = pm.Normal(
-            "rho",
-            mu=init_result.rho,
-            sigma=2.0,
-            shape=(K - 1,),
-            initval=init_result.rho,
+        eta2_root = pm.HalfNormal(
+            "eta2_root",
+            sigma=eta2_root_sigma,
+            initval=init_result.eta2[0],
         )
 
-        # Prior on bone length variance
-        sigma2 = pm.HalfNormal(
-            "sigma2",
-            sigma=sigma2_sigma,
-            shape=(K - 1,),
-            initval=init_result.sigma2,
+        x_root = pm.GaussianRandomWalk(
+            "x_root",
+            mu=0.0,
+            sigma=pt.sqrt(eta2_root),
+            shape=(T, 3),
+            initval=init_result.x_init[:, 0, :],
         )
 
         # =====================================================================
-        # Directional vectors and joint positions (same as baseline)
+        # FIXED DIRECTIONS AND LENGTHS (replaces stochastic priors)
+        # =====================================================================
+        u_all = pm.Data("u_all", u_true)  # (T, K, 3) fixed directions
+        lengths = pm.Data("lengths", lengths_true)  # (K,) fixed bone lengths
+
+        # =====================================================================
+        # Joint positions (deterministic from fixed components)
         # =====================================================================
         x_all_list = [x_root]
-        u_list = []
 
         for k in range(1, K):
             parent = int(synth_data["parents"][k])
 
-            # Raw directional vector
-            raw_u_k = pm.Normal(
-                f"raw_u_{k}",
-                mu=0.0,
-                sigma=1.0,
-                shape=(T, 3),
-                initval=init_result.u_init[:, k, :],
-            )
-
-            # Normalize to unit sphere
-            norm_u_k = pt.sqrt((raw_u_k**2).sum(axis=-1, keepdims=True) + 1e-8)
-            u_k = pm.Deterministic(f"u_{k}", raw_u_k / norm_u_k)
-            u_list.append(u_k)
-
-            # Bone length at each timestep
-            length_k = pm.Normal(
-                f"length_{k}",
-                mu=rho[k - 1],
-                sigma=pt.sqrt(sigma2[k - 1]),
-                shape=(T,),
-                initval=np.full(T, init_result.rho[k - 1]),
-            )
+            # Extract fixed direction and length for this joint
+            u_k = u_all[:, k, :]  # (T, 3)
+            length_k_scalar = lengths[k]  # scalar
 
             # Joint position: parent + direction * length
             x_parent = x_all_list[parent]
             x_k = pm.Deterministic(
                 f"x_{k}",
-                x_parent + u_k * length_k[:, None],
+                x_parent + u_k * length_k_scalar,
             )
             x_all_list.append(x_k)
 
@@ -166,11 +190,7 @@ def build_test_model_root_fixed(
         # =====================================================================
         # Camera projection (same as baseline)
         # =====================================================================
-        # Project 3D points to 2D
         proj_param = synth_data["camera_matrices"]  # (C, 3, 4)
-
-        # Expand x_all to (C, T, K, 3) for broadcasting
-        x_all_expanded = x_all.dimshuffle("x", 0, 1, 2)  # (1, T, K, 3) -> (C, T, K, 3)
 
         # Apply projection for each camera
         y_pred_list = []
@@ -200,7 +220,6 @@ def build_test_model_root_fixed(
             initval=init_result.obs_sigma,
         )
 
-        # Gaussian likelihood on observed 2D keypoints
         pm.Normal(
             "y_obs",
             mu=y_pred,
@@ -214,9 +233,9 @@ def build_test_model_root_fixed(
 def run_variant_baseline(
     synth_data: Dict[str, Any], config: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Run baseline variant with hierarchical root RW."""
+    """Run baseline variant with free directions and lengths."""
     print("\n" + "-" * 70)
-    print("Baseline Variant: Hierarchical Root RW")
+    print("Baseline Variant: Free Directions and Lengths")
     print("-" * 70)
 
     # Build model
@@ -249,38 +268,35 @@ def run_variant_baseline(
     )
 
     # Save diagnostic plots
-    plots_dir = Path(__file__).parent / "plots" / "group_9"
+    plots_dir = Path(__file__).parent / "plots" / "group_11"
     save_diagnostic_plots(
         trace,
-        "group_9_baseline",
+        "group_11_baseline_free",
         plots_dir,
         plot_parallel=False,
         plot_pair=False,
     )
 
     return {
-        "variant": "baseline_hierarchical_rw",
+        "variant": "baseline_free_params",
         "metrics": metrics,
         "trace": trace,
     }
 
 
-def run_variant_root_fixed(
+def run_variant_fixed(
     synth_data: Dict[str, Any], config: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Run variant with fixed root trajectory (DLT-based)."""
+    """Run variant with fixed directions and lengths."""
     print("\n" + "-" * 70)
-    print("Diagnostic Variant: Fixed Root (DLT-based)")
+    print("Diagnostic Variant: Fixed Directions and Lengths (GT)")
     print("-" * 70)
 
-    # Build model with fixed root
-    print("Building model with fixed root...")
-    model = build_test_model_root_fixed(
+    # Build model with fixed directions/lengths
+    print("Building model with fixed directions and lengths...")
+    model = build_test_model_fixed_redundancy(
         synth_data,
-        eta2_root_sigma=config[
-            "eta2_root_sigma"
-        ],  # Not used, but kept for compatibility
-        sigma2_sigma=config["sigma2_sigma"],
+        eta2_root_sigma=config["eta2_root_sigma"],
     )
     print(f"  [OK] Model has {len(model.free_RVs)} free RVs")
 
@@ -303,25 +319,25 @@ def run_variant_root_fixed(
     )
 
     # Save diagnostic plots
-    plots_dir = Path(__file__).parent / "plots" / "group_9"
+    plots_dir = Path(__file__).parent / "plots" / "group_11"
     save_diagnostic_plots(
         trace,
-        "group_9_root_fixed",
+        "group_11_fixed_redundancy",
         plots_dir,
         plot_parallel=False,
         plot_pair=False,
     )
 
     return {
-        "variant": "root_fixed_dlt",
+        "variant": "fixed_directions_lengths",
         "metrics": metrics,
         "trace": trace,
     }
 
 
-def run_group_9_root_fixed() -> Dict[str, Any]:
+def run_tg11a_i3_redundancy_fixed() -> Dict[str, Any]:
     """
-    Run Test Group 9: Root RW Funnel diagnostic.
+    Run Test Group 11.1: Parameter redundancy diagnostic (fixed).
 
     Returns
     -------
@@ -329,22 +345,22 @@ def run_group_9_root_fixed() -> Dict[str, Any]:
         Complete test results including both variants
     """
     print("\n" + "=" * 70)
-    print("Test Group 9: Root Random-Walk Funnel Diagnostic")
+    print("Test Group 11.1: Parameter Redundancy Diagnostic (Fixed)")
     print("=" * 70)
 
-    # Configuration (stricter parameters post-fix validation)
+    # Configuration (from plan specification)
     config = {
-        "test_group": 9,
-        "description": "Root RW funnel diagnostic (new baseline with Gamma priors vs fixed root)",
+        "test_group": 11.1,
+        "description": "Parameter redundancy (baseline vs fixed directions/lengths)",
         "T": 100,
         "C": 3,
         "S": 3,
-        "draws": 500,  # Increased from 200 for more robust convergence
-        "tune": 500,  # Increased from 200
-        "chains": 2,  # Increased from 1 for R-hat convergence checks
+        "draws": 500,
+        "tune": 500,
+        "chains": 2,
         "seed": 42,
-        "eta2_root_sigma": 0.5,  # NOTE: Now unused (data-driven Gamma priors in base code)
-        "sigma2_sigma": 0.2,  # NOTE: Now unused (data-driven Gamma priors in base code)
+        "eta2_root_sigma": 0.5,
+        "sigma2_sigma": 0.2,
     }
 
     print(f"\nConfiguration:")
@@ -366,7 +382,7 @@ def run_group_9_root_fixed() -> Dict[str, Any]:
 
     # Run both variants
     results_baseline = run_variant_baseline(synth_data, config)
-    results_fixed = run_variant_root_fixed(synth_data, config)
+    results_fixed = run_variant_fixed(synth_data, config)
 
     # Compile results
     results = {
@@ -376,20 +392,18 @@ def run_group_9_root_fixed() -> Dict[str, Any]:
         "configuration": config,
         "variants": {
             "baseline": {
-                "description": "Hierarchical root RW with free sigma_root",
+                "description": "Full model (root RW + free directions + free lengths)",
                 "metrics": results_baseline["metrics"],
             },
-            "root_fixed": {
-                "description": "Fixed root trajectory (DLT initialization)",
+            "fixed": {
+                "description": "Fixed directions and lengths to ground truth",
                 "metrics": results_fixed["metrics"],
             },
         },
         "comparison": {
             "divergence_reduction_factor": (
                 results_baseline["metrics"]["divergences"]
-                / max(
-                    results_fixed["metrics"]["divergences"], 1
-                )  # Avoid division by zero
+                / max(results_fixed["metrics"]["divergences"], 1)
             ),
             "divergence_rate_baseline": results_baseline["metrics"]["divergence_rate"],
             "divergence_rate_fixed": results_fixed["metrics"]["divergence_rate"],
@@ -397,9 +411,8 @@ def run_group_9_root_fixed() -> Dict[str, Any]:
     }
 
     # Save results
-    results_path = Path(__file__).parent / "results_group_9_root_fixed.json"
+    results_path = Path(__file__).parent / "results_tg11a_i3_redundancy_fixed.json"
     with open(results_path, "w") as f:
-        # Convert to serializable format (exclude trace objects)
         results_serializable = {k: v for k, v in results.items()}
         json.dump(results_serializable, f, indent=2)
     print(f"\n[OK] Results saved to: {results_path}")
@@ -411,54 +424,42 @@ def run_group_9_root_fixed() -> Dict[str, Any]:
 
 
 def generate_report(results: Dict[str, Any]):
-    """Generate markdown report for Test Group 9."""
-    report_path = Path(__file__).parent / "report_group_9_root_fixed.md"
+    """Generate markdown report for Test Group 11.1."""
+    report_path = Path(__file__).parent / "report_tg11a_i3_redundancy_fixed.md"
 
     baseline_metrics = results["variants"]["baseline"]["metrics"]
-    fixed_metrics = results["variants"]["root_fixed"]["metrics"]
+    fixed_metrics = results["variants"]["fixed"]["metrics"]
     comparison = results["comparison"]
 
     with open(report_path, "w", encoding="utf-8") as f:
-        f.write("# Test Group 9: Root Random-Walk Funnel Diagnostic\n\n")
+        f.write("# Test Group 11.1: Parameter Redundancy Diagnostic (Fixed)\n\n")
         f.write(f"**Generated:** {results['timestamp']}\n\n")
 
         f.write("## Purpose\n\n")
         f.write(
-            "Isolate whether the hierarchical root random walk (RW) structure is a major contributor to sampling divergences.\n\n"
+            "Isolate whether redundant degrees of freedom (root motion vs directions vs bone lengths) significantly worsen posterior geometry.\n\n"
         )
 
         f.write("## Configuration\n\n")
         f.write(f"- T = {results['configuration']['T']}\n")
         f.write(f"- C = {results['configuration']['C']}\n")
         f.write(
-            f"- draws = {results['configuration']['draws']}, tune = {results['configuration']['tune']}, chains = {results['configuration']['chains']}\n"
+            f"- draws = {results['configuration']['draws']}, tune = {results['configuration']['tune']}\n"
         )
-        f.write(f"- seed = {results['configuration']['seed']}\n")
-        f.write(
-            f"- **NOTE:** Base code now uses data-driven Gamma priors (50% CV) and non-centered root parameterization\n\n"
-        )
+        f.write(f"- seed = {results['configuration']['seed']}\n\n")
 
         f.write("## Results\n\n")
-        f.write("### Baseline: New Base Code (Non-centered Root + Gamma Priors)\n\n")
+        f.write("### Baseline: Free Directions and Lengths\n\n")
         f.write(
             f"- Divergences: {baseline_metrics['divergences']}/{baseline_metrics['total_samples']} ({baseline_metrics['divergence_rate']:.2%})\n"
         )
-        f.write(f"- Runtime: {baseline_metrics['runtime_seconds']:.1f}s\n")
-        # R-hat convergence
-        if baseline_metrics["rhat_max"]:
-            max_rhat = max(baseline_metrics["rhat_max"].values())
-            f.write(f"- Max R-hat: {max_rhat:.3f}\n")
-        f.write("\n")
+        f.write(f"- Runtime: {baseline_metrics['runtime_seconds']:.1f}s\n\n")
 
-        f.write("### Variant: Fixed Root (DLT-based, No Dynamics)\n\n")
+        f.write("### Variant: Fixed Directions and Lengths (GT)\n\n")
         f.write(
             f"- Divergences: {fixed_metrics['divergences']}/{fixed_metrics['total_samples']} ({fixed_metrics['divergence_rate']:.2%})\n"
         )
-        f.write(f"- Runtime: {fixed_metrics['runtime_seconds']:.1f}s\n")
-        if fixed_metrics["rhat_max"]:
-            max_rhat = max(fixed_metrics["rhat_max"].values())
-            f.write(f"- Max R-hat: {max_rhat:.3f}\n")
-        f.write("\n")
+        f.write(f"- Runtime: {fixed_metrics['runtime_seconds']:.1f}s\n\n")
 
         f.write("## Comparison\n\n")
         f.write(
@@ -468,49 +469,40 @@ def generate_report(results: Dict[str, Any]):
             f"- **Baseline divergence rate:** {comparison['divergence_rate_baseline']:.2%}\n"
         )
         f.write(
-            f"- **Fixed-root divergence rate:** {comparison['divergence_rate_fixed']:.2%}\n\n"
+            f"- **Fixed divergence rate:** {comparison['divergence_rate_fixed']:.2%}\n\n"
         )
 
         f.write("## Interpretation\n\n")
 
-        # Check baseline health (should be <1% with fixed base code)
-        baseline_healthy = baseline_metrics["divergence_rate"] < 0.01
-
-        if baseline_healthy:
+        # Interpretation logic
+        if comparison["divergence_reduction_factor"] >= 10.0:
             f.write(
-                f"✅ **Baseline validation:** New base code achieves <1% divergence rate ({baseline_metrics['divergence_rate']:.2%}), "
-                "confirming the non-centered root parameterization and Gamma priors successfully resolve the root RW funnel issue.\n\n"
+                "**Strong evidence for Issue #3:** Divergence reduction ≥10× indicates that **parameter redundancy** between root motion, directions, and lengths is a major contributor to geometric pathologies.\n\n"
+            )
+            f.write(
+                "The multiple pathways for explaining observations (moving root vs changing directions vs adjusting lengths) create curved, partially flat manifolds that NUTS cannot navigate efficiently.\n\n"
+            )
+        elif comparison["divergence_reduction_factor"] >= 3.0:
+            f.write(
+                "**Moderate evidence for Issue #3:** Divergence reduction of 3-10× suggests redundancy contributes to geometry issues, but other factors (root RW funnel, camera conditioning) may also be significant.\n\n"
+            )
+        elif comparison["divergence_reduction_factor"] >= 1.5:
+            f.write(
+                "**Weak evidence:** Modest divergence reduction suggests redundancy has some impact, but Issues #1 (root RW) or #2 (camera conditioning) likely dominate.\n\n"
             )
         else:
             f.write(
-                f"⚠️ **Baseline validation:** New base code still shows {baseline_metrics['divergence_rate']:.2%} divergences (target: <1%), "
-                "indicating possible remaining geometry issues or need for further tuning.\n\n"
+                "**No clear evidence:** Little to no divergence reduction suggests parameter redundancy is not a major issue. Focus should remain on Issues #1 and #2.\n\n"
             )
 
-        # Compare baseline to fixed-root variant
-        if comparison["divergence_reduction_factor"] >= 2.0:
+        if fixed_metrics["divergence_rate"] > 0.05:
             f.write(
-                f"**Variant comparison:** Fixed-root variant shows {comparison['divergence_reduction_factor']:.1f}× divergence reduction, "
-                "suggesting the root dynamics (even non-centered) still contribute some geometry complexity.\n\n"
+                "⚠️ Note: The fixed-redundancy variant still has >5% divergences, indicating other geometry issues (root RW funnel, camera conditioning) remain even after removing redundancy.\n\n"
             )
-        else:
-            f.write(
-                "**Variant comparison:** Fixed-root variant shows similar divergence rate to new baseline, "
-                "confirming the non-centered parameterization effectively addresses root RW geometry issues.\n\n"
-            )
-
-        # Convergence check
-        if baseline_metrics.get("rhat_max"):
-            max_rhat_baseline = max(baseline_metrics["rhat_max"].values())
-            if max_rhat_baseline > 1.1:
-                f.write(
-                    f"⚠️ **Convergence warning:** Baseline max R-hat = {max_rhat_baseline:.3f} > 1.1, "
-                    "indicating potential convergence issues. Consider increasing draws/tune further.\n\n"
-                )
 
         f.write("---\n\n")
         f.write(
-            "**Reference:** plans/v0.2.1_divergence_plan_2.md, Issue #1, Test Group 9 (post-fix validation)\n"
+            "**Reference:** plans/v0.2.1_divergence_plan_2.md, Issue #3, Test Group 11.1\n"
         )
 
     print(f"[OK] Report saved to: {report_path}")
@@ -522,7 +514,7 @@ if __name__ == "__main__":
     # Fix Windows OpenMP conflict
     os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-    results = run_group_9_root_fixed()
+    results = run_tg11a_i3_redundancy_fixed()
     print("\n" + "=" * 70)
-    print("Test Group 9 Complete")
+    print("Test Group 11.1 Complete")
     print("=" * 70)
