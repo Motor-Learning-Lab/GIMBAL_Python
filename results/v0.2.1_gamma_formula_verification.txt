@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.1, pluggy-1.6.0 -- /home/opher/Documents/GitHub/GIMBAL_Python/.pixi/envs/default/bin/python
+cachedir: .pytest_cache
+rootdir: /home/opher/Documents/GitHub/GIMBAL_Python
+plugins: zarr-3.1.5, anyio-4.11.0
+collecting ... collected 12 items
+
+tests/integration/test_v0_2_1_data_driven_priors.py::test_triangulate_multi_view_basic PASSED [  8%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_triangulate_multi_view_insufficient_cameras PASSED [ 16%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_clean_keypoints_2d_outlier_detection PASSED [ 25%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_clean_keypoints_2d_interpolation PASSED [ 33%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_clean_keypoints_3d_statistics_mask PASSED [ 41%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_compute_direction_statistics_basic PASSED [ 50%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_compute_direction_statistics_insufficient_samples PASSED [ 58%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_build_priors_from_statistics PASSED [ 66%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_get_gamma_shape_rate PASSED [ 75%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_integration_full_pipeline PASSED [ 83%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_hmm_directional_with_prior_config PASSED [ 91%]
+tests/integration/test_v0_2_1_data_driven_priors.py::test_hmm_directional_without_prior_config PASSED [100%]
+
+============================== 12 passed in 6.79s ==============================
