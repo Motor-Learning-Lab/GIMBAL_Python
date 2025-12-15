@@ -37,18 +37,18 @@ def _gamma_from_mode_sd(mode: float, sd: float) -> tuple[float, float]:
 
     Notes
     -----
-    This uses the approximation:
-        shape = (mode / sd)^2 + 2
-        rate = (shape - 1) / mode
-    which ensures shape > 1 and matches mode exactly.
+    This uses the exact formula from the specification:
+        rate = (mode + sqrt(mode^2 + 4*sd^2)) / (2*sd^2)
+        shape = 1 + mode*rate
+    which ensures shape > 1 and matches both mode and sd exactly.
     """
     # Ensure valid inputs
     if mode <= 0 or sd <= 0:
         raise ValueError("mode and sd must be positive")
 
-    # Approximation that ensures shape > 1
-    shape = (mode / sd) ** 2 + 2
-    rate = (shape - 1) / mode
+    # Exact formula from specification
+    rate = (mode + np.sqrt(mode**2 + 4*sd**2)) / (2*sd**2)
+    shape = 1 + mode*rate
 
     return shape, rate
 
