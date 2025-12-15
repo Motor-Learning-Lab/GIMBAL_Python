@@ -361,7 +361,7 @@ def run_comprehensive_debug():
     print("\n")
 
     # Setup
-    output_dir = Path("results/diagnostics/v0_2_1_divergence/debug_logp")
+    output_dir = Path(__file__).parent / "debug_outputs" / "model_logp"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Configuration

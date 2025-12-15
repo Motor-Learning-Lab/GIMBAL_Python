@@ -33,7 +33,7 @@ def test_ground_truth_initialization():
     print()
 
     # Setup
-    output_dir = Path("results/diagnostics/v0_2_1_divergence/sanity_ground_truth_init")
+    output_dir = Path(__file__).parent / "debug_outputs" / "ground_truth_init"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Configuration
@@ -190,29 +190,41 @@ def test_ground_truth_initialization():
                     try:
                         # Merge ground truth values into default initial point
                         gt_point = test_point.copy()
-                        gt_point.update({
-                            "obs_sigma_log__": start_point["obs_sigma_log__"],
-                            "logodds_inlier": start_point["logodds_inlier"],
-                        })
-                        
+                        gt_point.update(
+                            {
+                                "obs_sigma_log__": start_point["obs_sigma_log__"],
+                                "logodds_inlier": start_point["logodds_inlier"],
+                            }
+                        )
+
                         gt_logp = model.compile_logp()(gt_point)
                         print(f"  Ground truth log probability: {gt_logp}")
 
                         if np.isinf(gt_logp):
-                            print("  [FAIL] Ground truth initialization also gives -inf!")
+                            print(
+                                "  [FAIL] Ground truth initialization also gives -inf!"
+                            )
 
                             # Diagnose which parameter
                             try:
-                                logp_list = model.compile_logp(vars=model.free_RVs, sum=False)(
-                                    gt_point
+                                logp_list = model.compile_logp(
+                                    vars=model.free_RVs, sum=False
+                                )(gt_point)
+                                print(
+                                    "\n  Log probability by parameter (ground truth):"
                                 )
-                                print("\n  Log probability by parameter (ground truth):")
                                 for var, logp_val in zip(model.free_RVs, logp_list):
                                     if isinstance(logp_val, np.ndarray):
-                                        logp_scalar = logp_val.sum() if logp_val.size > 1 else float(logp_val)
+                                        logp_scalar = (
+                                            logp_val.sum()
+                                            if logp_val.size > 1
+                                            else float(logp_val)
+                                        )
                                     else:
                                         logp_scalar = float(logp_val)
-                                    status = "[OK]" if np.isfinite(logp_scalar) else "[FAIL]"
+                                    status = (
+                                        "[OK]" if np.isfinite(logp_scalar) else "[FAIL]"
+                                    )
                                     print(f"    {status} {var.name}: {logp_scalar}")
                             except Exception as e:
                                 print(f"  Could not diagnose: {e}")
@@ -223,7 +235,9 @@ def test_ground_truth_initialization():
                             return True
 
                     except Exception as e:
-                        print(f"  [FAIL] Could not compute with ground truth initialization: {e}")
+                        print(
+                            f"  [FAIL] Could not compute with ground truth initialization: {e}"
+                        )
                         import traceback
 
                         traceback.print_exc()
