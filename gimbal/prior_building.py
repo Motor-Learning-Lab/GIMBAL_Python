@@ -77,7 +77,7 @@ def build_priors_from_statistics(
     kappa_scale : float, optional
         Scaling factor for empirical kappa to convert to prior kappa.
         kappa_prior = kappa_empirical / kappa_scale
-        Lower values = weaker priors. Default: 5.0
+        Higher values = weaker priors. Default: 5.0
 
     Returns
     -------
