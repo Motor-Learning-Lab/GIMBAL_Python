@@ -93,6 +93,22 @@ from .synthetic_data import (
 # Initialization utilities
 from . import fit_params
 
+# Metrics modules (v0.2.1)
+from . import metrics_bone_length
+from . import metrics_direction
+from . import metrics_smoothness
+from . import metrics_state
+from . import metrics_observation
+
+# Visualization modules (v0.2.1)
+from . import viz_motion_3d
+from . import viz_poses_3d
+from . import viz_reprojection_2d
+from . import viz_state_timeline
+
+# Identifiability checking (v0.2.1)
+from . import identifiability
+
 # Legacy Torch implementation
 from . import torch_legacy
 

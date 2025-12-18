@@ -57,9 +57,7 @@ def load_config(config_path: Path) -> Dict[str, Any]:
     def remove_comments(d):
         if isinstance(d, dict):
             return {
-                k: remove_comments(v)
-                for k, v in d.items()
-                if not k.startswith("_")
+                k: remove_comments(v) for k, v in d.items() if not k.startswith("_")
             }
         elif isinstance(d, list):
             return [remove_comments(item) for item in d]
@@ -294,6 +292,16 @@ def generate_from_config(
         Rt = np.hstack([R_mat, t_vec.reshape(3, 1)])
         camera_proj[c] = K_mat @ Rt
 
+        # Compute camera position from R and t: C = -R^T @ t
+        camera_position = -R_mat.T @ t_vec
+
+        # Compute target as position + forward direction (negative z-axis in camera frame)
+        # Camera looks along negative z-axis, so forward is third column of R^T (or third row of R)
+        forward_direction = -R_mat[2, :]  # negative z-axis in world coords
+        camera_target = (
+            camera_position + forward_direction * 10
+        )  # arbitrary scale for visualization
+
         camera_metadata.append(
             {
                 "name": cam_spec["name"],
@@ -301,6 +309,8 @@ def generate_from_config(
                 "R": R_mat,
                 "t": t_vec,
                 "image_size": cam_spec.get("image_size", [1280, 720]),
+                "position": camera_position.tolist(),
+                "target": camera_target.tolist(),
             }
         )
 

@@ -53,8 +53,8 @@
     "total_observations": 21600,
     "valid_observations": 21600,
     "nan_fraction": 0.0,
-    "bounds_violations": 14400,
-    "bounds_violation_rate": 0.6666666666666666,
+    "bounds_violations": 0,
+    "bounds_violation_rate": 0.0,
     "config": {
       "noise_px": 2.0,
       "outliers_enabled": false,

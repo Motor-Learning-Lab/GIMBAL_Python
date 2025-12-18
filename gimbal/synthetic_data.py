@@ -24,11 +24,11 @@ class SyntheticDataConfig:
     1. **Simple programmatic interface** (backward compatible):
        Create directly with basic parameters for quick testing.
        Uses legacy directional noise model (kappa-based).
-       
+
     2. **Rich JSON-based interface** (v0.2.1+):
        Load from JSON with from_json() for full control over second-order
        attractor dynamics, per-state parameters, camera specs, etc.
-    
+
     Attributes
     ----------
     T : int
@@ -41,7 +41,7 @@ class SyntheticDataConfig:
         Timestep in seconds (default 1/60 ≈ 0.0167)
     random_seed : int | None
         Random seed for reproducibility (None = no seeding)
-    
+
     **Legacy parameters (simple interface):**
     kappa : float | None
         Concentration parameter for directional noise (higher = less noise).
@@ -52,7 +52,7 @@ class SyntheticDataConfig:
         Fraction of observations to mark as occluded (0 to 1)
     root_noise_std : float
         Standard deviation of root position random walk
-    
+
     **Rich parameters (JSON interface):**
     per_state_params : Dict[int, Dict[str, Any]] | None
         Second-order attractor parameters per state.
@@ -139,7 +139,11 @@ class SyntheticDataConfig:
         # Strip comment keys recursively
         def strip_comments(obj):
             if isinstance(obj, dict):
-                return {k: strip_comments(v) for k, v in obj.items() if not k.startswith("_")}
+                return {
+                    k: strip_comments(v)
+                    for k, v in obj.items()
+                    if not k.startswith("_")
+                }
             elif isinstance(obj, list):
                 return [strip_comments(item) for item in obj]
             return obj
@@ -169,7 +173,9 @@ class SyntheticDataConfig:
 
         root_params = motion.get("root_params")
         transition_matrix_list = states.get("transition_matrix")
-        transition_matrix = np.array(transition_matrix_list) if transition_matrix_list else None
+        transition_matrix = (
+            np.array(transition_matrix_list) if transition_matrix_list else None
+        )
 
         skeleton_spec = dataset_spec.get("skeleton")
         observation_params = dataset_spec.get("observation")

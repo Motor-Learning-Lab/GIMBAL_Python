@@ -66,7 +66,7 @@ DEMO_V0_1_SKELETON = SkeletonConfig(
 #
 # NOTE: This is ACTUALLY a 4-joint structure in the tree representation:
 #   - joint 0: root (parent=-1)
-#   - joint 1: proximal (parent=0, bone from root to proximal)  
+#   - joint 1: proximal (parent=0, bone from root to proximal)
 #   - joint 2: distal_left (parent=1, bone from proximal to distal_left)
 #   - joint 3: distal_right (parent=1, bone from proximal to distal_right)
 #
