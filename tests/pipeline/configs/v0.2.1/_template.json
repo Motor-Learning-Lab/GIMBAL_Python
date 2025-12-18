@@ -1,0 +1,162 @@
+{
+  "_comment": "This is a template for v0.2.1 synthetic dataset configuration",
+  "_comment_usage": "Copy this file and modify the values below. Remove comments (keys starting with _comment) before use.",
+  
+  "meta": {
+    "_comment": "Top-level metadata for the dataset",
+    "name": "example_dataset",
+    "version": "0.2.1",
+    "seed": 42,
+    "_comment_seed": "Random seed for reproducibility. null for random",
+    "dt": 0.0167,
+    "_comment_dt": "Timestep in seconds (0.0167 ≈ 60 fps)",
+    "T": 100,
+    "_comment_T": "Number of timesteps"
+  },
+  
+  "dataset_spec": {
+    "_comment": "Specification of data to generate (independent of tooling)",
+    
+    "skeleton": {
+      "_comment": "Skeleton structure and dimensions",
+      "joint_names": ["root", "spine", "neck", "head", "left_shoulder", "left_elbow", "right_shoulder"],
+      "parents": [-1, 0, 1, 2, 1, 4, 1],
+      "_comment_parents": "Parent joint index for each joint (-1 for root)",
+      "lengths": [0, 10, 5, 3, 8, 8, 8],
+      "_comment_lengths": "Bone lengths in arbitrary units. Root is 0.",
+      "bone_pairs": [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [1, 6]],
+      "_comment_bone_pairs": "List of [parent, child] pairs defining bones for direction vectors"
+    },
+    
+    "states": {
+      "_comment": "Hidden state dynamics",
+      "num_states": 3,
+      "transition_matrix": [
+        [0.85, 0.075, 0.075],
+        [0.075, 0.85, 0.075],
+        [0.075, 0.075, 0.85]
+      ],
+      "_comment_transition_matrix": "Row i = transition probabilities FROM state i. High diagonal = high persistence."
+    },
+    
+    "motion": {
+      "_comment": "Second-order attractor dynamics for skeletal motion",
+      "per_state_params": {
+        "_comment": "Parameters for each hidden state. Indexed by state number (0, 1, 2, ...)",
+        "0": {
+          "mu": [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0.7, 0, 0.7], [0.7, 0, 0.7], [-0.7, 0, 0.7]],
+          "_comment_mu": "Attractor position for each bone direction. Shape: (num_bones, 3). Will be normalized.",
+          "omega": 3.0,
+          "_comment_omega": "Natural frequency (rad/s). Scalar or array per bone. Higher = faster return to attractor. Recommend: 1/τ where τ=0.25-0.5s",
+          "zeta": 0.7,
+          "_comment_zeta": "Damping ratio. 0.7 recommended for smooth non-oscillatory behavior. <1 = underdamped, 1 = critical, >1 = overdamped",
+          "sigma_pose": 0.1,
+          "_comment_sigma_pose": "Target within-state pose dispersion (angular spread in radians). Used to calibrate sigma_process."
+        },
+        "1": {
+          "mu": [[0.6, 0, 0.8], [0.6, 0, 0.8], [0.6, 0, 0.8], [0.8, 0, 0.6], [0.8, 0, 0.6], [-0.4, 0, 0.9]],
+          "omega": 3.0,
+          "zeta": 0.7,
+          "sigma_pose": 0.1
+        },
+        "2": {
+          "mu": [[0, 0.7, 0.7], [0, 0.7, 0.7], [0, 0.7, 0.7], [0, 0.9, 0.4], [0, 0.9, 0.4], [0, -0.7, 0.7]],
+          "omega": 3.0,
+          "zeta": 0.7,
+          "sigma_pose": 0.1
+        }
+      },
+      "root_params": {
+        "_comment": "Root position dynamics (same second-order attractor model)",
+        "per_state": {
+          "0": {
+            "mu": [0, 0, 100],
+            "_comment_mu": "Attractor position for root in 3D space"
+          },
+          "1": {
+            "mu": [10, 0, 100]
+          },
+          "2": {
+            "mu": [-10, 0, 100]
+          }
+        },
+        "omega": 2.0,
+        "_comment_omega": "Natural frequency for root. Can be scalar (same for all states) or per-state",
+        "zeta": 0.8,
+        "sigma_pose": 5.0,
+        "_comment_sigma_pose": "Target RMS deviation from attractor in spatial units",
+        "init_pos": [0, 0, 100],
+        "_comment_init_pos": "Initial root position. null to use mu of initial state"
+      }
+    },
+    
+    "cameras": {
+      "_comment": "Multi-camera setup. Can specify explicit K/R/t or use placement helpers.",
+      "cameras": [
+        {
+          "name": "cam0_front",
+          "_comment": "Explicit camera specification",
+          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
+          "_comment_K": "Intrinsic matrix: [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]. Units: pixels (if image_size given) or generic",
+          "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+          "_comment_R": "Rotation matrix (3x3). Identity = camera aligned with world axes",
+          "t": [-80, 0, 0],
+          "_comment_t": "Translation vector (3,). For camera at position c: t = -R @ c",
+          "image_size": [1280, 720],
+          "_comment_image_size": "[width_px, height_px]. Used for bounds checking and FOV calculations"
+        },
+        {
+          "name": "cam1_side",
+          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
+          "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
+          "t": [0, -80, 0],
+          "image_size": [1280, 720]
+        },
+        {
+          "name": "cam2_overhead",
+          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
+          "R": [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+          "t": [0, 0, -80],
+          "image_size": [1280, 720]
+        }
+      ],
+      "_comment_placement_helper": "FUTURE: Support placement parameters (position, target, FOV) that get converted to K/R/t"
+    },
+    
+    "camera_quality": {
+      "_comment": "Multi-view geometry identifiability checks",
+      "min_cameras_per_point": 3,
+      "_comment_min_cameras": "Minimum number of cameras observing each 3D point",
+      "min_pairwise_ray_angle_deg": 15.0,
+      "_comment_min_angle": "Minimum angle between any two rays (in degrees). <10 deg = near-degenerate. 15-20 recommended.",
+      "min_fraction_points": 0.95,
+      "_comment_min_fraction": "Fraction of (t,j) points that must satisfy above requirements. 0.95 = 95% of observations"
+    },
+    
+    "observation": {
+      "_comment": "2D observation corruption model",
+      "noise_px": 2.0,
+      "_comment_noise_px": "Gaussian noise standard deviation in pixels",
+      "outliers": {
+        "enabled": false,
+        "fraction": 0.1,
+        "_comment_fraction": "Fraction of observations to corrupt as outliers",
+        "noise_scale": 50.0,
+        "_comment_noise_scale": "SD of outlier noise (much larger than inlier noise)"
+      },
+      "missingness": {
+        "enabled": false,
+        "type": "bernoulli",
+        "_comment_type": "Missingness model: 'bernoulli' (independent) or 'burst' (temporal clusters)",
+        "rate": 0.2,
+        "_comment_rate": "Bernoulli: p(missing) per observation. Burst: not yet implemented"
+      }
+    }
+  },
+  
+  "output": {
+    "_comment": "Output file naming and location",
+    "run_name": "example_dataset",
+    "_comment_run_name": "Base name for output files. Will be saved to datasets/v0.2.1/{run_name}/"
+  }
+}

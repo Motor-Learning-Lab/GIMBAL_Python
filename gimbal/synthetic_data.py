@@ -191,7 +191,10 @@ def generate_skeletal_motion(
     root_noise_std: float,
     rng: np.random.Generator,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Generate 3D skeletal motion from state sequence.
+    """Generate 3D skeletal motion from state sequence (legacy simple noise model).
+
+    **LEGACY:** This function uses simple directional noise and is kept for backward
+    compatibility. For continuous smooth motion, use `generate_skeletal_motion_continuous()`.
 
     Parameters
     ----------
@@ -245,6 +248,175 @@ def generate_skeletal_motion(
             x_true[t, k] = x_true[t, parent] + bone_length * u_true[t, k]
 
     return x_true, u_true
+
+
+def generate_skeletal_motion_continuous(
+    skeleton: SkeletonConfig,
+    true_states: np.ndarray,
+    state_params: dict,
+    root_params: dict,
+    dt: float,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Generate continuous 3D skeletal motion using second-order attractor dynamics.
+
+    This implements a state-dependent second-order dynamical system:
+        a_t = -omega_k^2 * (q_t - mu_k) - 2 * zeta_k * omega_k * v_t + noise
+        v_{t+1} = v_t + a_t * dt
+        q_{t+1} = q_t + v_{t+1} * dt
+
+    Where q_t is a concatenation of raw bone direction vectors (not normalized).
+    After integration, directions are normalized before FK.
+
+    Parameters
+    ----------
+    skeleton : SkeletonConfig
+        Skeleton configuration
+    true_states : np.ndarray
+        State sequence, shape (T,)
+    state_params : dict
+        Per-state motion parameters with keys:
+        - 'mu' : np.ndarray, shape (S, num_bones, 3) - attractor positions
+        - 'omega' : np.ndarray, shape (S,) or (S, num_bones) - natural frequencies
+        - 'zeta' : np.ndarray, shape (S,) or (S, num_bones) - damping ratios
+        - 'sigma_process' : np.ndarray, shape (S,) or (S, num_bones) - process noise
+    root_params : dict
+        Root motion parameters with keys:
+        - 'mu' : np.ndarray, shape (S, 3) - attractor positions for root
+        - 'omega' : float or np.ndarray, shape (S,) - natural frequency
+        - 'zeta' : float or np.ndarray, shape (S,) - damping ratio
+        - 'sigma_process' : float or np.ndarray, shape (S,) - process noise
+        - 'init_pos' : np.ndarray, shape (3,) - initial root position (optional)
+    dt : float
+        Timestep in seconds
+    rng : np.random.Generator
+        Random number generator
+
+    Returns
+    -------
+    x_true : np.ndarray
+        Joint positions, shape (T, K, 3)
+    u_true : np.ndarray
+        Joint directions (normalized), shape (T, K, 3)
+    a_true : np.ndarray
+        Acceleration vectors, shape (T, K, 3)
+        For root: 3D position acceleration
+        For joints: raw direction acceleration (before normalization)
+    """
+    T = len(true_states)
+    K = len(skeleton.joint_names)
+    num_bones = K - 1  # Exclude root from directional dynamics
+
+    # Extract state-dependent parameters
+    mu_dirs = state_params["mu"]  # (S, num_bones, 3)
+    omega = state_params["omega"]  # (S,) or (S, num_bones)
+    zeta = state_params["zeta"]  # (S,) or (S, num_bones)
+    sigma_proc = state_params["sigma_process"]  # (S,) or (S, num_bones)
+
+    # Root parameters
+    root_mu = root_params["mu"]  # (S, 3)
+    root_omega = np.atleast_1d(root_params["omega"])  # (S,) or scalar
+    root_zeta = np.atleast_1d(root_params["zeta"])
+    root_sigma = np.atleast_1d(root_params["sigma_process"])
+
+    # Initialize
+    x_true = np.zeros((T, K, 3))
+    u_true = np.zeros((T, K, 3))
+    a_true = np.zeros((T, K, 3))
+
+    # Initial state (state 0 attractor)
+    s0 = true_states[0]
+    q_dirs = mu_dirs[s0].copy()  # (num_bones, 3) - raw directions
+    v_dirs = np.zeros((num_bones, 3))  # Zero initial velocity
+
+    # Root initial state
+    x_true[0, 0] = root_params.get("init_pos", root_mu[s0])
+    v_root = np.zeros(3)
+
+    # Generate motion
+    for t in range(T):
+        s = true_states[t]
+
+        # === Root dynamics (simple second-order system) ===
+        # Broadcast parameters
+        omega_r = root_omega[s] if root_omega.size > 1 else root_omega[0]
+        zeta_r = root_zeta[s] if root_zeta.size > 1 else root_zeta[0]
+        sigma_r = root_sigma[s] if root_sigma.size > 1 else root_sigma[0]
+
+        # Compute root acceleration
+        a_root = (
+            -(omega_r**2) * (x_true[t, 0] - root_mu[s])
+            - 2 * zeta_r * omega_r * v_root
+            + rng.normal(0, sigma_r, 3)
+        )
+        a_true[t, 0] = a_root
+
+        # Update root velocity and position
+        v_root = v_root + a_root * dt
+        if t + 1 < T:
+            x_true[t + 1, 0] = x_true[t, 0] + v_root * dt
+
+        # === Joint directional dynamics ===
+        # Broadcast omega, zeta, sigma to per-bone if needed
+        # Handle scalar, per-state scalar, or per-bone arrays
+
+        def get_param_per_bone(param, param_name):
+            """Extract per-bone parameter values for current state."""
+            if np.isscalar(param):
+                # Single scalar for all states and bones
+                return np.full(num_bones, float(param))
+            elif param.ndim == 1:
+                # Per-state scalar: param[s]
+                if param.size > s:
+                    return np.full(num_bones, float(param[s]))
+                else:
+                    # Single value, use it
+                    return np.full(num_bones, float(param[0]))
+            elif param.ndim == 2:
+                # Per-state per-bone: param[s, b]
+                if param.shape[0] > s:
+                    return param[s]
+                else:
+                    return param[0]
+            else:
+                raise ValueError(f"Unexpected shape for {param_name}: {param.shape}")
+
+        omega_b = get_param_per_bone(omega, "omega")
+        zeta_b = get_param_per_bone(zeta, "zeta")
+        sigma_b = get_param_per_bone(sigma_proc, "sigma_proc")
+
+        # Compute acceleration for each bone direction (vectorized)
+        a_dirs = np.zeros((num_bones, 3))
+        for b in range(num_bones):
+            a_dirs[b] = (
+                -omega_b[b] ** 2 * (q_dirs[b] - mu_dirs[s, b])
+                - 2 * zeta_b[b] * omega_b[b] * v_dirs[b]
+                + rng.normal(0, sigma_b[b], 3)
+            )
+
+        # Update velocity
+        v_dirs = v_dirs + a_dirs * dt
+
+        # Update position
+        q_dirs = q_dirs + v_dirs * dt
+
+        # Normalize directions and perform FK
+        for k in range(1, K):  # Skip root
+            bone_idx = k - 1
+            u_normalized = q_dirs[bone_idx] / (np.linalg.norm(q_dirs[bone_idx]) + 1e-8)
+            u_true[t, k] = u_normalized
+
+            # Store acceleration (for joints, this is direction acceleration)
+            a_true[t, k] = a_dirs[bone_idx]
+
+            # Forward kinematics
+            parent = skeleton.parents[k]
+            bone_length = (
+                skeleton.bone_lengths[k] if skeleton.bone_lengths is not None else 10.0
+            )
+            x_true[t, k] = x_true[t, parent] + bone_length * u_normalized
+
+    return x_true, u_true, a_true
 
 
 def generate_camera_matrices(
