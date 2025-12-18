@@ -78,7 +78,12 @@ from .prior_building import (
 )
 
 # Skeleton and synthetic data utilities
-from .skeleton_config import DEMO_V0_1_SKELETON, SkeletonConfig, validate_skeleton
+from .skeleton_config import (
+    DEMO_V0_1_SKELETON,
+    L00_SKELETON,
+    SkeletonConfig,
+    validate_skeleton,
+)
 from .synthetic_data import (
     generate_demo_sequence,
     SyntheticDataConfig,
@@ -106,6 +111,7 @@ __all__ = [
     "get_gamma_shape_rate",
     # Skeleton configuration
     "DEMO_V0_1_SKELETON",
+    "L00_SKELETON",
     "SkeletonConfig",
     "validate_skeleton",
     # Synthetic data generation

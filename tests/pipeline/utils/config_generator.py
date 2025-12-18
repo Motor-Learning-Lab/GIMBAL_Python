@@ -53,13 +53,13 @@ def load_config(config_path: Path) -> Dict[str, Any]:
     with open(config_path, "r") as f:
         config = json.load(f)
 
-    # Remove comment keys (start with _comment)
+    # Remove comment keys (start with _)
     def remove_comments(d):
         if isinstance(d, dict):
             return {
                 k: remove_comments(v)
                 for k, v in d.items()
-                if not k.startswith("_comment")
+                if not k.startswith("_")
             }
         elif isinstance(d, list):
             return [remove_comments(item) for item in d]

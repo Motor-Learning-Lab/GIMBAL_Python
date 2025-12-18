@@ -1,0 +1,64 @@
+{
+  "bone_length": {
+    "max_relative_deviation": 1.3047165792201554e-08,
+    "mean_relative_deviation": 9.947025308428055e-09,
+    "std_relative_deviation": 8.59711127458491e-10
+  },
+  "direction_normalization": {
+    "mean_norm": 0.9999999900529747,
+    "std_norm": 8.597111309309045e-10,
+    "min_norm": 0.9999999869528344,
+    "max_norm": 0.9999999921435611,
+    "near_zero_count": 0
+  },
+  "smoothness": {
+    "speed": {
+      "mean": 2.957645844436385,
+      "std": 2.2029249905998025,
+      "p95": 6.937979272868798,
+      "max": 11.729606406727973
+    },
+    "acceleration": {
+      "mean": 66.82488932727252,
+      "std": 50.854448099901695,
+      "p95": 159.63515910205103,
+      "max": 290.6481610807826
+    },
+    "jerk": {
+      "mean": 5672.613974835501,
+      "std": 4280.998618800666,
+      "p95": 13248.480715246631,
+      "max": 24601.10557354373
+    }
+  },
+  "states": {
+    "num_states": 1,
+    "dwell_times": {
+      "0": {
+        "mean": 1800.0,
+        "count": 1
+      }
+    },
+    "transition_counts": [
+      [
+        1799
+      ]
+    ],
+    "single_state_check": {
+      "is_single_state": true,
+      "actual_unique_states": 1
+    }
+  },
+  "2d_observations": {
+    "total_observations": 21600,
+    "valid_observations": 21600,
+    "nan_fraction": 0.0,
+    "bounds_violations": 14400,
+    "bounds_violation_rate": 0.6666666666666666,
+    "config": {
+      "noise_px": 2.0,
+      "outliers_enabled": false,
+      "missingness_enabled": false
+    }
+  }
+}

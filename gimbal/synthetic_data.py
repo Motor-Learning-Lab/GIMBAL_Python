@@ -2,16 +2,33 @@
 
 This module provides functions to generate synthetic skeletal motion data
 with known ground truth for testing and demonstration purposes.
+
+Configuration can be created programmatically (simple interface) or loaded
+from JSON files (rich interface with second-order dynamics).
 """
 
 import numpy as np
-from typing import NamedTuple, Optional
+import json
+import hashlib
+from pathlib import Path
+from typing import NamedTuple, Optional, Dict, Any
+from dataclasses import dataclass, field
 from .skeleton_config import SkeletonConfig
 
 
-class SyntheticDataConfig(NamedTuple):
+@dataclass
+class SyntheticDataConfig:
     """Configuration for synthetic data generation.
 
+    This class supports two modes of use:
+    1. **Simple programmatic interface** (backward compatible):
+       Create directly with basic parameters for quick testing.
+       Uses legacy directional noise model (kappa-based).
+       
+    2. **Rich JSON-based interface** (v0.2.1+):
+       Load from JSON with from_json() for full control over second-order
+       attractor dynamics, per-state parameters, camera specs, etc.
+    
     Attributes
     ----------
     T : int
@@ -20,26 +37,169 @@ class SyntheticDataConfig(NamedTuple):
         Number of cameras
     S : int
         Number of hidden states
-    kappa : float
-        Concentration parameter for directional noise (higher = less noise)
+    dt : float
+        Timestep in seconds (default 1/60 ≈ 0.0167)
+    random_seed : int | None
+        Random seed for reproducibility (None = no seeding)
+    
+    **Legacy parameters (simple interface):**
+    kappa : float | None
+        Concentration parameter for directional noise (higher = less noise).
+        If provided, uses legacy directional noise model.
     obs_noise_std : float
         Standard deviation of 2D observation noise in pixels
     occlusion_rate : float
         Fraction of observations to mark as occluded (0 to 1)
     root_noise_std : float
         Standard deviation of root position random walk
-    random_seed : int | None
-        Random seed for reproducibility (None = no seeding)
+    
+    **Rich parameters (JSON interface):**
+    per_state_params : Dict[int, Dict[str, Any]] | None
+        Second-order attractor parameters per state.
+        Keys: state index (0, 1, 2, ...)
+        Values: {'mu': array, 'omega': float, 'zeta': float, 'sigma_pose': float}
+        If None, uses legacy kappa-based model.
+    root_params : Dict[str, Any] | None
+        Root position dynamics parameters
+    camera_specs : list[Dict[str, Any]] | None
+        Camera specifications (K, R, t matrices or placement params)
+    transition_matrix : np.ndarray | None
+        HMM transition probability matrix, shape (S, S)
+        If None, generates symmetric matrix with high diagonal
+    skeleton_spec : Dict[str, Any] | None
+        Skeleton specification from JSON (joint_names, parents, lengths)
+    observation_params : Dict[str, Any] | None
+        Observation model parameters (noise, outliers, missingness)
+    config_source : str | None
+        Path to source JSON file (for provenance tracking)
+    config_hash : str | None
+        SHA256 hash of JSON config (for reproducibility)
     """
 
+    # Core parameters (always required)
     T: int = 60
     C: int = 3
     S: int = 3
-    kappa: float = 8.0
+    dt: float = 1.0 / 60.0
+    random_seed: Optional[int] = 42
+
+    # Legacy parameters (simple interface)
+    kappa: Optional[float] = 8.0
     obs_noise_std: float = 5.0
     occlusion_rate: float = 0.05
     root_noise_std: float = 1.0
-    random_seed: Optional[int] = 42
+
+    # Rich parameters (JSON interface) - all optional
+    per_state_params: Optional[Dict[int, Dict[str, Any]]] = None
+    root_params: Optional[Dict[str, Any]] = None
+    camera_specs: Optional[list] = None
+    transition_matrix: Optional[np.ndarray] = None
+    skeleton_spec: Optional[Dict[str, Any]] = None
+    observation_params: Optional[Dict[str, Any]] = None
+    config_source: Optional[str] = None
+    config_hash: Optional[str] = None
+
+    def uses_second_order_dynamics(self) -> bool:
+        """Check if config uses second-order attractor dynamics (vs legacy)."""
+        return self.per_state_params is not None
+
+    @classmethod
+    def from_json(cls, json_path: str | Path) -> "SyntheticDataConfig":
+        """Load configuration from JSON file.
+
+        Parameters
+        ----------
+        json_path : str | Path
+            Path to JSON configuration file
+
+        Returns
+        -------
+        SyntheticDataConfig
+            Configuration loaded from JSON with full second-order dynamics support
+
+        Raises
+        ------
+        FileNotFoundError
+            If JSON file doesn't exist
+        ValueError
+            If JSON is malformed or missing required fields
+        """
+        json_path = Path(json_path)
+        if not json_path.exists():
+            raise FileNotFoundError(f"Config file not found: {json_path}")
+
+        # Load JSON, stripping comment keys
+        with open(json_path, "r") as f:
+            raw_data = json.load(f)
+
+        # Compute config hash for reproducibility
+        config_str = json.dumps(raw_data, sort_keys=True)
+        config_hash = hashlib.sha256(config_str.encode()).hexdigest()[:16]
+
+        # Strip comment keys recursively
+        def strip_comments(obj):
+            if isinstance(obj, dict):
+                return {k: strip_comments(v) for k, v in obj.items() if not k.startswith("_")}
+            elif isinstance(obj, list):
+                return [strip_comments(item) for item in obj]
+            return obj
+
+        data = strip_comments(raw_data)
+
+        # Extract core parameters
+        meta = data.get("meta", {})
+        T = meta.get("T", 60)
+        dt = meta.get("dt", 1.0 / 60.0)
+        seed = meta.get("seed", None)
+
+        dataset_spec = data.get("dataset_spec", {})
+        states = dataset_spec.get("states", {})
+        S = states.get("num_states", 3)
+
+        cameras = dataset_spec.get("cameras", {})
+        camera_list = cameras.get("cameras", [])
+        C = len(camera_list)
+
+        # Extract rich parameters
+        motion = dataset_spec.get("motion", {})
+        per_state_params = motion.get("per_state_params")
+        if per_state_params:
+            # Convert string keys to int
+            per_state_params = {int(k): v for k, v in per_state_params.items()}
+
+        root_params = motion.get("root_params")
+        transition_matrix_list = states.get("transition_matrix")
+        transition_matrix = np.array(transition_matrix_list) if transition_matrix_list else None
+
+        skeleton_spec = dataset_spec.get("skeleton")
+        observation_params = dataset_spec.get("observation")
+
+        # For backward compat, extract observation params if present
+        obs_noise = 5.0
+        occlusion = 0.05
+        if observation_params:
+            obs_noise = observation_params.get("noise_px", 5.0)
+            occlusion = observation_params.get("missingness_bernoulli_p", 0.05)
+
+        return cls(
+            T=T,
+            C=C,
+            S=S,
+            dt=dt,
+            random_seed=seed,
+            kappa=None,  # Rich mode doesn't use kappa
+            obs_noise_std=obs_noise,
+            occlusion_rate=occlusion,
+            root_noise_std=1.0,  # Not used in second-order mode
+            per_state_params=per_state_params,
+            root_params=root_params,
+            camera_specs=camera_list,
+            transition_matrix=transition_matrix,
+            skeleton_spec=skeleton_spec,
+            observation_params=observation_params,
+            config_source=str(json_path),
+            config_hash=config_hash,
+        )
 
 
 class SyntheticMotionData(NamedTuple):

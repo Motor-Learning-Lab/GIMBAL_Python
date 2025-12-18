@@ -1,8 +1,11 @@
 """Runner script to generate datasets from configs.
 
 Usage:
-    python generate_dataset.py L00_minimal
-    python generate_dataset.py L01_noise L02_outliers L03_missingness
+    python generate_dataset.py v0.2.1_L00_minimal
+    python generate_dataset.py v0.2.1_L01_noise v0.2.1_L02_outliers v0.2.1_L03_missingness
+    
+Config files are loaded from tests/pipeline/datasets/{dataset_name}/config.json
+Outputs are saved to the same directory.
 """
 
 import sys
@@ -24,23 +27,35 @@ from tests.pipeline.utils.visualization import generate_all_figures
 def main():
     """Generate datasets from command line arguments."""
     if len(sys.argv) < 2:
-        print("Usage: python generate_dataset.py <config_name> [<config_name> ...]")
-        print("Example: python generate_dataset.py L00_minimal L01_noise")
+        print("Usage: python generate_dataset.py <dataset_name> [<dataset_name> ...]")
+        print("Example: python generate_dataset.py v0.2.1_L00_minimal v0.2.1_L01_noise")
+        print("\nDataset directory structure:")
+        print("  tests/pipeline/datasets/v0.2.1_L00_minimal/")
+        print("    ├── config.json          (input)")
+        print("    ├── dataset.npz          (output)")
+        print("    ├── metrics.json         (output)")
+        print("    └── figures/             (output)")
         sys.exit(1)
 
-    config_names = sys.argv[1:]
+    dataset_names = sys.argv[1:]
 
-    # Base paths
-    config_dir = Path(__file__).parent / "configs" / "v0.2.1"
-    output_base = Path(__file__).parent / "datasets" / "v0.2.1"
+    # Base path
+    datasets_base = Path(__file__).parent / "datasets"
 
-    for config_name in config_names:
+    for dataset_name in dataset_names:
         print(f"\n{'='*60}")
-        print(f"Generating: {config_name}")
+        print(f"Generating: {dataset_name}")
         print(f"{'='*60}")
 
+        # Dataset directory
+        dataset_dir = datasets_base / dataset_name
+        if not dataset_dir.exists():
+            print(f"ERROR: Dataset directory not found: {dataset_dir}")
+            print(f"       Create the directory and add config.json first.")
+            continue
+
         # Load config
-        config_path = config_dir / f"{config_name}.json"
+        config_path = dataset_dir / "config.json"
         if not config_path.exists():
             print(f"ERROR: Config file not found: {config_path}")
             continue
@@ -56,20 +71,19 @@ def main():
         )
 
         # Save dataset
-        output_dir = output_base / config_name
-        save_dataset(dataset, output_dir)
+        save_dataset(dataset, dataset_dir)
 
         # Compute and save metrics
         print("Computing metrics...")
         metrics = compute_dataset_metrics(dataset)
-        metrics_path = output_dir / "metrics.json"
+        metrics_path = dataset_dir / "metrics.json"
         save_metrics(metrics, metrics_path)
 
         # Generate figures
-        generate_all_figures(dataset, output_dir)
+        generate_all_figures(dataset, dataset_dir)
 
         # Print summary
-        print(f"\nSummary for {config_name}:")
+        print(f"\nSummary for {dataset_name}:")
         print(
             f"  Bone length max deviation: {metrics['bone_length']['max_relative_deviation']:.6f}"
         )
@@ -82,7 +96,7 @@ def main():
         print(f"  Config hash: {dataset.config_hash[:16]}...")
 
     print(f"\n{'='*60}")
-    print(f"Generation complete. Datasets saved to {output_base}")
+    print(f"Generation complete. Datasets saved to {datasets_base}")
     print(f"{'='*60}")
 
 

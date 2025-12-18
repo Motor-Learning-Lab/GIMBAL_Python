@@ -55,6 +55,37 @@ DEMO_V0_1_SKELETON = SkeletonConfig(
 )
 
 
+# v0.2.1 L00-L03 Skeleton: Minimal 3-joint Y-shaped structure
+# Root with proximal joint, splitting into two distal joints
+# Total: 3 joints, 3 bone segments
+# Structure:  distal_left (joint 2)
+#              /
+#    root - proximal (joint 1)
+#              \
+#              distal_right (joint 3) [INCORRECT - see note]
+#
+# NOTE: This is ACTUALLY a 4-joint structure in the tree representation:
+#   - joint 0: root (parent=-1)
+#   - joint 1: proximal (parent=0, bone from root to proximal)  
+#   - joint 2: distal_left (parent=1, bone from proximal to distal_left)
+#   - joint 3: distal_right (parent=1, bone from proximal to distal_right)
+#
+# The "3 joints, 3 segments" description from user maps to:
+#   - 3 segments (bones): root→proximal, proximal→distal_left, proximal→distal_right
+#   - 4 joints (articulation points including root)
+L00_SKELETON = SkeletonConfig(
+    joint_names=[
+        "root",  # 0: Root/base
+        "proximal",  # 1: Proximal joint
+        "distal_left",  # 2: Left distal end
+        "distal_right",  # 3: Right distal end
+    ],
+    parents=np.array([-1, 0, 1, 1]),  # root, proximal←root, both distals←proximal
+    bone_lengths=np.array([0.0, 10.0, 8.0, 8.0]),  # root=0, proximal=10, distals=8 each
+    up_axis=np.array([0.0, 0.0, 1.0]),
+)
+
+
 def validate_skeleton(skeleton: SkeletonConfig) -> None:
     """Validate that a skeleton configuration is well-formed.
 
@@ -112,5 +143,6 @@ def validate_skeleton(skeleton: SkeletonConfig) -> None:
         raise ValueError(f"up_axis must be a unit vector (norm={norm:.4f})")
 
 
-# Validate the demo skeleton on import
+# Validate the demo skeletons on import
 validate_skeleton(DEMO_V0_1_SKELETON)
+validate_skeleton(L00_SKELETON)

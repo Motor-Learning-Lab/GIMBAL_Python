@@ -1,0 +1,151 @@
+{
+  "_README": "This is a template for v0.2.1 synthetic dataset configuration.",
+  "_USAGE": "Copy this file, rename it config.json, modify values as needed. Keys starting with _ are comments and will be ignored by the loader.",
+  
+  "meta": {
+    "_description": "Top-level metadata for the dataset",
+    "name": "example_dataset",
+    "_comment_name": "Unique identifier for this dataset",
+    "version": "0.2.1",
+    "_comment_version": "Config schema version",
+    "description": "Example dataset for testing",
+    "_comment_description": "Human-readable description of dataset purpose",
+    "seed": 42,
+    "_comment_seed": "Random seed for reproducibility. Set to null for random generation.",
+    "dt": 0.0167,
+    "_comment_dt": "Timestep in seconds (0.0167 ≈ 60 fps)",
+    "T": 1800,
+    "_comment_T": "Number of timesteps. Recommended: T = 30 * num_states * fps for ~30 seconds per state"
+  },
+  
+  "dataset_spec": {
+    "_description": "Specification of data to generate",
+    
+    "skeleton": {
+      "_description": "Skeleton structure and dimensions",
+      "joint_names": ["root", "spine", "head", "left_shoulder", "right_shoulder"],
+      "_comment_joint_names": "Names of joints in order. Length K.",
+      "parents": [-1, 0, 1, 1, 1],
+      "_comment_parents": "Parent joint index for each joint. Root has parent -1. Defines tree structure.",
+      "lengths": [0, 10, 5, 8, 8],
+      "_comment_lengths": "Bone lengths in arbitrary units. Root typically 0. Length K. These define the ||x_k - x_parent|| distances."
+    },
+    
+    "states": {
+      "_description": "Hidden Markov Model state dynamics",
+      "num_states": 3,
+      "_comment_num_states": "Number of discrete hidden states S",
+      "transition_matrix": [
+        [0.85, 0.075, 0.075],
+        [0.075, 0.85, 0.075],
+        [0.075, 0.075, 0.85]
+      ],
+      "_comment_transition_matrix": "S×S matrix. Row i = prob of transitioning FROM state i. Rows must sum to 1. High diagonal = high persistence."
+    },
+    
+    "motion": {
+      "_description": "Second-order attractor dynamics for continuous skeletal motion",
+      "per_state_params": {
+        "_description": "Parameters for each hidden state. Keys are state indices (0, 1, 2, ..., S-1)",
+        "0": {
+          "mu": [[0, 0, 1], [0.7, 0, 0.7], [-0.7, 0, 0.7]],
+          "_comment_mu": "Attractor positions for bone directions. Shape: (K-1, 3) for K joints. Will be normalized to unit vectors. Each row is the mean direction for bone k.",
+          "omega": 3.0,
+          "_comment_omega": "Natural frequency (rad/s). Controls return speed to attractor. Recommended: 1/τ where τ ∈ [0.25, 0.5] seconds. Can be scalar (same for all bones) or array of length K-1.",
+          "zeta": 0.7,
+          "_comment_zeta": "Damping ratio. 0.7 recommended for smooth critically-damped behavior. <1=underdamped (oscillations), 1=critical (fastest without overshoot), >1=overdamped (slow). Scalar or array.",
+          "sigma_pose": 0.1,
+          "_comment_sigma_pose": "Target within-state angular dispersion (radians). Used to calibrate process noise. Typical: 0.05-0.15 rad ≈ 3-9 degrees."
+        },
+        "1": {
+          "mu": [[0.6, 0, 0.8], [0.8, 0, 0.6], [-0.4, 0, 0.9]],
+          "omega": 3.0,
+          "zeta": 0.7,
+          "sigma_pose": 0.1
+        },
+        "2": {
+          "mu": [[0, 0.7, 0.7], [0, 0.9, 0.4], [0, -0.7, 0.7]],
+          "omega": 3.0,
+          "zeta": 0.7,
+          "sigma_pose": 0.1
+        }
+      },
+      "root_params": {
+        "_description": "Root joint position dynamics (also second-order attractor)",
+        "per_state": {
+          "_description": "Root attractor position for each state",
+          "0": {
+            "mu": [0, 0, 100],
+            "_comment_mu": "Attractor position in 3D space (units: arbitrary, typically matching skeleton scale)"
+          },
+          "1": {
+            "mu": [10, 0, 100]
+          },
+          "2": {
+            "mu": [-10, 0, 100]
+          }
+        },
+        "omega": 2.0,
+        "_comment_omega": "Natural frequency for root. Typically slower than joint dynamics. Scalar or per-state array.",
+        "zeta": 0.8,
+        "_comment_zeta": "Damping ratio for root. Higher than joints for stability.",
+        "sigma_pose": 5.0,
+        "_comment_sigma_pose": "Target RMS deviation from attractor (spatial units). Typical: 1-10 units.",
+        "init_pos": [0, 0, 100],
+        "_comment_init_pos": "Initial root position. Set to null to use mu of initial state."
+      }
+    },
+    
+    "cameras": {
+      "_description": "Multi-camera observation setup",
+      "image_size": [1280, 720],
+      "_comment_image_size": "[width, height] in pixels. Used for bounds checking and focal length interpretation.",
+      "cameras": [
+        {
+          "name": "cam0_front",
+          "_comment_name": "Human-readable camera identifier",
+          "K": [[640, 0, 640], [0, 640, 360], [0, 0, 1]],
+          "_comment_K": "Intrinsic matrix: [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]. Focal lengths fx/fy in pixels. Principal point (cx, cy) typically at image center.",
+          "R": [[1, 0, 0], [0, 0.866, -0.5], [0, 0.5, 0.866]],
+          "_comment_R": "Rotation matrix (3×3). Transforms from world to camera coordinates. Rows are camera axes in world frame.",
+          "t": [-50, 0, -50],
+          "_comment_t": "Translation vector (3,). Camera position in world coordinates (negative of camera center in camera frame)."
+        },
+        {
+          "name": "cam1_side",
+          "K": [[640, 0, 640], [0, 640, 360], [0, 0, 1]],
+          "R": [[0, 0, 1], [0, 1, 0], [-1, 0, 0]],
+          "t": [0, -50, -50]
+        },
+        {
+          "name": "cam2_overhead",
+          "K": [[640, 0, 640], [0, 640, 360], [0, 0, 1]],
+          "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+          "t": [0, 0, -180]
+        }
+      ]
+    },
+    
+    "observation": {
+      "_description": "2D observation model: noise, outliers, missingness",
+      "noise_px": 2.0,
+      "_comment_noise_px": "Gaussian noise standard deviation in pixels. Typical: 1-10 px. Should be small fraction of image width.",
+      "outlier_enabled": false,
+      "_comment_outlier_enabled": "Whether to add outlier observations",
+      "outlier_fraction": 0.1,
+      "_comment_outlier_fraction": "Fraction of observations to replace with outliers (0 to 1). Active only if outlier_enabled=true.",
+      "outlier_std_px": 50.0,
+      "_comment_outlier_std_px": "Standard deviation of outlier distribution (pixels). Should be large enough to be clearly separable from inliers in residuals.",
+      "missingness_enabled": false,
+      "_comment_missingness_enabled": "Whether to add missing observations",
+      "missingness_bernoulli_p": 0.2,
+      "_comment_missingness_bernoulli_p": "Probability of each observation being missing (0 to 1). Active only if missingness_enabled=true. Subject to identifiability constraints (min cameras per point)."
+    }
+  },
+  
+  "output": {
+    "_description": "Output file naming",
+    "run_name": "example_dataset_v0.2.1",
+    "_comment_run_name": "Name for output files. Typically: {dataset_name}_v{version}"
+  }
+}
