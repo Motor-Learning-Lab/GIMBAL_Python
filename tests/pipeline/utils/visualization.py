@@ -13,10 +13,12 @@ from typing import Optional
 from .config_generator import GeneratedDataset
 
 # Import focused visualization functions from gimbal
-from gimbal.viz_motion_3d import plot_skeleton_motion_3d
-from gimbal.viz_poses_3d import plot_skeleton_poses_3d
-from gimbal.viz_reprojection_2d import plot_2d_reprojections
-from gimbal.viz_state_timeline import plot_state_timeline as plot_state_timeline_focused
+from gimbal.skeleton_visualization import (
+    plot_skeleton_motion_3d,
+    plot_skeleton_poses_3d,
+    plot_2d_reprojections,
+    plot_state_timeline as plot_state_timeline_focused,
+)
 
 
 def plot_3d_skeleton_motion(

@@ -13,11 +13,13 @@ import json
 from .config_generator import GeneratedDataset
 
 # Import focused metric functions from gimbal
-from gimbal.metrics_bone_length import compute_bone_length_metrics
-from gimbal.metrics_direction import compute_direction_metrics
-from gimbal.metrics_smoothness import compute_smoothness_metrics
-from gimbal.metrics_state import compute_state_metrics
-from gimbal.metrics_observation import compute_observation_metrics
+from gimbal.skeleton_metrics import (
+    compute_bone_length_metrics,
+    compute_direction_metrics,
+    compute_smoothness_metrics,
+    compute_state_metrics,
+    compute_observation_metrics,
+)
 
 
 def compute_dataset_metrics(dataset: GeneratedDataset) -> Dict[str, Any]:
