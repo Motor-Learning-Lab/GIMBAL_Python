@@ -22,3 +22,7 @@ pytest = "*"
 run-demo = "python -m examples.run_gimbal_demo"
 # Launch JupyterLab for interactive notebooks
 notebook = "jupyter lab"
+# Generate synthetic datasets (from repo root)
+generate-datasets = "python tests/pipeline/generate_dataset.py"
+# Run pipeline integration tests
+test-pipeline = "pytest tests/pipeline/test_v0_2_1_synth_generator.py -v"

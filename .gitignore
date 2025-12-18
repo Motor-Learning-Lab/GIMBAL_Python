@@ -185,3 +185,14 @@ cython_debug/
 results/diagnostics/
 results/benchmarks/
 results/figures/*.png
+
+# GIMBAL Pipeline Artifacts
+# Policy: Configs are versioned, generated artifacts are not
+# Keep: config.json, config_template.json (define datasets)
+# Ignore: dataset.npz, metrics.json, figures/ (regenerated on demand)
+tests/pipeline/datasets/**/dataset.npz
+tests/pipeline/datasets/**/metrics.json
+tests/pipeline/datasets/**/figures/
+
+# Pixi environment
+.pixi/

@@ -60,5 +60,19 @@
       "outliers_enabled": false,
       "missingness_enabled": false
     }
+  },
+  "identifiability": {
+    "passed": true,
+    "fraction_good": 1.0,
+    "mean_min_angle": 85.71692096203931,
+    "std_min_angle": 7.273889989422723,
+    "min_min_angle": 75.37760952603439,
+    "max_min_angle": 101.57183119562339,
+    "mean_cameras": 3.0,
+    "diagnostics": {
+      "num_samples": 100,
+      "num_passed": 100,
+      "num_failed": 0
+    }
   }
 }

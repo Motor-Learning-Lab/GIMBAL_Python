@@ -1,8 +1,11 @@
 """Runner script to generate datasets from configs.
 
-Usage:
-    python generate_dataset.py v0.2.1_L00_minimal
-    python generate_dataset.py v0.2.1_L01_noise v0.2.1_L02_outliers v0.2.1_L03_missingness
+Usage (from repo root):
+    python tests/pipeline/generate_dataset.py v0.2.1_L00_minimal
+    python tests/pipeline/generate_dataset.py v0.2.1_L01_noise v0.2.1_L02_outliers
+
+Or via pixi task:
+    pixi run generate-datasets v0.2.1_L00_minimal
 
 Config files are loaded from tests/pipeline/datasets/{dataset_name}/config.json
 Outputs are saved to the same directory.
@@ -11,9 +14,12 @@ Outputs are saved to the same directory.
 import sys
 from pathlib import Path
 
-# Add project root to path for imports
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
+# Ensure project root is importable when running as script
+# (Not needed when installed as package or run via pixi with proper PYTHONPATH)
+if __name__ == "__main__":
+    project_root = Path(__file__).resolve().parent.parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 
 from tests.pipeline.utils.config_generator import (
     load_config,

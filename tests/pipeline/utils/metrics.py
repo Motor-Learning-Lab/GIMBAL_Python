@@ -20,6 +20,7 @@ from gimbal.skeleton_metrics import (
     compute_state_metrics,
     compute_observation_metrics,
 )
+from gimbal.identifiability import check_identifiability, IdentifiabilityConfig
 
 
 def compute_dataset_metrics(dataset: GeneratedDataset) -> Dict[str, Any]:
@@ -66,6 +67,15 @@ def compute_dataset_metrics(dataset: GeneratedDataset) -> Dict[str, Any]:
         y_2d=dataset.y_2d, image_sizes=image_sizes, config_observation_spec=obs_spec
     )
 
+    # Camera identifiability check
+    camera_positions = np.array([cam["position"] for cam in dataset.camera_metadata])
+    identifiability_config = IdentifiabilityConfig()
+    metrics["identifiability"] = check_identifiability(
+        x_3d=dataset.x_true,
+        camera_positions=camera_positions,
+        config=identifiability_config,
+    )
+
     return metrics
 
 
@@ -81,8 +91,25 @@ def save_metrics(metrics: Dict[str, Any], output_path: Path) -> None:
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Convert numpy types to JSON-serializable types
+    def convert_numpy(obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        elif isinstance(obj, (np.bool_)):
+            return bool(obj)
+        elif isinstance(obj, dict):
+            return {key: convert_numpy(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_numpy(item) for item in obj]
+        else:
+            return obj
+
+    metrics_serializable = convert_numpy(metrics)
+
     with open(output_path, "w") as f:
-        json.dump(metrics, f, indent=2)
+        json.dump(metrics_serializable, f, indent=2)
 
     print(f"Saved metrics to {output_path}")
 

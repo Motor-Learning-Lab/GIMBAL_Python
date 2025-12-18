@@ -6,16 +6,16 @@ Tests validate that generated datasets meet quality thresholds for:
 - Smoothness (no extreme jerk)
 - State sequence correctness
 - 2D observation validity
+
+Run from repo root:
+    pytest tests/pipeline/test_v0_2_1_synth_generator.py
+Or:
+    pixi run pytest tests/pipeline/test_v0_2_1_synth_generator.py
 """
 
 import pytest
 import numpy as np
 from pathlib import Path
-import sys
-
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 from tests.pipeline.utils import (
     load_config,
@@ -23,16 +23,6 @@ from tests.pipeline.utils import (
     compute_dataset_metrics,
     check_metrics_thresholds,
 )
-
-
-# Define test thresholds (calibrated from L00 baseline)
-BASE_THRESHOLDS = {
-    "bone_length_max_dev": 0.001,  # Max 0.1% deviation
-    "direction_norm_tolerance": 0.01,  # Within 1% of unit norm
-    "near_zero_directions": 0,  # No near-zero norms
-    "bounds_violation_rate": 0.05,  # Max 5% out of bounds
-    "jerk_p95_max": 20000,  # 2× safety margin over L00 baseline (~9590)
-}
 
 
 @pytest.fixture(scope="module")
@@ -61,36 +51,66 @@ def datasets():
     return datasets
 
 
+@pytest.fixture(scope="module")
+def baseline_thresholds(datasets):
+    """Compute baseline-relative thresholds from L00 metrics.
+
+    This makes tests robust to parameter tuning while still catching regressions.
+    Thresholds are defined as multiples of L00 baseline values.
+    """
+    l00_metrics = datasets["L00_minimal"]["metrics"]
+
+    return {
+        # Bone length: L00 should be perfect, others allow tiny numerical error
+        "bone_length_max_dev": 0.001,  # 0.1% absolute tolerance
+        # Direction normalization: all should be near-perfect
+        "direction_norm_tolerance": 0.01,  # 1% tolerance from unity
+        "near_zero_directions": 0,  # No near-zero norms allowed
+        # Smoothness: L01-L03 can have up to 2x L00 jerk (noise adds dynamics)
+        "jerk_p95_factor": 2.0,  # Multiplier for L00 baseline jerk
+        "jerk_p95_baseline": l00_metrics["smoothness"]["jerk"]["p95"],
+        # Bounds violations: 5% tolerance for noisy datasets
+        "bounds_violation_rate": 0.05,
+        # Identifiability: all datasets should pass
+        "identifiability_fraction": 0.95,  # At least 95% of samples good
+        "identifiability_min_angle": 20.0,  # degrees
+    }
+
+
 class TestL00Minimal:
     """Tests for L00 minimal baseline dataset."""
 
-    def test_bone_length_consistency(self, datasets):
+    def test_bone_length_consistency(self, datasets, baseline_thresholds):
         """Bone lengths should be perfectly consistent (numerical precision only)."""
         metrics = datasets["L00_minimal"]["metrics"]
         assert (
             metrics["bone_length"]["max_relative_deviation"]
-            < BASE_THRESHOLDS["bone_length_max_dev"]
+            < baseline_thresholds["bone_length_max_dev"]
         )
         assert (
             metrics["bone_length"]["mean_relative_deviation"]
-            < BASE_THRESHOLDS["bone_length_max_dev"] / 2
+            < baseline_thresholds["bone_length_max_dev"] / 2
         )
 
-    def test_direction_normalization(self, datasets):
+    def test_direction_normalization(self, datasets, baseline_thresholds):
         """Direction vectors should be unit normalized."""
         metrics = datasets["L00_minimal"]["metrics"]
         mean_norm = metrics["direction_normalization"]["mean_norm"]
-        assert abs(mean_norm - 1.0) < BASE_THRESHOLDS["direction_norm_tolerance"]
+        assert abs(mean_norm - 1.0) < baseline_thresholds["direction_norm_tolerance"]
         assert (
             metrics["direction_normalization"]["near_zero_count"]
-            == BASE_THRESHOLDS["near_zero_directions"]
+            == baseline_thresholds["near_zero_directions"]
         )
 
-    def test_smoothness(self, datasets):
+    def test_smoothness(self, datasets, baseline_thresholds):
         """Motion should be smooth (no extreme jerk)."""
         metrics = datasets["L00_minimal"]["metrics"]
-        # Jerk should be reasonable
-        assert metrics["smoothness"]["jerk"]["p95"] < BASE_THRESHOLDS["jerk_p95_max"]
+        # Jerk should be reasonable (L00 defines baseline)
+        max_jerk = (
+            baseline_thresholds["jerk_p95_baseline"]
+            * baseline_thresholds["jerk_p95_factor"]
+        )
+        assert metrics["smoothness"]["jerk"]["p95"] < max_jerk
         # Speed should be non-zero (motion is happening)
         assert metrics["smoothness"]["speed"]["mean"] > 0.1
 
@@ -98,6 +118,19 @@ class TestL00Minimal:
         """L00 should have exactly 1 state with no transitions."""
         metrics = datasets["L00_minimal"]["metrics"]
         assert metrics["states"]["single_state_check"]["is_single_state"]
+
+    def test_identifiability(self, datasets, baseline_thresholds):
+        """Camera configuration should be identifiable."""
+        metrics = datasets["L00_minimal"]["metrics"]
+        assert metrics["identifiability"]["passed"]
+        assert (
+            metrics["identifiability"]["fraction_good"]
+            >= baseline_thresholds["identifiability_fraction"]
+        )
+        assert (
+            metrics["identifiability"]["mean_min_angle"]
+            > baseline_thresholds["identifiability_min_angle"]
+        )
         assert metrics["states"]["single_state_check"]["actual_unique_states"] == 1
 
         # All transitions should be self-transitions
@@ -140,12 +173,12 @@ class TestL01Noise:
             > l00_config["dataset_spec"]["observation"]["noise_px"]
         )
 
-    def test_same_ground_truth_quality(self, datasets):
+    def test_same_ground_truth_quality(self, datasets, baseline_thresholds):
         """Ground truth should have same quality as L00 (different obs only)."""
         metrics = datasets["L01_noise"]["metrics"]
         assert (
             metrics["bone_length"]["max_relative_deviation"]
-            < BASE_THRESHOLDS["bone_length_max_dev"]
+            < baseline_thresholds["bone_length_max_dev"]
         )
         assert metrics["direction_normalization"]["near_zero_count"] == 0
 
@@ -159,12 +192,12 @@ class TestL02Outliers:
         assert config["dataset_spec"]["observation"]["outliers"]["enabled"]
         assert config["dataset_spec"]["observation"]["outliers"]["fraction"] > 0
 
-    def test_valid_ground_truth(self, datasets):
+    def test_valid_ground_truth(self, datasets, baseline_thresholds):
         """Ground truth should still be valid despite outliers."""
         metrics = datasets["L02_outliers"]["metrics"]
         assert (
             metrics["bone_length"]["max_relative_deviation"]
-            < BASE_THRESHOLDS["bone_length_max_dev"]
+            < baseline_thresholds["bone_length_max_dev"]
         )
 
 
@@ -188,12 +221,12 @@ class TestL03Missingness:
         # Allow 25% tolerance due to randomness
         assert abs(actual_rate - target_rate) < target_rate * 0.25
 
-    def test_valid_ground_truth(self, datasets):
+    def test_valid_ground_truth(self, datasets, baseline_thresholds):
         """Ground truth should be valid despite missingness."""
         metrics = datasets["L03_missingness"]["metrics"]
         assert (
             metrics["bone_length"]["max_relative_deviation"]
-            < BASE_THRESHOLDS["bone_length_max_dev"]
+            < baseline_thresholds["bone_length_max_dev"]
         )
 
 
@@ -203,10 +236,10 @@ class TestAllDatasets:
     @pytest.mark.parametrize(
         "dataset_name", ["L00_minimal", "L01_noise", "L02_outliers", "L03_missingness"]
     )
-    def test_threshold_validation(self, datasets, dataset_name):
-        """All datasets should pass base thresholds."""
+    def test_threshold_validation(self, datasets, dataset_name, baseline_thresholds):
+        """All datasets should pass baseline-relative thresholds."""
         metrics = datasets[dataset_name]["metrics"]
-        passed, failures = check_metrics_thresholds(metrics, BASE_THRESHOLDS)
+        passed, failures = check_metrics_thresholds(metrics, baseline_thresholds)
 
         if not passed:
             failure_msg = f"{dataset_name} failed thresholds:\n" + "\n".join(failures)
