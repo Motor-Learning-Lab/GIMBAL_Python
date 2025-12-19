@@ -1,0 +1,93 @@
+{
+  "description": "Fitting configuration for L00_minimal dataset - Step 4 toolchain validation",
+  "dataset": {
+    "name": "L00_minimal",
+    "path": "tests/pipeline/datasets/v0.2.1_L00_minimal/dataset.npz",
+    "level": 0,
+    "num_states": 1,
+    "description": "Clean data, single HMM state, deterministic transitions"
+  },
+  "stages": {
+    "A_load": {
+      "validate_shapes": true,
+      "check_nans": true,
+      "check_camera_invertibility": true
+    },
+    "B_clean_2d": {
+      "apply": true,
+      "method": "mad",
+      "threshold": 3.0,
+      "temporal_window": 5,
+      "interpolate_gaps": true,
+      "note": "Apply even to clean data to test preservation"
+    },
+    "C_triangulation": {
+      "method": "dlt",
+      "min_cameras": 2
+    },
+    "D_clean_3d": {
+      "apply": true,
+      "bone_length_tolerance": 0.2,
+      "temporal_window": 5,
+      "smooth_method": "savgol"
+    },
+    "E_direction_stats": {
+      "compute": true
+    },
+    "F_prior_building": {
+      "kappa_scale": 1.0,
+      "source": "data_driven"
+    },
+    "G_model_building": {
+      "use_directional_hmm": true,
+      "hmm_num_states": 1,
+      "estimate_cameras": false,
+      "estimate_bone_lengths": false,
+      "use_mixture": true,
+      "image_size": [640, 480],
+      "note": "Fixed cameras/lengths to isolate pipeline correctness"
+    },
+    "H_fitting": {
+      "sampler": "pymc",
+      "draws": 200,
+      "tune": 200,
+      "chains": 2,
+      "cores": 1,
+      "target_accept": 0.8,
+      "note": "Short run for fast validation"
+    },
+    "I_diagnostics": {
+      "compute_reprojection_errors": true,
+      "plot_traces": true,
+      "posterior_predictive": true
+    },
+    "J_ground_truth": {
+      "compute_3d_rmse": true,
+      "compute_angular_errors": true,
+      "compute_state_accuracy": true,
+      "note": "State accuracy trivial for K=1 (always 1.0)"
+    }
+  },
+  "pass_criteria": {
+    "reprojection_rmse_px": 5.0,
+    "bone_length_error_pct": 10.0,
+    "rhat_max": 1.05,
+    "convergence_note": "Per Q7: reprojection < 5px, bone lengths within 10%, r_hat < 1.05"
+  },
+  "outputs": {
+    "flat_json_files": [
+      "load_validation.json",
+      "cleaning_2d_metrics.json",
+      "triangulation_metrics.json",
+      "cleaning_3d_metrics.json",
+      "direction_stats.json",
+      "priors.json",
+      "sampling_metrics.json",
+      "posterior_diagnostics.json",
+      "ground_truth_metrics.json"
+    ],
+    "trace_file": "trace.nc",
+    "report_file": "fit_report.md",
+    "figures_directory": "figures/"
+  }
+}

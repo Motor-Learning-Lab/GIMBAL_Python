@@ -45,10 +45,29 @@ Files follow the pattern: `v{major}.{minor}.{patch}-{type}.md`
 
 ## Version 0.2 — Priors, Real Data, and Robustness
 
-**Status:** 📋 Planning
+**Status:** � In Progress (Step 3 Complete, Step 4 Planning)
+
+**👉 For Step 4 planning, start with: [STEP4_QUICK_REFERENCE.md](STEP4_QUICK_REFERENCE.md)**
 
 ### v0.2 Overview
 - **`v0.2-overview.md`** - Eight-phase roadmap for v0.2 development
+
+### v0.2.1 — Data-Driven Priors & Synthetic Data Pipeline
+
+**Status:** ✅ Core features complete
+
+**Key Documents:**
+- **`v0.2.1_step3_completion_summary.md`** ← **Step 3 canonical reference**
+- **`v0.2.1_step3_synthetic_data_generation.md`** - Step 3 original plan (implemented)
+- **`v0.2.1_step3_clarifications_and_questions.md`** - Design decisions
+- **`v0.2.1_completion_report.md`** - Data-driven priors implementation
+- **`v0.2.1_spec_data_driven_priors.md`** - Technical specification
+
+**Key Achievements:**
+- Data-driven priors pipeline (triangulation → cleaning → statistics → priors)
+- Synthetic data generation with second-order dynamics
+- Camera visualization and 3-tier identifiability checking
+- Consolidated skeleton metrics and visualization modules
 
 ### Phases (0.2.1 - 0.2.8)
 1. **Coarse Anatomical Priors & Basic Cleaning**

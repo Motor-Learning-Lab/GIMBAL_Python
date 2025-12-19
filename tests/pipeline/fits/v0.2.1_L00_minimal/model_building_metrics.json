@@ -1,0 +1,32 @@
+{
+  "stage": "G_model_building",
+  "model_config": {
+    "hmm_num_states": 1,
+    "use_directional_hmm": true,
+    "use_mixture": true,
+    "use_data_driven_priors": true,
+    "estimate_cameras": false,
+    "estimate_bone_lengths": true,
+    "note": "Bone length fixing not yet implemented in API - tracked as future work"
+  },
+  "model_diagnostics": {
+    "n_free_rvs": 21,
+    "n_observed_points": 42615,
+    "logp_at_init": -591221.1789291957,
+    "compilation_successful": true
+  },
+  "initialization": {
+    "method": "dlt",
+    "root_pos_init": [
+      0.007915345602724529,
+      0.0779816700302878,
+      100.06438670949541
+    ],
+    "bone_lengths_init": [
+      10.002324365486784,
+      8.001359142385656,
+      7.99808192387068
+    ],
+    "obs_sigma_init": 2.0
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "stage": "H_fitting",
+  "sampling_config": {
+    "draws": 200,
+    "tune": 500,
+    "chains": 2,
+    "sampler": "PyMC_NUTS"
+  },
+  "convergence": {
+    "max_rhat": 26835525.92300877,
+    "mean_rhat": 26835525.92300877,
+    "n_rhat_high": 151243,
+    "total_params": 151243,
+    "divergences": 400,
+    "min_ess": 2.0833333333333335,
+    "mean_ess": 15.80573643163416,
+    "n_ess_low": 151243
+  },
+  "timing": {
+    "sampling_seconds": 70.77210545539856,
+    "draws_per_second": 5.651944327869189
+  },
+  "criteria_Q7": {
+    "rhat_pass": false,
+    "divergence_pass": false,
+    "ess_pass": false
+  },
+  "timestamp": "2025-12-19T18:29:18.947552",
+  "outputs": {
+    "trace": "C:\\Repositories\\GIMBAL_Python\\tests\\pipeline\\fits\\v0.2.1_L00_minimal\\trace.nc",
+    "trace_plots": "C:\\Repositories\\GIMBAL_Python\\tests\\pipeline\\fits\\v0.2.1_L00_minimal\\trace_plots"
+  }
+}
