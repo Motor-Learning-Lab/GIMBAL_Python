@@ -87,27 +87,23 @@ def build_model(data):
     """Build the PyMC model with the failing configuration."""
     C, T, K, _ = data["y_2d"].shape
 
-    # Initialize from triangulation
-    from gimbal.fit_params import InitializationResult
+    # Initialize using library estimator (not ad-hoc)
+    print("  Initializing from observations (DLT triangulation)...")
+    from gimbal.fit_params import initialize_from_observations_dlt
 
-    # Simple initialization (use mean of observed data as proxy)
-    x_init = np.random.randn(T, K, 3) * 10 + 100  # Rough estimate
-    rho_init = (
-        data["bone_lengths"][: K - 1]
-        if len(data["bone_lengths"]) >= K - 1
-        else np.ones(K - 1) * 10
+    # Reshape y_2d from (C, T, K, 2) as expected by library
+    init_result = initialize_from_observations_dlt(
+        y_observed=data["y_2d"],
+        camera_proj=data["camera_proj"],
+        parents=data["parents"],
     )
 
-    init_result = InitializationResult(
-        x_init=x_init,
-        eta2=np.ones(K),
-        rho=rho_init,
-        sigma2=rho_init * 0.01,
-        u_init=np.zeros((T, K, 3)),
-        obs_sigma=2.0,
-        inlier_prob=0.95,
-        metadata={"method": "simple_init"},
+    print(f"  Initialization complete")
+    print(
+        f"    Triangulation rate: {init_result.metadata.get('triangulation_rate', 'N/A'):.2%}"
     )
+    print(f"    Bone lengths (rho): {init_result.rho}")
+    print(f"    Bone variances (sigma2): {init_result.sigma2}")
 
     # Build model with failing configuration
     with pm.Model() as model:

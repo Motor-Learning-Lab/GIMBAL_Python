@@ -92,34 +92,27 @@ def run_stage_h(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> dict:
     print(f"  Priors available for: {list(data['priors'].keys())}")
 
     # Initialize from cleaned 3D (same as Stage G)
-    print("\n[2/5] Computing initialization...")
-    T, K, _ = data["x_3d_clean"].shape
-    x_init = data["x_3d_clean"]
+    # Initialize from observations using library estimator
+    print("\n[2/5] Computing initialization from observations...")
+    from gimbal.fit_params import initialize_from_observations_dlt
 
-    # Compute bone lengths from initial 3D
-    bone_lengths_init = []
-    for k in range(1, K):
-        parent_idx = data["parents"][k]
-        if parent_idx >= 0:
-            bones = x_init[:, k, :] - x_init[:, parent_idx, :]
-            lengths = np.sqrt(np.sum(bones**2, axis=1))
-            bone_lengths_init.append(np.nanmean(lengths))
-
-    rho_init = np.array(bone_lengths_init)
-
-    from gimbal.fit_params import InitializationResult
-
-    init_result = InitializationResult(
-        x_init=x_init,
-        eta2=np.array([1.0] * K),
-        rho=rho_init,
-        sigma2=rho_init * 0.01,
-        u_init=np.zeros((T, K, 3)),
-        obs_sigma=2.0,
-        inlier_prob=0.95,
-        metadata={"method": "stage_d_cleaned_3d", "source": "stage_d_clean_3d.py"},
-    )
-    print("  Initialization complete")
+    try:
+        init_result = initialize_from_observations_dlt(
+            y_observed=data["y_2d_clean"],
+            camera_proj=data["camera_proj"],
+            parents=data["parents"],
+        )
+        print(f"  Initialization complete")
+        print(f"    Method: {init_result.metadata.get('method', 'unknown')}")
+        print(
+            f"    Triangulation rate: {init_result.metadata.get('triangulation_rate', 0):.2%}"
+        )
+        print(f"    Bone lengths (rho): {init_result.rho}")
+        print(f"    Bone variances (sigma2): {init_result.sigma2}")
+        print(f"    Obs sigma: {init_result.obs_sigma:.4f}")
+    except ValueError as e:
+        print(f"  ERROR during initialization: {e}")
+        raise
 
     # Rebuild model (same as Stage G)
     print("\n[3/5] Rebuilding PyMC model...")

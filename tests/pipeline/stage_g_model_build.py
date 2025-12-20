@@ -95,40 +95,30 @@ def run_stage_g(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> Dict[str
     print(f"  Joints: {len(data['joint_names'])}")
     print(f"  Priors available for: {list(data['prior_config'].keys())}")
 
-    # Initialize from cleaned 3D (use Stage D output directly)
-    print("\n[2/4] Computing initialization...")
-    # Use the triangulated and cleaned 3D from Stage D
-    x_init = data["x_3d_clean"]  # (T, K, 3)
+    # Initialize from observations using library estimator
+    print("\n[2/4] Computing initialization from observations...")
+    from gimbal.fit_params import initialize_from_observations_dlt
 
-    # Compute bone lengths from initial 3D
-    T, K, _ = x_init.shape
-    bone_lengths_init = []
-    for k in range(1, K):
-        parent_idx = data["parents"][k]
-        if parent_idx >= 0:
-            bones = x_init[:, k, :] - x_init[:, parent_idx, :]
-            lengths = np.sqrt(np.sum(bones**2, axis=1))
-            bone_lengths_init.append(np.nanmean(lengths))
-
-    rho_init = np.array(bone_lengths_init)
-
-    # Simple initialization
-    from gimbal.fit_params import InitializationResult
-
-    init_result = InitializationResult(
-        x_init=x_init,
-        eta2=np.array([1.0] * K),  # Temporal variances
-        rho=rho_init,  # Bone lengths
-        sigma2=rho_init * 0.01,  # Bone variances (1% of length)
-        u_init=np.zeros((T, K, 3)),  # Will be computed by model
-        obs_sigma=2.0,  # From L00 config
-        inlier_prob=0.95,
-        metadata={"method": "stage_d_cleaned_3d", "source": "stage_d_clean_3d.py"},
-    )
-    print(f"  Initialization complete")
-    print(f"    Root init: {init_result.x_init[0, 0, :]}")
-    print(f"    Bone lengths (rho): {init_result.rho}")
-    print(f"    Obs sigma: {init_result.obs_sigma:.4f}")
+    # Use library estimator (DLT triangulation + robust estimation)
+    # This ensures parents array is used consistently
+    try:
+        init_result = initialize_from_observations_dlt(
+            y_observed=data["y_2d_clean"],
+            camera_proj=data["camera_proj"],
+            parents=data["parents"],
+        )
+        print(f"  Initialization complete")
+        print(f"    Method: {init_result.metadata.get('method', 'unknown')}")
+        print(
+            f"    Triangulation rate: {init_result.metadata.get('triangulation_rate', 0):.2%}"
+        )
+        print(f"    Root init: {init_result.x_init[0, 0, :]}")
+        print(f"    Bone lengths (rho): {init_result.rho}")
+        print(f"    Bone variances (sigma2): {init_result.sigma2}")
+        print(f"    Obs sigma: {init_result.obs_sigma:.4f}")
+    except ValueError as e:
+        print(f"  ERROR during initialization: {e}")
+        raise
 
     # Build PyMC model
     print("\n[3/4] Building PyMC model...")
@@ -138,7 +128,7 @@ def run_stage_g(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> Dict[str
     print("    - Data-driven priors: enabled")
     print("    - Mixture likelihood: enabled")
     print("    - Cameras: FIXED (not estimated)")
-    print("    - Bone lengths: ESTIMATED (API limitation - see note)")
+    print("    - Bone lengths: ESTIMATED via library")
 
     with pm.Model() as model:
         # Stage 1-2: Build camera observation model

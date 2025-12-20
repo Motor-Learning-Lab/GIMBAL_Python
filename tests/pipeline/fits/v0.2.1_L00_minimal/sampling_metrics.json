@@ -17,15 +17,15 @@
     "n_ess_low": 151243
   },
   "timing": {
-    "sampling_seconds": 70.77210545539856,
-    "draws_per_second": 5.651944327869189
+    "sampling_seconds": 87.9471378326416,
+    "draws_per_second": 4.548186670510838
   },
   "criteria_Q7": {
     "rhat_pass": false,
     "divergence_pass": false,
     "ess_pass": false
   },
-  "timestamp": "2025-12-19T18:29:18.947552",
+  "timestamp": "2025-12-20T13:20:06.081656",
   "outputs": {
     "trace": "C:\\Repositories\\GIMBAL_Python\\tests\\pipeline\\fits\\v0.2.1_L00_minimal\\trace.nc",
     "trace_plots": "C:\\Repositories\\GIMBAL_Python\\tests\\pipeline\\fits\\v0.2.1_L00_minimal\\trace_plots"
