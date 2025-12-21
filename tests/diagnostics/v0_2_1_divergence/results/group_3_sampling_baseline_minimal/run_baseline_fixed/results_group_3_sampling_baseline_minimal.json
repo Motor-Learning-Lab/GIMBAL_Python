@@ -1,0 +1,99 @@
+{
+  "group": "group_3_sampling_baseline_minimal",
+  "run_id": "baseline_fixed",
+  "timestamp": "2025-12-20T13:37:04.927498",
+  "environment": {
+    "python_version": "3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:35:28) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "pymc_version": "5.26.1",
+    "pytensor_version": "2.35.1",
+    "arviz_version": "0.22.0",
+    "numpy_version": "2.3.5",
+    "scipy_version": "1.16.3",
+    "timestamp": "2025-12-20T13:37:04.927498"
+  },
+  "config": {
+    "dataset_name": "v0.2.1_L00_minimal",
+    "max_T": 80,
+    "max_K": null,
+    "seed": 42,
+    "use_mixture": false,
+    "use_directional_hmm": false,
+    "chains": 2,
+    "tune": 300,
+    "draws": 100
+  },
+  "success": true,
+  "error": null,
+  "data_shape": {
+    "C": 3,
+    "T": 80,
+    "K": 4
+  },
+  "initial_point_logp": {
+    "total_logp": -108363.6556879498,
+    "has_nan": false,
+    "has_inf": false
+  },
+  "worst_terms": [
+    {
+      "name": "y_obs",
+      "value": -108224.18
+    },
+    {
+      "name": "raw_u_1",
+      "value": -260.55
+    },
+    {
+      "name": "raw_u_2",
+      "value": -260.55
+    },
+    {
+      "name": "raw_u_3",
+      "value": -260.55
+    },
+    {
+      "name": "sigma2",
+      "value": -3.36
+    },
+    {
+      "name": "x0_root",
+      "value": -2.76
+    },
+    {
+      "name": "rho",
+      "value": -2.19
+    },
+    {
+      "name": "eta2_root",
+      "value": -0.9
+    },
+    {
+      "name": "obs_sigma",
+      "value": -0.17
+    },
+    {
+      "name": "length_1",
+      "value": 110.81
+    }
+  ],
+  "gradient_stats": {
+    "grad_norm_l2": 305251.37203132943,
+    "grad_norm_linf": 211068.6883126625,
+    "nan_count": 0,
+    "inf_count": 0
+  },
+  "sampling_diagnostics": {
+    "divergences": 48,
+    "total_samples": 200,
+    "divergence_rate": 0.24,
+    "mean_step_size": 0.0030783778010758022,
+    "max_treedepth_fraction": 0.895,
+    "max_rhat": 1.31,
+    "min_ess": 5.0
+  },
+  "plots": [
+    "trace_selected.png",
+    "energy.png"
+  ]
+}
