@@ -1,0 +1,101 @@
+{
+  "group": "group_8a_temporal_T80",
+  "run_id": "T80_test",
+  "timestamp": "2025-12-20T14:23:39.711026",
+  "environment": {
+    "python_version": "3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:35:28) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "pymc_version": "5.26.1",
+    "pytensor_version": "2.35.1",
+    "arviz_version": "0.22.0",
+    "numpy_version": "2.3.5",
+    "scipy_version": "1.16.3",
+    "timestamp": "2025-12-20T14:23:39.711026"
+  },
+  "config": {
+    "dataset_name": "v0.2.1_L00_minimal",
+    "max_T": 80,
+    "seed": 42,
+    "use_mixture": true,
+    "use_directional_hmm": true,
+    "chains": 2,
+    "tune": 300,
+    "draws": 100
+  },
+  "success": true,
+  "error": null,
+  "data_shape": {
+    "C": 3,
+    "T": 80,
+    "K": 4
+  },
+  "initial_point_logp": {
+    "total_logp": -11389.08833631749,
+    "has_nan": false,
+    "has_inf": false
+  },
+  "worst_terms": [
+    {
+      "name": "y_obs",
+      "value": -5616.37
+    },
+    {
+      "name": "dir_hmm_potential",
+      "value": -5616.37
+    },
+    {
+      "name": "raw_u_1",
+      "value": -260.55
+    },
+    {
+      "name": "raw_u_2",
+      "value": -260.55
+    },
+    {
+      "name": "raw_u_3",
+      "value": -260.55
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "value": -11.03
+    },
+    {
+      "name": "sigma2",
+      "value": -3.36
+    },
+    {
+      "name": "logodds_inlier",
+      "value": -2.95
+    },
+    {
+      "name": "dir_hmm_kappa",
+      "value": -2.9
+    },
+    {
+      "name": "x0_root",
+      "value": -2.76
+    }
+  ],
+  "sampling_diagnostics": {
+    "divergences": 0,
+    "total_samples": 200,
+    "divergence_rate": 0.0,
+    "mean_step_size": 0.002000004448337494,
+    "max_treedepth_fraction": 1.0,
+    "max_rhat": 1.23,
+    "min_ess": 7.0,
+    "inlier_prob": {
+      "mean": 0.9997829476709658,
+      "std": 0.00026330217979367906,
+      "median": 0.9998604035596372,
+      "min": 0.9983081975994943,
+      "max": 0.9999999791294036
+    },
+    "elapsed_seconds": 148.9969973564148,
+    "draws_per_second": 1.3423089293644035
+  },
+  "plots": [
+    "trace_selected.png",
+    "energy.png"
+  ]
+}

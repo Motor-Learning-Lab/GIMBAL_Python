@@ -191,3 +191,57 @@ def build_projection_matrix(
     P = K @ Rt
 
     return P
+
+
+def camera_from_placement(
+    position: np.ndarray,
+    target: np.ndarray,
+    fov_deg: float,
+    image_size: Tuple[int, int],
+    up_world: np.ndarray = np.array([0.0, 0.0, 1.0]),
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Build camera parameters from placement specification.
+
+    This is a convenience function for generating camera configurations
+    from intuitive placement parameters (position, target, FOV) rather
+    than requiring explicit K, R, t specification.
+
+    Args:
+        position: Camera position in world coords, shape (3,)
+        target: Point the camera looks at, shape (3,)
+        fov_deg: Horizontal field of view in degrees
+        image_size: (width, height) in pixels
+        up_world: World "up" direction, shape (3,)
+
+    Returns:
+        K: Intrinsic matrix (3, 3) - focal length and principal point
+        R: Rotation matrix (3, 3) - world to camera frame
+        t: Translation vector (3,) - for extrinsic matrix [R|t]
+
+    Notes:
+        - Focal length computed as: f = image_width / (2 * tan(fov_deg/2))
+        - Principal point placed at image center: (width/2, height/2)
+        - Translation vector t = -R @ position for standard extrinsics
+    """
+    width, height = image_size
+
+    # Convert FOV to focal length
+    # fov_deg is horizontal FOV, so we use image width
+    fov_rad = np.deg2rad(fov_deg)
+    focal_length = width / (2.0 * np.tan(fov_rad / 2.0))
+
+    # Principal point at image center
+    cx = width / 2.0
+    cy = height / 2.0
+
+    # Build intrinsic matrix
+    K = build_intrinsic_matrix(focal_length, (cx, cy))
+
+    # Build rotation matrix using look-at
+    R = build_look_at_matrix(position, target, up_world)
+
+    # Translation vector: t = -R @ position
+    t = -R @ position
+
+    return K, R, t

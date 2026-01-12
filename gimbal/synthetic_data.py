@@ -2,15 +2,32 @@
 
 This module provides functions to generate synthetic skeletal motion data
 with known ground truth for testing and demonstration purposes.
+
+Configuration can be created programmatically (simple interface) or loaded
+from JSON files (rich interface with second-order dynamics).
 """
 
 import numpy as np
-from typing import NamedTuple, Optional
+import json
+import hashlib
+from pathlib import Path
+from typing import NamedTuple, Optional, Dict, Any
+from dataclasses import dataclass, field
 from .skeleton_config import SkeletonConfig
 
 
-class SyntheticDataConfig(NamedTuple):
+@dataclass
+class SyntheticDataConfig:
     """Configuration for synthetic data generation.
+
+    This class supports two modes of use:
+    1. **Simple programmatic interface** (backward compatible):
+       Create directly with basic parameters for quick testing.
+       Uses legacy directional noise model (kappa-based).
+
+    2. **Rich JSON-based interface** (v0.2.1+):
+       Load from JSON with from_json() for full control over second-order
+       attractor dynamics, per-state parameters, camera specs, etc.
 
     Attributes
     ----------
@@ -20,26 +37,175 @@ class SyntheticDataConfig(NamedTuple):
         Number of cameras
     S : int
         Number of hidden states
-    kappa : float
-        Concentration parameter for directional noise (higher = less noise)
+    dt : float
+        Timestep in seconds (default 1/60 ≈ 0.0167)
+    random_seed : int | None
+        Random seed for reproducibility (None = no seeding)
+
+    **Legacy parameters (simple interface):**
+    kappa : float | None
+        Concentration parameter for directional noise (higher = less noise).
+        If provided, uses legacy directional noise model.
     obs_noise_std : float
         Standard deviation of 2D observation noise in pixels
     occlusion_rate : float
         Fraction of observations to mark as occluded (0 to 1)
     root_noise_std : float
         Standard deviation of root position random walk
-    random_seed : int | None
-        Random seed for reproducibility (None = no seeding)
+
+    **Rich parameters (JSON interface):**
+    per_state_params : Dict[int, Dict[str, Any]] | None
+        Second-order attractor parameters per state.
+        Keys: state index (0, 1, 2, ...)
+        Values: {'mu': array, 'omega': float, 'zeta': float, 'sigma_pose': float}
+        If None, uses legacy kappa-based model.
+    root_params : Dict[str, Any] | None
+        Root position dynamics parameters
+    camera_specs : list[Dict[str, Any]] | None
+        Camera specifications (K, R, t matrices or placement params)
+    transition_matrix : np.ndarray | None
+        HMM transition probability matrix, shape (S, S)
+        If None, generates symmetric matrix with high diagonal
+    skeleton_spec : Dict[str, Any] | None
+        Skeleton specification from JSON (joint_names, parents, lengths)
+    observation_params : Dict[str, Any] | None
+        Observation model parameters (noise, outliers, missingness)
+    config_source : str | None
+        Path to source JSON file (for provenance tracking)
+    config_hash : str | None
+        SHA256 hash of JSON config (for reproducibility)
     """
 
+    # Core parameters (always required)
     T: int = 60
     C: int = 3
     S: int = 3
-    kappa: float = 8.0
+    dt: float = 1.0 / 60.0
+    random_seed: Optional[int] = 42
+
+    # Legacy parameters (simple interface)
+    kappa: Optional[float] = 8.0
     obs_noise_std: float = 5.0
     occlusion_rate: float = 0.05
     root_noise_std: float = 1.0
-    random_seed: Optional[int] = 42
+
+    # Rich parameters (JSON interface) - all optional
+    per_state_params: Optional[Dict[int, Dict[str, Any]]] = None
+    root_params: Optional[Dict[str, Any]] = None
+    camera_specs: Optional[list] = None
+    transition_matrix: Optional[np.ndarray] = None
+    skeleton_spec: Optional[Dict[str, Any]] = None
+    observation_params: Optional[Dict[str, Any]] = None
+    config_source: Optional[str] = None
+    config_hash: Optional[str] = None
+
+    def uses_second_order_dynamics(self) -> bool:
+        """Check if config uses second-order attractor dynamics (vs legacy)."""
+        return self.per_state_params is not None
+
+    @classmethod
+    def from_json(cls, json_path: str | Path) -> "SyntheticDataConfig":
+        """Load configuration from JSON file.
+
+        Parameters
+        ----------
+        json_path : str | Path
+            Path to JSON configuration file
+
+        Returns
+        -------
+        SyntheticDataConfig
+            Configuration loaded from JSON with full second-order dynamics support
+
+        Raises
+        ------
+        FileNotFoundError
+            If JSON file doesn't exist
+        ValueError
+            If JSON is malformed or missing required fields
+        """
+        json_path = Path(json_path)
+        if not json_path.exists():
+            raise FileNotFoundError(f"Config file not found: {json_path}")
+
+        # Load JSON, stripping comment keys
+        with open(json_path, "r") as f:
+            raw_data = json.load(f)
+
+        # Compute config hash for reproducibility
+        config_str = json.dumps(raw_data, sort_keys=True)
+        config_hash = hashlib.sha256(config_str.encode()).hexdigest()[:16]
+
+        # Strip comment keys recursively
+        def strip_comments(obj):
+            if isinstance(obj, dict):
+                return {
+                    k: strip_comments(v)
+                    for k, v in obj.items()
+                    if not k.startswith("_")
+                }
+            elif isinstance(obj, list):
+                return [strip_comments(item) for item in obj]
+            return obj
+
+        data = strip_comments(raw_data)
+
+        # Extract core parameters
+        meta = data.get("meta", {})
+        T = meta.get("T", 60)
+        dt = meta.get("dt", 1.0 / 60.0)
+        seed = meta.get("seed", None)
+
+        dataset_spec = data.get("dataset_spec", {})
+        states = dataset_spec.get("states", {})
+        S = states.get("num_states", 3)
+
+        cameras = dataset_spec.get("cameras", {})
+        camera_list = cameras.get("cameras", [])
+        C = len(camera_list)
+
+        # Extract rich parameters
+        motion = dataset_spec.get("motion", {})
+        per_state_params = motion.get("per_state_params")
+        if per_state_params:
+            # Convert string keys to int
+            per_state_params = {int(k): v for k, v in per_state_params.items()}
+
+        root_params = motion.get("root_params")
+        transition_matrix_list = states.get("transition_matrix")
+        transition_matrix = (
+            np.array(transition_matrix_list) if transition_matrix_list else None
+        )
+
+        skeleton_spec = dataset_spec.get("skeleton")
+        observation_params = dataset_spec.get("observation")
+
+        # For backward compat, extract observation params if present
+        obs_noise = 5.0
+        occlusion = 0.05
+        if observation_params:
+            obs_noise = observation_params.get("noise_px", 5.0)
+            occlusion = observation_params.get("missingness_bernoulli_p", 0.05)
+
+        return cls(
+            T=T,
+            C=C,
+            S=S,
+            dt=dt,
+            random_seed=seed,
+            kappa=None,  # Rich mode doesn't use kappa
+            obs_noise_std=obs_noise,
+            occlusion_rate=occlusion,
+            root_noise_std=1.0,  # Not used in second-order mode
+            per_state_params=per_state_params,
+            root_params=root_params,
+            camera_specs=camera_list,
+            transition_matrix=transition_matrix,
+            skeleton_spec=skeleton_spec,
+            observation_params=observation_params,
+            config_source=str(json_path),
+            config_hash=config_hash,
+        )
 
 
 class SyntheticMotionData(NamedTuple):
@@ -191,7 +357,10 @@ def generate_skeletal_motion(
     root_noise_std: float,
     rng: np.random.Generator,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Generate 3D skeletal motion from state sequence.
+    """Generate 3D skeletal motion from state sequence (legacy simple noise model).
+
+    **LEGACY:** This function uses simple directional noise and is kept for backward
+    compatibility. For continuous smooth motion, use `generate_skeletal_motion_continuous()`.
 
     Parameters
     ----------
@@ -245,6 +414,175 @@ def generate_skeletal_motion(
             x_true[t, k] = x_true[t, parent] + bone_length * u_true[t, k]
 
     return x_true, u_true
+
+
+def generate_skeletal_motion_continuous(
+    skeleton: SkeletonConfig,
+    true_states: np.ndarray,
+    state_params: dict,
+    root_params: dict,
+    dt: float,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Generate continuous 3D skeletal motion using second-order attractor dynamics.
+
+    This implements a state-dependent second-order dynamical system:
+        a_t = -omega_k^2 * (q_t - mu_k) - 2 * zeta_k * omega_k * v_t + noise
+        v_{t+1} = v_t + a_t * dt
+        q_{t+1} = q_t + v_{t+1} * dt
+
+    Where q_t is a concatenation of raw bone direction vectors (not normalized).
+    After integration, directions are normalized before FK.
+
+    Parameters
+    ----------
+    skeleton : SkeletonConfig
+        Skeleton configuration
+    true_states : np.ndarray
+        State sequence, shape (T,)
+    state_params : dict
+        Per-state motion parameters with keys:
+        - 'mu' : np.ndarray, shape (S, num_bones, 3) - attractor positions
+        - 'omega' : np.ndarray, shape (S,) or (S, num_bones) - natural frequencies
+        - 'zeta' : np.ndarray, shape (S,) or (S, num_bones) - damping ratios
+        - 'sigma_process' : np.ndarray, shape (S,) or (S, num_bones) - process noise
+    root_params : dict
+        Root motion parameters with keys:
+        - 'mu' : np.ndarray, shape (S, 3) - attractor positions for root
+        - 'omega' : float or np.ndarray, shape (S,) - natural frequency
+        - 'zeta' : float or np.ndarray, shape (S,) - damping ratio
+        - 'sigma_process' : float or np.ndarray, shape (S,) - process noise
+        - 'init_pos' : np.ndarray, shape (3,) - initial root position (optional)
+    dt : float
+        Timestep in seconds
+    rng : np.random.Generator
+        Random number generator
+
+    Returns
+    -------
+    x_true : np.ndarray
+        Joint positions, shape (T, K, 3)
+    u_true : np.ndarray
+        Joint directions (normalized), shape (T, K, 3)
+    a_true : np.ndarray
+        Acceleration vectors, shape (T, K, 3)
+        For root: 3D position acceleration
+        For joints: raw direction acceleration (before normalization)
+    """
+    T = len(true_states)
+    K = len(skeleton.joint_names)
+    num_bones = K - 1  # Exclude root from directional dynamics
+
+    # Extract state-dependent parameters
+    mu_dirs = state_params["mu"]  # (S, num_bones, 3)
+    omega = state_params["omega"]  # (S,) or (S, num_bones)
+    zeta = state_params["zeta"]  # (S,) or (S, num_bones)
+    sigma_proc = state_params["sigma_process"]  # (S,) or (S, num_bones)
+
+    # Root parameters
+    root_mu = root_params["mu"]  # (S, 3)
+    root_omega = np.atleast_1d(root_params["omega"])  # (S,) or scalar
+    root_zeta = np.atleast_1d(root_params["zeta"])
+    root_sigma = np.atleast_1d(root_params["sigma_process"])
+
+    # Initialize
+    x_true = np.zeros((T, K, 3))
+    u_true = np.zeros((T, K, 3))
+    a_true = np.zeros((T, K, 3))
+
+    # Initial state (state 0 attractor)
+    s0 = true_states[0]
+    q_dirs = mu_dirs[s0].copy()  # (num_bones, 3) - raw directions
+    v_dirs = np.zeros((num_bones, 3))  # Zero initial velocity
+
+    # Root initial state
+    x_true[0, 0] = root_params.get("init_pos", root_mu[s0])
+    v_root = np.zeros(3)
+
+    # Generate motion
+    for t in range(T):
+        s = true_states[t]
+
+        # === Root dynamics (simple second-order system) ===
+        # Broadcast parameters
+        omega_r = root_omega[s] if root_omega.size > 1 else root_omega[0]
+        zeta_r = root_zeta[s] if root_zeta.size > 1 else root_zeta[0]
+        sigma_r = root_sigma[s] if root_sigma.size > 1 else root_sigma[0]
+
+        # Compute root acceleration
+        a_root = (
+            -(omega_r**2) * (x_true[t, 0] - root_mu[s])
+            - 2 * zeta_r * omega_r * v_root
+            + rng.normal(0, sigma_r, 3)
+        )
+        a_true[t, 0] = a_root
+
+        # Update root velocity and position
+        v_root = v_root + a_root * dt
+        if t + 1 < T:
+            x_true[t + 1, 0] = x_true[t, 0] + v_root * dt
+
+        # === Joint directional dynamics ===
+        # Broadcast omega, zeta, sigma to per-bone if needed
+        # Handle scalar, per-state scalar, or per-bone arrays
+
+        def get_param_per_bone(param, param_name):
+            """Extract per-bone parameter values for current state."""
+            if np.isscalar(param):
+                # Single scalar for all states and bones
+                return np.full(num_bones, float(param))
+            elif param.ndim == 1:
+                # Per-state scalar: param[s]
+                if param.size > s:
+                    return np.full(num_bones, float(param[s]))
+                else:
+                    # Single value, use it
+                    return np.full(num_bones, float(param[0]))
+            elif param.ndim == 2:
+                # Per-state per-bone: param[s, b]
+                if param.shape[0] > s:
+                    return param[s]
+                else:
+                    return param[0]
+            else:
+                raise ValueError(f"Unexpected shape for {param_name}: {param.shape}")
+
+        omega_b = get_param_per_bone(omega, "omega")
+        zeta_b = get_param_per_bone(zeta, "zeta")
+        sigma_b = get_param_per_bone(sigma_proc, "sigma_proc")
+
+        # Compute acceleration for each bone direction (vectorized)
+        a_dirs = np.zeros((num_bones, 3))
+        for b in range(num_bones):
+            a_dirs[b] = (
+                -omega_b[b] ** 2 * (q_dirs[b] - mu_dirs[s, b])
+                - 2 * zeta_b[b] * omega_b[b] * v_dirs[b]
+                + rng.normal(0, sigma_b[b], 3)
+            )
+
+        # Update velocity
+        v_dirs = v_dirs + a_dirs * dt
+
+        # Update position
+        q_dirs = q_dirs + v_dirs * dt
+
+        # Normalize directions and perform FK
+        for k in range(1, K):  # Skip root
+            bone_idx = k - 1
+            u_normalized = q_dirs[bone_idx] / (np.linalg.norm(q_dirs[bone_idx]) + 1e-8)
+            u_true[t, k] = u_normalized
+
+            # Store acceleration (for joints, this is direction acceleration)
+            a_true[t, k] = a_dirs[bone_idx]
+
+            # Forward kinematics
+            parent = skeleton.parents[k]
+            bone_length = (
+                skeleton.bone_lengths[k] if skeleton.bone_lengths is not None else 10.0
+            )
+            x_true[t, k] = x_true[t, parent] + bone_length * u_normalized
+
+    return x_true, u_true, a_true
 
 
 def generate_camera_matrices(

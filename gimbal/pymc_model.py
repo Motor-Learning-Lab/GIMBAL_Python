@@ -456,6 +456,65 @@ def _build_camera_observation_model_full(
     u_init = init_result.u_init
     obs_sigma_init = init_result.obs_sigma
 
+    # ============================================================================
+    # VALIDATION GATE: Ensure initialization is valid before building model
+    # ============================================================================
+    # This catches issues early with actionable error messages rather than
+    # failing during sampling with obscure divergence errors.
+
+    sigma2_floor = 1e-6  # Absolute minimum
+    rho_floor = 0.001  # 1mm minimum
+
+    # Validate rho_init
+    if not np.all(np.isfinite(rho_init)):
+        bad_indices = np.where(~np.isfinite(rho_init))[0]
+        raise ValueError(
+            f"Invalid rho_init: Non-finite values at bone indices {bad_indices.tolist()}. "
+            f"Values: {rho_init[bad_indices]}. "
+            f"This indicates triangulation failure or invalid skeletal estimation. "
+            f"Check that parents array is correct and 2D observations are sufficient."
+        )
+
+    if not np.all(rho_init > rho_floor):
+        bad_indices = np.where(rho_init <= rho_floor)[0]
+        raise ValueError(
+            f"Invalid rho_init: Values <= {rho_floor} at bone indices {bad_indices.tolist()}. "
+            f"Values: {rho_init[bad_indices]}. "
+            f"Bone lengths must be strictly positive. "
+            f"Check triangulation quality and ensure sufficient valid frames for these bones."
+        )
+
+    # Validate sigma2_init
+    if not np.all(np.isfinite(sigma2_init)):
+        bad_indices = np.where(~np.isfinite(sigma2_init))[0]
+        raise ValueError(
+            f"Invalid sigma2_init: Non-finite values at bone indices {bad_indices.tolist()}. "
+            f"Values: {sigma2_init[bad_indices]}. "
+            f"This indicates insufficient valid bone length samples or estimation failure."
+        )
+
+    if not np.all(sigma2_init > sigma2_floor):
+        bad_indices = np.where(sigma2_init <= sigma2_floor)[0]
+        raise ValueError(
+            f"Invalid sigma2_init: Values <= {sigma2_floor} at bone indices {bad_indices.tolist()}. "
+            f"Values: {sigma2_init[bad_indices]}. "
+            f"Bone variances must be strictly positive. "
+            f"Check that bones have sufficient variation in triangulated data."
+        )
+
+    # Additional check: rho_init and sigma2_init must have compatible lengths
+    if len(rho_init) != K - 1:
+        raise ValueError(
+            f"rho_init has length {len(rho_init)} but expected K-1={K-1}. "
+            f"Ensure init_result.rho matches skeleton structure."
+        )
+
+    if len(sigma2_init) != K - 1:
+        raise ValueError(
+            f"sigma2_init has length {len(sigma2_init)} but expected K-1={K-1}. "
+            f"Ensure init_result.sigma2 matches skeleton structure."
+        )
+
     # Build PyMC model using the current model context if available
     model = pm.modelcontext(None)
 

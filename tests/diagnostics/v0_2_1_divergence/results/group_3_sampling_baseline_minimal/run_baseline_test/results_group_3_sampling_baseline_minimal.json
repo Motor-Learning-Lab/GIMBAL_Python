@@ -1,0 +1,87 @@
+{
+  "group": "group_3_sampling_baseline_minimal",
+  "run_id": "baseline_test",
+  "timestamp": "2025-12-20T13:31:41.236429",
+  "environment": {
+    "python_version": "3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:35:28) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "pymc_version": "5.26.1",
+    "pytensor_version": "2.35.1",
+    "arviz_version": "0.22.0",
+    "numpy_version": "2.3.5",
+    "scipy_version": "1.16.3",
+    "timestamp": "2025-12-20T13:31:41.236429"
+  },
+  "config": {
+    "dataset_name": "v0.2.1_L00_minimal",
+    "max_T": 80,
+    "max_K": null,
+    "seed": 42,
+    "use_mixture": false,
+    "use_directional_hmm": false,
+    "chains": 2,
+    "tune": 300,
+    "draws": 100
+  },
+  "success": false,
+  "error": "No model on context stack.",
+  "data_shape": {
+    "C": 3,
+    "T": 80,
+    "K": 4
+  },
+  "initial_point_logp": {
+    "total_logp": -108363.6556879498,
+    "has_nan": false,
+    "has_inf": false
+  },
+  "worst_terms": [
+    {
+      "name": "y_obs",
+      "value": -108224.18
+    },
+    {
+      "name": "raw_u_1",
+      "value": -260.55
+    },
+    {
+      "name": "raw_u_2",
+      "value": -260.55
+    },
+    {
+      "name": "raw_u_3",
+      "value": -260.55
+    },
+    {
+      "name": "sigma2",
+      "value": -3.36
+    },
+    {
+      "name": "x0_root",
+      "value": -2.76
+    },
+    {
+      "name": "rho",
+      "value": -2.19
+    },
+    {
+      "name": "eta2_root",
+      "value": -0.9
+    },
+    {
+      "name": "obs_sigma",
+      "value": -0.17
+    },
+    {
+      "name": "length_1",
+      "value": 110.81
+    }
+  ],
+  "gradient_stats": {
+    "grad_norm_l2": 305251.37203132943,
+    "grad_norm_linf": 211068.6883126625,
+    "nan_count": 0,
+    "inf_count": 0
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Repositories\\GIMBAL_Python\\tests\\diagnostics\\v0_2_1_divergence\\test_group_3_sampling_baseline_minimal.py\", line 295, in run_group_3\n    trace, sampling_diagnostics = sample_model(model, args.chains, args.tune, args.draws, args.seed)\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Repositories\\GIMBAL_Python\\tests\\diagnostics\\v0_2_1_divergence\\test_group_3_sampling_baseline_minimal.py\", line 123, in sample_model\n    trace = pm.sample(\n            ^^^^^^^^^^\n  File \"C:\\Repositories\\GIMBAL_Python\\.pixi\\envs\\default\\Lib\\site-packages\\pymc\\sampling\\mcmc.py\", line 718, in sample\n    model = modelcontext(model)\n            ^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Repositories\\GIMBAL_Python\\.pixi\\envs\\default\\Lib\\site-packages\\pymc\\model\\core.py\", line 129, in modelcontext\n    raise TypeError(\"No model on context stack.\")\nTypeError: No model on context stack.\n"
+}

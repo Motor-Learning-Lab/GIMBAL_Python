@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "name": "L00_minimal",
+    "version": "0.2.1",
+    "seed": 42,
+    "dt": 0.0167,
+    "T": 100
+  },
+  
+  "dataset_spec": {
+    "skeleton": {
+      "joint_names": ["root", "spine", "neck", "head", "left_shoulder", "left_elbow", "right_shoulder"],
+      "parents": [-1, 0, 1, 2, 1, 4, 1],
+      "lengths": [0, 10, 5, 3, 8, 8, 8],
+      "bone_pairs": [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [1, 6]]
+    },
+    
+    "states": {
+      "num_states": 1,
+      "transition_matrix": [[1.0]]
+    },
+    
+    "motion": {
+      "per_state_params": {
+        "0": {
+          "mu": [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0.7, 0, 0.7], [0.7, 0, 0.7], [-0.7, 0, 0.7]],
+          "omega": 3.0,
+          "zeta": 0.7,
+          "sigma_pose": 0.05
+        }
+      },
+      "root_params": {
+        "per_state": {
+          "0": {
+            "mu": [0, 0, 100]
+          }
+        },
+        "omega": 2.0,
+        "zeta": 0.8,
+        "sigma_pose": 2.0,
+        "init_pos": [0, 0, 100]
+      }
+    },
+    
+    "cameras": {
+      "cameras": [
+        {
+          "name": "cam0_front",
+          "K": [[640, 0, 640], [0, 640, 360], [0, 0, 1]],
+          "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+          "t": [-80, 0, 0],
+          "image_size": [1280, 720]
+        },
+        {
+          "name": "cam1_side",
+          "K": [[640, 0, 640], [0, 640, 360], [0, 0, 1]],
+          "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
+          "t": [0, -80, 0],
+          "image_size": [1280, 720]
+        },
+        {
+          "name": "cam2_overhead",
+          "K": [[640, 0, 640], [0, 640, 360], [0, 0, 1]],
+          "R": [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+          "t": [0, 0, -80],
+          "image_size": [1280, 720]
+        }
+      ]
+    },
+    
+    "camera_quality": {
+      "min_cameras_per_point": 3,
+      "min_pairwise_ray_angle_deg": 15.0,
+      "min_fraction_points": 0.95
+    },
+    
+    "observation": {
+      "noise_px": 2.0,
+      "outliers": {
+        "enabled": false
+      },
+      "missingness": {
+        "enabled": false
+      }
+    }
+  },
+  
+  "output": {
+    "run_name": "L00_minimal"
+  }
+}

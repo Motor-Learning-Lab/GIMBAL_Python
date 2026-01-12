@@ -1,0 +1,73 @@
+{
+  "stage": "D_3d_cleaning",
+  "cleaning_config": {
+    "jump_z_thresh": 3.0,
+    "bone_z_thresh": 3.0,
+    "max_gap": 5,
+    "max_bad_joint_fraction": 0.3
+  },
+  "metrics": {
+    "rmse_change": {
+      "global_mm": 0.009776282587565275,
+      "per_joint_mm": [
+        0.008045445607516714,
+        0.011940348783378421,
+        0.008641848347766054,
+        0.010047293987733415
+      ],
+      "max_diff_global_mm": 0.4314364716280856,
+      "max_diff_per_joint_mm": [
+        0.2622996941524104,
+        0.4314364716280856,
+        0.2668073897649656,
+        0.26367434275071994
+      ]
+    },
+    "nan_statistics": {
+      "before": 402,
+      "after": 3,
+      "introduced": -399
+    },
+    "bone_length_consistency": [
+      {
+        "joint": 1,
+        "mean_error_pct": 0.47759949314075295,
+        "std_error_pct": 0.3491063985558104,
+        "max_error_pct": 1.799469794765631
+      },
+      {
+        "joint": 2,
+        "mean_error_pct": 0.5186625686029676,
+        "std_error_pct": 0.3834099356081188,
+        "max_error_pct": 1.9128785757582811
+      },
+      {
+        "joint": 3,
+        "mean_error_pct": 0.5781806900975163,
+        "std_error_pct": 0.44436104645892044,
+        "max_error_pct": 2.1893554280976613
+      }
+    ],
+    "frame_validity": {
+      "valid_frames": 1800,
+      "invalid_frames": 0,
+      "valid_fraction": 1.0
+    },
+    "stats_mask": {
+      "usable_points": 6967,
+      "total_points": 7200,
+      "usable_fraction": 0.9676388888888889
+    },
+    "cleaning_summary": {
+      "n_jump_outliers": 77,
+      "n_bone_outliers": 22,
+      "n_interpolated": 696,
+      "n_invalid_frames": 0
+    }
+  },
+  "quality_check": {
+    "rmse_threshold_mm": 1.0,
+    "bone_error_threshold_pct": 5.0,
+    "passed": true
+  }
+}

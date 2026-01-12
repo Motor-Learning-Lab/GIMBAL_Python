@@ -1,0 +1,97 @@
+{
+  "group": "group_1_build_only_sanity",
+  "run_id": "local_run",
+  "timestamp": "2025-12-20T00:31:34.954206",
+  "environment": {
+    "python_version": "3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:35:28) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "pymc_version": "5.26.1",
+    "pytensor_version": "2.35.1",
+    "arviz_version": "0.22.0",
+    "numpy_version": "2.3.5",
+    "scipy_version": "1.16.3",
+    "timestamp": "2025-12-20T00:31:34.954206"
+  },
+  "config": {
+    "dataset_name": "v0.2.1_L00_minimal",
+    "max_T": null,
+    "max_K": null,
+    "seed": 42
+  },
+  "success": true,
+  "error": null,
+  "data_shape": {
+    "C": 3,
+    "T": 1800,
+    "K": 4
+  },
+  "model_info": {
+    "n_free_rvs": 15,
+    "total_params": 27025,
+    "rv_names": [
+      "eta2_root",
+      "rho",
+      "sigma2",
+      "x0_root",
+      "eps_root",
+      "raw_u_1",
+      "raw_u_2",
+      "raw_u_3",
+      "length_1",
+      "length_2",
+      "length_3",
+      "obs_sigma",
+      "logodds_inlier",
+      "dir_hmm_mu_raw",
+      "dir_hmm_kappa"
+    ]
+  },
+  "initial_point_logp": {
+    "total_logp": -Infinity,
+    "has_nan": false,
+    "has_inf": true,
+    "error": null
+  },
+  "worst_terms": [
+    {
+      "name": "rho",
+      "value": -Infinity
+    },
+    {
+      "name": "sigma2",
+      "value": -Infinity
+    },
+    {
+      "name": "length_1",
+      "value": -Infinity
+    },
+    {
+      "name": "eps_root",
+      "value": -554834.17
+    },
+    {
+      "name": "y_obs",
+      "value": -361359.34
+    },
+    {
+      "name": "dir_hmm_potential",
+      "value": -361359.34
+    },
+    {
+      "name": "raw_u_1",
+      "value": -4962.27
+    },
+    {
+      "name": "raw_u_2",
+      "value": -4962.27
+    },
+    {
+      "name": "raw_u_3",
+      "value": -4962.27
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "value": -11.03
+    }
+  ]
+}

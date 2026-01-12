@@ -354,28 +354,125 @@ def _estimate_temporal_variances_numpy(
 
 
 def _estimate_skeletal_parameters_numpy(
-    x_triangulated: np.ndarray, parents: np.ndarray
+    x_triangulated: np.ndarray, parents: np.ndarray, eps_length: float = 1e-6
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Estimate bone lengths and variances from triangulated positions."""
+    """Estimate bone lengths and variances from triangulated positions.
+
+    Uses robust estimators (median, MAD) and enforces strict validation
+    to prevent invalid initialization.
+
+    Parameters
+    ----------
+    x_triangulated : ndarray, shape (T, K, 3)
+        Triangulated 3D positions (may contain NaN)
+    parents : ndarray, shape (K,)
+        Parent indices for skeleton
+    eps_length : float
+        Minimum valid bone length
+
+    Returns
+    -------
+    rho : ndarray, shape (K-1,)
+        Median bone lengths (strictly positive)
+    sigma2 : ndarray, shape (K-1,)
+        Robust bone length variances (strictly positive)
+
+    Raises
+    ------
+    ValueError
+        If any bone has insufficient valid samples or invalid estimates
+    """
     T, K, _ = x_triangulated.shape
     rho = np.zeros(K - 1)
     sigma2 = np.zeros(K - 1)
+
+    # Absolute and relative floors
+    rho_floor = 0.001  # Absolute minimum (1mm in typical units)
+    rel_sigma_floor = 0.01  # 1% of bone length
+    abs_sigma_floor = 1e-6  # Absolute minimum variance
+
+    # Minimum samples required
+    min_samples_abs = 10
+    min_samples_frac = 0.05  # 5% of frames
+    min_samples_required = max(min_samples_abs, int(min_samples_frac * T))
+
+    diagnostics = {}
 
     for k_idx, k in enumerate(range(1, K)):
         parent_k = parents[k]
         x_k = x_triangulated[:, k, :]
         x_parent = x_triangulated[:, parent_k, :]
 
-        valid = ~np.any(np.isnan(x_k), axis=1) & ~np.any(np.isnan(x_parent), axis=1)
+        # Find valid frames: both positions finite
+        valid_positions = ~np.any(np.isnan(x_k), axis=1) & ~np.any(
+            np.isnan(x_parent), axis=1
+        )
 
-        if valid.sum() < 2:
-            rho[k_idx] = 1.0
-            sigma2[k_idx] = 0.01
-            continue
+        if valid_positions.sum() == 0:
+            raise ValueError(
+                f"Bone {k_idx} (joint {k} -> parent {parent_k}): "
+                f"No valid triangulated frames. Check 2D keypoint detection "
+                f"and triangulation for these joints."
+            )
 
-        bone_lengths = np.linalg.norm(x_k[valid] - x_parent[valid], axis=1)
-        rho[k_idx] = np.mean(bone_lengths)
-        sigma2[k_idx] = max(np.var(bone_lengths), 1e-6)
+        # Compute bone lengths
+        bone_lengths = np.linalg.norm(
+            x_k[valid_positions] - x_parent[valid_positions], axis=1
+        )
+
+        # Filter for positive, finite lengths
+        valid_lengths = bone_lengths[
+            np.isfinite(bone_lengths) & (bone_lengths > eps_length)
+        ]
+
+        n_valid = len(valid_lengths)
+
+        # Check minimum sample requirement
+        if n_valid < min_samples_required:
+            raise ValueError(
+                f"Bone {k_idx} (joint {k} -> parent {parent_k}): "
+                f"Insufficient valid samples ({n_valid} < {min_samples_required}). "
+                f"Valid positions: {valid_positions.sum()}/{T}, "
+                f"Valid lengths (>eps): {n_valid}/{valid_positions.sum()}. "
+                f"Inspect triangulation quality or increase keypoint visibility."
+            )
+
+        # Robust location estimate: median
+        rho_k = np.median(valid_lengths)
+
+        # Robust dispersion estimate: MAD -> SD
+        mad = np.median(np.abs(valid_lengths - rho_k))
+        sigma_k = 1.4826 * mad  # MAD to SD conversion
+
+        # Apply floors
+        sigma2_floor_k = max(abs_sigma_floor, (rel_sigma_floor * rho_k) ** 2)
+        sigma2_k = max(sigma_k**2, sigma2_floor_k)
+
+        # Validation: must be strictly positive and finite
+        if not (np.isfinite(rho_k) and rho_k > rho_floor):
+            raise ValueError(
+                f"Bone {k_idx} (joint {k} -> parent {parent_k}): "
+                f"Invalid rho estimate: {rho_k:.6f} (must be finite and > {rho_floor}). "
+                f"Valid samples: {n_valid}, lengths range: [{valid_lengths.min():.6f}, {valid_lengths.max():.6f}]"
+            )
+
+        if not (np.isfinite(sigma2_k) and sigma2_k > abs_sigma_floor):
+            raise ValueError(
+                f"Bone {k_idx} (joint {k} -> parent {parent_k}): "
+                f"Invalid sigma2 estimate: {sigma2_k:.6e} (must be finite and > {abs_sigma_floor}). "
+                f"MAD: {mad:.6f}, Valid samples: {n_valid}"
+            )
+
+        rho[k_idx] = rho_k
+        sigma2[k_idx] = sigma2_k
+
+        # Store diagnostics
+        diagnostics[k_idx] = {
+            "n_valid": n_valid,
+            "rho": float(rho_k),
+            "sigma2": float(sigma2_k),
+            "length_range": [float(valid_lengths.min()), float(valid_lengths.max())],
+        }
 
     return rho, sigma2
 
@@ -479,6 +576,11 @@ def initialize_from_observations_dlt(
     -------
     result : InitializationResult
         All estimated parameters
+
+    Raises
+    ------
+    ValueError
+        If skeletal parameter estimation fails (insufficient valid data)
     """
     x_triangulated = _triangulate_dlt(y_observed, camera_proj, min_cameras=min_cameras)
 
@@ -486,7 +588,16 @@ def initialize_from_observations_dlt(
     tri_rate = valid_tri.sum() / valid_tri.size
 
     eta2 = _estimate_temporal_variances_numpy(x_triangulated, parents)
-    rho, sigma2 = _estimate_skeletal_parameters_numpy(x_triangulated, parents)
+
+    try:
+        rho, sigma2 = _estimate_skeletal_parameters_numpy(x_triangulated, parents)
+    except ValueError as e:
+        # Add context and re-raise
+        raise ValueError(
+            f"Skeletal parameter estimation failed after DLT triangulation. "
+            f"Triangulation rate: {tri_rate:.2%}. Original error: {e}"
+        ) from e
+
     u_init = _estimate_direction_vectors_numpy(x_triangulated, parents)
     obs_sigma, inlier_prob = _estimate_observation_parameters_numpy(
         y_observed, x_triangulated, camera_proj, outlier_threshold_px

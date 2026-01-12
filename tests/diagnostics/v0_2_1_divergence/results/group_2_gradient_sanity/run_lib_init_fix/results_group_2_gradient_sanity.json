@@ -1,0 +1,189 @@
+{
+  "group": "group_2_gradient_sanity",
+  "run_id": "lib_init_fix",
+  "timestamp": "2025-12-20T13:14:51.723268",
+  "environment": {
+    "python_version": "3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:35:28) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "pymc_version": "5.26.1",
+    "pytensor_version": "2.35.1",
+    "arviz_version": "0.22.0",
+    "numpy_version": "2.3.5",
+    "scipy_version": "1.16.3",
+    "timestamp": "2025-12-20T13:14:51.723268"
+  },
+  "config": {
+    "dataset_name": "v0.2.1_L00_minimal",
+    "max_T": null,
+    "max_K": null,
+    "seed": 42
+  },
+  "success": true,
+  "error": null,
+  "data_shape": {
+    "C": 3,
+    "T": 1800,
+    "K": 4
+  },
+  "gradient_stats": {
+    "grad_norm_l2": 154467158.11265215,
+    "grad_norm_linf": 89485220.94624367,
+    "nan_count": 0,
+    "inf_count": 0,
+    "total_components": 27025
+  },
+  "top_20_abs_grad_components": [
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "5",
+      "value": 89485220.94624367,
+      "abs_value": 89485220.94624367
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "11",
+      "value": 65806687.20992234,
+      "abs_value": 65806687.20992234
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "8",
+      "value": 63635225.65451435,
+      "abs_value": 63635225.65451435
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "6",
+      "value": 62216236.75099148,
+      "abs_value": 62216236.75099148
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "9",
+      "value": -59957355.2897868,
+      "abs_value": 59957355.2897868
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "4",
+      "value": -1945811.2648794167,
+      "abs_value": 1945811.2648794167
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "10",
+      "value": -739951.2641050876,
+      "abs_value": 739951.2641050876
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "7",
+      "value": -668248.262966826,
+      "abs_value": 668248.262966826
+    },
+    {
+      "name": "dir_hmm_mu_raw",
+      "index": "3",
+      "value": -354030.57366767566,
+      "abs_value": 354030.57366767566
+    },
+    {
+      "name": "obs_sigma",
+      "index": "",
+      "value": 199162.68080092763,
+      "abs_value": 199162.68080092763
+    },
+    {
+      "name": "eps_root",
+      "index": "311",
+      "value": 54414.47334581976,
+      "abs_value": 54414.47334581976
+    },
+    {
+      "name": "eps_root",
+      "index": "305",
+      "value": 54369.19959452421,
+      "abs_value": 54369.19959452421
+    },
+    {
+      "name": "eps_root",
+      "index": "299",
+      "value": 53900.17956036129,
+      "abs_value": 53900.17956036129
+    },
+    {
+      "name": "eps_root",
+      "index": "314",
+      "value": 53540.58857273985,
+      "abs_value": 53540.58857273985
+    },
+    {
+      "name": "eps_root",
+      "index": "293",
+      "value": 53449.16302823784,
+      "abs_value": 53449.16302823784
+    },
+    {
+      "name": "eps_root",
+      "index": "308",
+      "value": 53384.75415394679,
+      "abs_value": 53384.75415394679
+    },
+    {
+      "name": "eps_root",
+      "index": "302",
+      "value": 53374.730725963585,
+      "abs_value": 53374.730725963585
+    },
+    {
+      "name": "eps_root",
+      "index": "296",
+      "value": 53253.47796580178,
+      "abs_value": 53253.47796580178
+    },
+    {
+      "name": "eps_root",
+      "index": "290",
+      "value": 52621.073502582585,
+      "abs_value": 52621.073502582585
+    },
+    {
+      "name": "eps_root",
+      "index": "320",
+      "value": 52020.26652300702,
+      "abs_value": 52020.26652300702
+    }
+  ],
+  "perturbation_checks": [
+    {
+      "perturbation_id": 1,
+      "logp": -306258.01417960564,
+      "logp_finite": true,
+      "grad_l2_norm": 32336874.676682007,
+      "grad_linf_norm": 5593176.164328771,
+      "grad_nan_count": 0,
+      "grad_inf_count": 0,
+      "grad_finite": true
+    },
+    {
+      "perturbation_id": 2,
+      "logp": -290843.2457154162,
+      "logp_finite": true,
+      "grad_l2_norm": 34860286.369922996,
+      "grad_linf_norm": 7287430.486094639,
+      "grad_nan_count": 0,
+      "grad_inf_count": 0,
+      "grad_finite": true
+    },
+    {
+      "perturbation_id": 3,
+      "logp": -294275.38785617636,
+      "logp_finite": true,
+      "grad_l2_norm": 29284026.07777471,
+      "grad_linf_norm": 6351096.007078833,
+      "grad_nan_count": 0,
+      "grad_inf_count": 0,
+      "grad_finite": true
+    }
+  ]
+}
