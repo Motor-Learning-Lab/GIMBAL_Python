@@ -1,53 +1,75 @@
 # Tests Directory
 
-Organized test suite for GIMBAL v0.2.1+
+Organized test suite for GIMBAL
 
 ## Structure
 
-- **unit/**: Unit tests for individual modules (fast, isolated tests)
-- **integration/**: Integration tests for multi-module features  
-- **smoke/**: Quick smoke tests for rapid validation
-- **diagnostics/**: Comprehensive diagnostic test suites
-  - `v0_2_1_divergence/`: Divergence testing for v0.2.1
+- **`test_stage*.py`**: Core pipeline stages (Stage 1: HMM, Stage 2: Camera model)
+- **`unit/`**: Unit tests for individual modules (initialization, utilities)
+- **`integration/`**: Integration tests for multi-module features (Stage 3, data-driven priors)
+- **`smoke/`**: Quick smoke tests for rapid validation
+- **`pipeline/`**: End-to-end pipeline tests (stages A-J, synthetic data generation)
+- **`diagnostics/`**: Comprehensive diagnostic test suites (divergence analysis)
 
 ## Running Tests
 
-```bash
+### Quick Validation
+```powershell
+# Quick smoke tests (30 seconds)
+pixi run test-smoke
+
+# Core HMM stages (10 minutes)
+pixi run test-stages
+
+# Integration features (10 minutes)
+pixi run test-integration
+```
+
+### Comprehensive Testing
+```powershell
+# All tests (45 minutes)
+pixi run test-all
+
+# Specific suites
+pixi run test-unit          # Unit tests only
+pixi run test-pipeline      # Synthetic data pipeline
+```
+
+### Diagnostics
+```powershell
 # Run divergence diagnostic suite
-pixi run python tests/diagnostics/v0_2_1_divergence/test_runner.py
+cd tests/diagnostics/v0_2_1_divergence
+pixi run python test_runner.py
 ```
 
 **Important**: Test outputs (reports, plots) go in `results/` directory, NOT in `tests/`.
 
-## Test Organization (Legacy)
+## Test Files
 
-### v0.1.1 (Collapsed HMM Engine)
-- **`test_hmm_v0_1_1.py`** - Comprehensive tests for the collapsed HMM forward algorithm
-  - Brute-force verification against manual enumeration
-  - Edge case testing (T=1, extreme values)
-  - Gradient validation with finite differences
-  - Normalization checks
+### Core Pipeline Stages
+- **`test_stage1_collapsed_hmm.py`** - Stage 1: Collapsed HMM forward algorithm
+  - Brute-force verification, edge cases, gradient validation
+- **`test_stage2_camera_model.py`** - Stage 2: Camera observation model
+  - Shape validation, mixture/Gaussian modes, compilation tests
 
-### v0.1.2 (Camera Observation Model)
-- **`test_hmm_v0_1_2.py`** - Tests for the camera observation model refactoring
-  - Shape validation for U, x_all, y_pred, log_obs_t
-  - Mixture likelihood mode testing
-  - Gaussian likelihood mode testing
-  - PyMC compilation and sampling validation
+### Integration Tests
+- **`integration/test_stage3_directional_hmm.py`** - Stage 3: Directional HMM prior
+  - Kappa sharing, numerical stability, gradient computation
+- **`integration/test_data_driven_priors.py`** - Data-driven priors pipeline
+  - Triangulation, cleaning, statistics, prior building
 
-### v0.1.3 (Directional HMM Prior)
-- **`test_v0_1_3_directional_hmm.py`** - Comprehensive test suite for directional HMM (380 lines, 6 tests)
-  - Kappa sharing options (4 configurations)
-  - Shape validation for all tensors
-  - Numerical stability with extreme log_obs_t values
-  - Gradient computation without errors
-  - LogP normalization properties
-  - Integration with v0.1.2 camera model
-- **`test_hmm_v0_1_3.py`** - Minimal working example demonstrating full v0.1.3 pipeline (195 lines)
-- **`run_v0_1_3_tests.py`** - Simple test runner for v0.1.3 tests without pytest
+### Unit Tests
+- **`unit/test_dlt_*.py`** - DLT triangulation tests
+- **`unit/test_model_init.py`** - Initialization tests
+- **`unit/test_pymc_utils.py`** - Utility function tests
 
-### v0.2.1 (Data-Driven Priors & Sampling Diagnostics)
-- **`test_sampling_camera_model.py`** - Minimal sampling diagnostic script for camera model
+### Smoke Tests
+- **`smoke/test_api_exports_smoke.py`** - Quick API export validation
+- **`smoke/test_full_pipeline_smoke.py`** - Full pipeline build test
+
+### Pipeline Tests
+- **`pipeline/test_synthetic_data_generator.py`** - Synthetic dataset validation
+- **`pipeline/stage_*.py`** - Individual pipeline stages (A-J)
   - Tests Gamma prior on obs_sigma (mode/SD parameterization)
   - Compares mixture vs non-mixture likelihoods
   - Provides divergence, ESS, and RMSE metrics

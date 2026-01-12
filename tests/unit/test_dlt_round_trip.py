@@ -15,8 +15,10 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# Add parent to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path
+project_root = Path(__file__).resolve().parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 from gimbal.triangulation import triangulate_multi_view

@@ -23,62 +23,78 @@ from gimbal import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
+from gimbal.fit_params import initialize_from_observations_dlt
 
 
 def test_v0_1_pipeline_builds():
     """Test that the full v0.1 pipeline can be built."""
     # Generate minimal synthetic data
     config = SyntheticDataConfig(
-        T=10,  # Minimal timesteps for speed
-        C=2,   # Minimal cameras
-        S=2,   # Minimal states
+        T=20,  # Sufficient frames for robust parameter estimation (min 10 per bone)
+        C=2,  # Minimal cameras
+        S=2,  # Minimal states
         random_seed=42,
     )
     data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
-    
+
     # Validate synthetic data shapes
-    assert data.x_true.shape == (10, 6, 3)
-    assert data.u_true.shape == (10, 6, 3)
-    assert data.true_states.shape == (10,)
-    assert data.y_observed.shape == (2, 10, 6, 2)
+    assert data.x_true.shape == (20, 6, 3)
+    assert data.u_true.shape == (20, 6, 3)
+    assert data.true_states.shape == (20,)
+    assert data.y_observed.shape == (2, 20, 6, 2)
     assert data.camera_proj.shape == (2, 3, 4)
-    
+
+    # Initialize from observations
+    init_result = initialize_from_observations_dlt(
+        y_observed=data.y_observed,
+        camera_proj=data.camera_proj,
+        parents=DEMO_V0_1_SKELETON.parents,
+    )
+
     # Build Stage 2 model
     with pm.Model() as model:
-        model_result, U, x_all, y_pred, log_obs_t = build_camera_observation_model(
-            y_obs=data.y_observed,
-            proj_param=data.camera_proj,
+        model_result = build_camera_observation_model(
+            y_observed=data.y_observed,
+            camera_proj=data.camera_proj,
             parents=DEMO_V0_1_SKELETON.parents,
-            bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+            init_result=init_result,
+            use_mixture=False,  # Simple Gaussian for smoke test
+            validate_init_points=False,
         )
-        
+
+        # Extract key variables
+        U = model["U"]
+        x_all = model["x_all"]
+        y_pred = model["y_pred"]
+        log_obs_t = model["log_obs_t"]
+
         # Validate Stage 2 shapes
-        assert U.type.shape == (10, 6, 3)  # (T, K, 3)
-        assert x_all.type.shape == (10, 6, 3)  # (T, K, 3)
-        assert y_pred.type.shape == (2, 10, 6, 2)  # (C, T, K, 2)
-        assert log_obs_t.type.shape == (10,)  # (T,)
-        
+        assert U.type.shape == (20, 6, 3)  # (T, K, 3)
+        assert x_all.type.shape == (20, 6, 3)  # (T, K, 3)
+        assert y_pred.type.shape == (2, 20, 6, 2)  # (C, T, K, 2)
+        assert log_obs_t.type.shape == (20,)  # (T,)
+
         # Add Stage 3 directional HMM prior
         hmm_vars = add_directional_hmm_prior(
             U=U,
             log_obs_t=log_obs_t,
             S=2,  # Minimal states
         )
-        
+
         # Validate Stage 3 variables exist
         assert "mu" in hmm_vars
         assert "kappa" in hmm_vars
         assert "hmm_loglik" in hmm_vars
         assert "logp_emit" in hmm_vars
-        
+
         # Validate Stage 3 shapes
         assert hmm_vars["mu"].type.shape == (2, 6, 3)  # (S, K, 3)
         assert hmm_vars["kappa"].type.shape == (2, 6)  # (S, K)
-        
+
         # Check that model has the expected number of free variables
         # This is a rough check - exact number depends on DLT initialization
         assert len(model.free_RVs) > 0
-        
+
         # Validate model graph is buildable (no shape errors)
         # This will raise if there are issues with the model
         model.debug()
@@ -86,25 +102,36 @@ def test_v0_1_pipeline_builds():
 
 def test_v0_1_prior_predictive_sampling():
     """Test that prior predictive sampling works."""
-    config = SyntheticDataConfig(T=5, C=2, S=2, random_seed=42)
+    config = SyntheticDataConfig(T=20, C=2, S=2, random_seed=42)
     data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
-    
+
+    init_result = initialize_from_observations_dlt(
+        y_observed=data.y_observed,
+        camera_proj=data.camera_proj,
+        parents=DEMO_V0_1_SKELETON.parents,
+    )
+
     with pm.Model() as model:
-        _, U, x_all, y_pred, log_obs_t = build_camera_observation_model(
-            y_obs=data.y_observed,
-            proj_param=data.camera_proj,
+        build_camera_observation_model(
+            y_observed=data.y_observed,
+            camera_proj=data.camera_proj,
             parents=DEMO_V0_1_SKELETON.parents,
-            bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+            init_result=init_result,
+            use_mixture=False,
+            validate_init_points=False,
         )
-        
+
+        U = model["U"]
+        log_obs_t = model["log_obs_t"]
+
         add_directional_hmm_prior(U=U, log_obs_t=log_obs_t, S=2)
-        
+
         # Run minimal prior predictive sampling
         prior_pred = pm.sample_prior_predictive(
             samples=10,
             random_seed=42,
         )
-        
+
         # Check that we got samples
         assert prior_pred.prior is not None
         # Check that key variables are present
@@ -114,51 +141,67 @@ def test_v0_1_prior_predictive_sampling():
 
 def test_v0_1_backward_compatibility():
     """Test that v0.1 behavior is preserved (no priors changed)."""
-    config = SyntheticDataConfig(T=5, C=2, S=2, random_seed=42)
+    config = SyntheticDataConfig(T=20, C=2, S=2, random_seed=42)
     data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
-    
+
+    init_result = initialize_from_observations_dlt(
+        y_observed=data.y_observed,
+        camera_proj=data.camera_proj,
+        parents=DEMO_V0_1_SKELETON.parents,
+    )
+
     # Build model with default parameters (v0.1 behavior)
     with pm.Model() as model_v1:
-        _, U, x_all, y_pred, log_obs_t = build_camera_observation_model(
-            y_obs=data.y_observed,
-            proj_param=data.camera_proj,
+        build_camera_observation_model(
+            y_observed=data.y_observed,
+            camera_proj=data.camera_proj,
             parents=DEMO_V0_1_SKELETON.parents,
-            bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+            init_result=init_result,
+            use_mixture=False,
+            validate_init_points=False,
         )
-        add_directional_hmm_prior(U=U, log_obs_t=log_obs_t, S=2)
-    
+        U1 = model_v1["U"]
+        log_obs_t1 = model_v1["log_obs_t"]
+        add_directional_hmm_prior(U=U1, log_obs_t=log_obs_t1, S=2)
+
     # Build model with explicit prior_config=None (should be identical)
     with pm.Model() as model_v2:
-        _, U, x_all, y_pred, log_obs_t = build_camera_observation_model(
-            y_obs=data.y_observed,
-            proj_param=data.camera_proj,
+        build_camera_observation_model(
+            y_observed=data.y_observed,
+            camera_proj=data.camera_proj,
             parents=DEMO_V0_1_SKELETON.parents,
-            bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+            init_result=init_result,
+            use_mixture=False,
+            validate_init_points=False,
         )
+        U2 = model_v2["U"]
+        log_obs_t2 = model_v2["log_obs_t"]
         add_directional_hmm_prior(
-            U=U,
-            log_obs_t=log_obs_t,
+            U=U2,
+            log_obs_t=log_obs_t2,
             S=2,
             prior_config=None,  # Explicit None should be same as default
         )
-    
+
     # Both models should have same structure
     assert len(model_v1.free_RVs) == len(model_v2.free_RVs)
-    assert set(rv.name for rv in model_v1.free_RVs) == set(rv.name for rv in model_v2.free_RVs)
+    assert set(rv.name for rv in model_v1.free_RVs) == set(
+        rv.name for rv in model_v2.free_RVs
+    )
 
 
 def test_synthetic_data_deterministic():
     """Test that synthetic data generation is deterministic with seed."""
     config = SyntheticDataConfig(T=10, C=2, S=2, random_seed=42)
-    
+
     data1 = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
     data2 = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
-    
+
     # Should produce identical results with same seed
     np.testing.assert_array_equal(data1.x_true, data2.x_true)
     np.testing.assert_array_equal(data1.u_true, data2.u_true)
     np.testing.assert_array_equal(data1.true_states, data2.true_states)
-    
+
     # Observations may differ slightly due to occlusion randomness,
     # but non-NaN values should be close
     mask1 = ~np.isnan(data1.y_observed)
@@ -175,14 +218,14 @@ if __name__ == "__main__":
     # Run tests directly
     test_v0_1_pipeline_builds()
     print("✓ Pipeline builds successfully")
-    
+
     test_v0_1_prior_predictive_sampling()
     print("✓ Prior predictive sampling works")
-    
+
     test_v0_1_backward_compatibility()
     print("✓ Backward compatibility maintained")
-    
+
     test_synthetic_data_deterministic()
     print("✓ Synthetic data generation is deterministic")
-    
+
     print("\nAll smoke tests passed!")

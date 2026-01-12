@@ -10,6 +10,13 @@ including:
 - kappa sharing options
 """
 
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).resolve().parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
@@ -241,8 +248,8 @@ def test_directional_emission_correctness():
         )
 
         # Just check that the log_dir_emit has the right shape and is finite
-        test_point = model.initial_point()
-        log_dir_val = result["log_dir_emit"].eval(test_point)
+        # Use .eval() without a specific point - it will use default test values
+        log_dir_val = result["log_dir_emit"].eval()
 
         assert log_dir_val.shape == (T, S), "log_dir_emit shape incorrect"
         assert np.all(np.isfinite(log_dir_val)), "log_dir_emit should be finite"
@@ -349,9 +356,7 @@ def test_integration_with_stage2():
 
         # Check that v0.1.3 variables exist
         assert "test_hmm_mu" in model.named_vars, "v0.1.3 mu should be in model"
-        assert (
-            "test_hmm_kappa" in model.named_vars
-        ), "v0.1.3 kappa should be in model"
+        assert "test_hmm_kappa" in model.named_vars, "v0.1.3 kappa should be in model"
         assert (
             "test_hmm_hmm_loglik" in model.named_vars
         ), "v0.1.3 hmm_loglik should be in model"

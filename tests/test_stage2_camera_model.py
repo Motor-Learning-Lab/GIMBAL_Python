@@ -38,7 +38,7 @@ def create_synthetic_data(T=20, K=5, C=3, seed=42):
 
 
 def test_shape_validation():
-    """Test 1: Verify v0.1.2 output shapes.""
+    """Test 1: Verify v0.1.2 output shapes."""
     print("\n" + "=" * 60)
     print("TEST 1: Shape Validation")
     print("=" * 60)

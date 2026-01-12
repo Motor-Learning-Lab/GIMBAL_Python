@@ -35,8 +35,11 @@ notebook = "jupyter lab"
 generate-datasets = "python tests/pipeline/generate_dataset.py"
 
 # Testing
-test-pipeline = "pytest tests/pipeline/test_v0_2_1_synth_generator.py -v"
+test-pipeline = "pytest tests/pipeline/test_synthetic_data_generator.py -v"
 test-unit = "pytest tests/unit/ -v"
+test-stages = "pytest tests/test_stage1_collapsed_hmm.py tests/test_stage2_camera_model.py -v"
+test-integration = "pytest tests/integration/ -v"
+test-smoke = "pytest tests/smoke/ -v"
 test-all = "pytest tests/ -v"
 
 # Pipeline stages (for L00_minimal dataset)

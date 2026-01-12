@@ -122,10 +122,15 @@ gimbal/                        # Core library modules
     └── camera.py             # Torch camera utilities
 
 tests/                         # Test suite
-├── test_hmm_v0_1_*.py        # Stage-specific tests
-├── test_v0_1_3_directional_hmm.py  # Comprehensive Stage 3 tests
-├── test_demo_v0_1_smoke.py   # Full pipeline smoke test
-└── run_v0_1_3_tests.py       # Test runner
+├── test_stage1_collapsed_hmm.py    # Stage 1: Collapsed HMM tests
+├── test_stage2_camera_model.py     # Stage 2: Camera observation model tests
+├── integration/
+│   ├── test_stage3_directional_hmm.py  # Stage 3: Directional HMM tests
+│   └── test_data_driven_priors.py      # Data-driven priors pipeline tests
+├── unit/                               # Unit tests (DLT, initialization, utilities)
+├── smoke/                              # Quick validation tests
+├── pipeline/                           # End-to-end pipeline tests (stages A-J)
+└── diagnostics/                        # Comprehensive diagnostic suites
 
 notebook/                      # Interactive demonstrations
 ├── demo_v0_1_complete.ipynb  # Full v0.1 integration demo
@@ -191,8 +196,11 @@ Run any task with `pixi run <task-name>`:
 - **`pixi run notebook`** — Launch JupyterLab for interactive notebooks
 
 **Testing:**
+- **`pixi run test-stages`** — Test core HMM stages (Stage 1-2)
+- **`pixi run test-integration`** — Test integration features (Stage 3, data-driven priors)
 - **`pixi run test-unit`** — Run unit tests
-- **`pixi run test-pipeline`** — Run pipeline integration tests
+- **`pixi run test-smoke`** — Quick smoke tests
+- **`pixi run test-pipeline`** — Test synthetic data pipeline
 - **`pixi run test-all`** — Run all tests
 
 **Dataset Generation:**
