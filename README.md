@@ -144,45 +144,112 @@ plans/                         # Design documents and roadmaps
 
 ## Installation
 
-GIMBAL requires Python 3.10+ and PyMC. We recommend using a virtual environment:
+GIMBAL uses [Pixi](https://pixi.sh) for environment management. Pixi automatically handles all dependencies including Python 3.11, PyMC, PyTorch, and development tools.
 
+### Install Pixi
+
+**Windows (PowerShell):**
 ```powershell
-# Create and activate virtual environment
-python -m venv .venv
-. .venv\Scripts\Activate.ps1
-
-# Install PyMC and dependencies
-pip install pymc nutpie
-
-# For legacy Torch demo (optional)
-pip install torch scikit-learn
+iwr -useb https://pixi.sh/install.ps1 | iex
 ```
 
-## Running the Demos
-
-### PyMC Pipeline Demo (Recommended)
-
-```powershell
-python examples/demo_pymc_pipeline.py
+**Linux/macOS:**
+```bash
+curl -fsSL https://pixi.sh/install.sh | bash
 ```
 
-This demonstrates the complete v0.1 PyMC HMM pipeline in ~50 lines of code.
+### Install GIMBAL Dependencies
 
-### Legacy Torch Demo
-
+From the repository root:
 ```powershell
-python -m examples.run_gimbal_demo
+pixi install
 ```
 
-Runs the original PyTorch Gibbs sampler implementation.
+This creates an isolated environment with all required dependencies specified in `pixi.toml`.
+
+### Verify Installation
+
+```powershell
+pixi run check-setup
+```
+
+Should output: `✓ Environment OK`
+
+## Running the Code
+
+### Available Pixi Tasks
+
+Run any task with `pixi run <task-name>`:
+
+**Setup:**
+- **`pixi run check-setup`** — Verify environment is correctly configured
+
+**Demos:**
+- **`pixi run demo-pymc`** — Complete v0.2.0 PyMC pipeline demo
+- **`pixi run demo-priors`** — Data-driven priors demo (v0.2.1)
+- **`pixi run run-demo`** — Legacy Torch GIMBAL demo
+- **`pixi run notebook`** — Launch JupyterLab for interactive notebooks
+
+**Testing:**
+- **`pixi run test-unit`** — Run unit tests
+- **`pixi run test-pipeline`** — Run pipeline integration tests
+- **`pixi run test-all`** — Run all tests
+
+**Dataset Generation:**
+- **`pixi run generate-datasets`** — Generate synthetic datasets
+
+**Pipeline Stages (L00_minimal dataset):**
+- **`pixi run pipeline-clean`** — Stage B: Clean 2D keypoints
+- **`pixi run pipeline-triangulate`** — Stage C: Triangulate to 3D
+- **`pixi run pipeline-full`** — Run complete L00 pipeline (stages A-J)
+
+### PyMC Pipeline Demos
+
+**Complete v0.1 PyMC pipeline:**
+```powershell
+pixi run demo-pymc
+```
+
+**Data-driven priors (v0.2.1):**
+```powershell
+pixi run demo-priors
+```
+
+**Legacy Torch demo:**
+```powershell
+pixi run run-demo
+```
 
 ### Interactive Notebooks
 
 ```powershell
-jupyter notebook notebook/demo_v0_1_complete.ipynb
+pixi run notebook
+# Then open notebook/demo_v0_1_complete.ipynb
 ```
 
 Full walkthrough with visualizations of the three-stage PyMC pipeline.
+
+### Running Tests
+
+```powershell
+pixi run test-unit
+pixi run test-pipeline
+pixi run test-all
+```
+
+### Running the Pipeline
+
+To run the complete data processing pipeline on the L00_minimal dataset:
+
+```powershell
+pixi run pipeline-full
+```
+
+Or run individual stages:
+```powershell
+pixi run pipeline-clean         # Stage B: Clean 2D keypoints
+pixi run pipeline-triangulate   # Stage C: 3D triangulation
+```
 
 ---
 
