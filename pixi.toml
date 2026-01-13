@@ -5,12 +5,12 @@ platforms = ["linux-64", "win-64"]
 
 [dependencies]
 python = "3.11.*"
-pip = "*"
+pip = ">=25.3,<26"
 pytorch = "*"
 scikit-learn = "*"
 matplotlib = "*"
 jupyterlab = "*"
-ipykernel = "*"
+ipykernel = ">=7.1.0,<8"
 pymc = "*"
 nutpie = "*"
 arviz = "*"
