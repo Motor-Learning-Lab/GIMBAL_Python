@@ -72,7 +72,7 @@ class InitializationResult(NamedTuple):
 
 
 def estimate_temporal_variances(x_gt: Tensor) -> Tensor:
-    """Estimate η_k^2 from ground truth (Section 4.1).
+    """Estimate ╬╖_k^2 from ground truth (Section 4.1).
 
     x_gt has shape (T, K, 3).
     """
@@ -85,7 +85,7 @@ def estimate_temporal_variances(x_gt: Tensor) -> Tensor:
 
 
 def estimate_skeletal_parameters(x_gt: Tensor, parent: Tensor) -> Tuple[Tensor, Tensor]:
-    """Estimate (ρ_k, σ_k^2) from ground truth (Section 4.2)."""
+    """Estimate (╧ü_k, ╧â_k^2) from ground truth (Section 4.2)."""
 
     T, K, _ = x_gt.shape
     rho = torch.zeros(K, dtype=x_gt.dtype, device=x_gt.device)
@@ -101,7 +101,7 @@ def estimate_skeletal_parameters(x_gt: Tensor, parent: Tensor) -> Tuple[Tensor, 
 
 
 def estimate_root_dynamics(x_gt: Tensor) -> RootDynamicsParameters:
-    """Estimate μ_1 and σ_1^2 for root keypoint (Section 2.1, 4.1)."""
+    """Estimate ╬╝_1 and ╧â_1^2 for root keypoint (Section 2.1, 4.1)."""
 
     root_traj = x_gt[:, 0]
     mu0 = root_traj.mean(dim=0)
@@ -173,7 +173,7 @@ def estimate_pose_priors(
 
     This uses k-means clustering on concatenated unit directions to
     obtain S pose states, then estimates per-state vMF parameters and
-    a transition matrix Λ from the resulting state sequence.
+    a transition matrix ╬¢ from the resulting state sequence.
     """
 
     from sklearn.cluster import KMeans

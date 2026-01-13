@@ -4,9 +4,8 @@ import numpy as np
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path().resolve()))
 
-from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 
 # Generate data
 config = SyntheticDataConfig(T=5, C=3, S=3, random_seed=42)

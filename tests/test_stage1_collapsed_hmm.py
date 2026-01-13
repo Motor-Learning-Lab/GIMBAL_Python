@@ -12,7 +12,7 @@ import numpy as np
 import pytensor
 import pytensor.tensor as pt
 from scipy.special import logsumexp
-from gimbal.hmm_pytensor import forward_log_prob_single, collapsed_hmm_loglik
+from gimbal_pymc.hmm_pytensor import forward_log_prob_single, collapsed_hmm_loglik
 
 
 def test_tiny_hmm_brute_force():

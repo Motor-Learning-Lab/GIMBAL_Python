@@ -4,7 +4,7 @@ Comparison: Show that cameras NOW produce DIFFERENT views
 
 import numpy as np
 import matplotlib.pyplot as plt
-from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 
 config = SyntheticDataConfig(
     T=100, C=3, S=3, kappa=5.0, obs_noise_std=0.5, random_seed=42

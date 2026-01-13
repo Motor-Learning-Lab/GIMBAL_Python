@@ -71,7 +71,7 @@ DEMO_V0_1_SKELETON = SkeletonConfig(
 #   - joint 3: distal_right (parent=1, bone from proximal to distal_right)
 #
 # The "3 joints, 3 segments" description from user maps to:
-#   - 3 segments (bones): root→proximal, proximal→distal_left, proximal→distal_right
+#   - 3 segments (bones): rootΓåÆproximal, proximalΓåÆdistal_left, proximalΓåÆdistal_right
 #   - 4 joints (articulation points including root)
 L00_SKELETON = SkeletonConfig(
     joint_names=[
@@ -80,7 +80,7 @@ L00_SKELETON = SkeletonConfig(
         "distal_left",  # 2: Left distal end
         "distal_right",  # 3: Right distal end
     ],
-    parents=np.array([-1, 0, 1, 1]),  # root, proximal←root, both distals←proximal
+    parents=np.array([-1, 0, 1, 1]),  # root, proximalΓåÉroot, both distalsΓåÉproximal
     bone_lengths=np.array([0.0, 10.0, 8.0, 8.0]),  # root=0, proximal=10, distals=8 each
     up_axis=np.array([0.0, 0.0, 1.0]),
 )

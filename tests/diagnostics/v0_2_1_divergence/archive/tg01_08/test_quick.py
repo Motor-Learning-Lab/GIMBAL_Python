@@ -4,8 +4,6 @@ import sys
 from pathlib import Path
 
 # Add repo root to path
-repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(repo_root))
 
 from test_utils import (
     get_standard_synth_data,

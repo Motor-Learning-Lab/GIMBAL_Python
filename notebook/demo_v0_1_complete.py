@@ -32,7 +32,6 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path().resolve().parent))
 
 # %%
 import numpy as np
@@ -41,14 +40,14 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 
 # GIMBAL imports
-from gimbal import (
+from gimbal_pymc import (
     build_camera_observation_model,
     add_directional_hmm_prior,
     generate_demo_sequence,
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
-from gimbal.fit_params import InitializationResult
+from gimbal_pymc.fit_params import InitializationResult
 
 print("Libraries imported successfully!")
 print(f"PyMC version: {pm.__version__}")

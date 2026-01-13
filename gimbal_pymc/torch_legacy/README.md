@@ -4,7 +4,7 @@ This directory contains the original PyTorch-based GIMBAL implementation.
 
 ## Status
 
-**⚠️ Legacy / Maintenance Mode**
+**ΓÜá∩╕Å Legacy / Maintenance Mode**
 
 This code is kept for:
 - Historical reference
@@ -15,9 +15,9 @@ This code is kept for:
 
 ## Contents
 
-- `model.py` — Probabilistic model definitions and log-densities
-- `inference.py` — Gibbs sampler and HMC inference routines
-- `camera.py` — Camera projection utilities
+- `model.py` ΓÇö Probabilistic model definitions and log-densities
+- `inference.py` ΓÇö Gibbs sampler and HMC inference routines
+- `camera.py` ΓÇö Camera projection utilities
 
 ## Usage
 

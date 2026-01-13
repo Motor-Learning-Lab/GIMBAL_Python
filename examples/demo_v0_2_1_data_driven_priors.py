@@ -15,14 +15,12 @@ import sys
 from pathlib import Path
 
 # Add parent directory to path for gimbal import
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 import pymc as pm
 
-import gimbal
-from gimbal import DEMO_V0_1_SKELETON
-from gimbal.synthetic_data import generate_demo_sequence, SyntheticDataConfig
+import gimbal_pymc from gimbal_pymc import DEMO_V0_1_SKELETON
+from gimbal_pymc.synthetic_data import generate_demo_sequence, SyntheticDataConfig
 
 # =============================================================================
 # 1. Generate Synthetic Data

@@ -12,10 +12,8 @@ from typing import Dict, Any
 import numpy as np
 
 # Add repo root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import gimbal
-
+import gimbal_pymc 
 
 def format_priors_for_json(prior_config: Dict) -> Dict:
     """Convert prior config to JSON-serializable format."""

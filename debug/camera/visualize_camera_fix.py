@@ -6,16 +6,14 @@ Shows that different cameras now produce geometrically correct, distinct views.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-import sys
 
-sys.path.insert(0, str(Path(__file__).parent))
 
-from gimbal import (
+from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
     generate_demo_sequence,
 )
-from gimbal.camera_utils import camera_center_from_proj, project_points_numpy
+from gimbal_pymc.camera_utils import camera_center_from_proj, project_points_numpy
 
 # Generate a short test sequence
 config = SyntheticDataConfig(

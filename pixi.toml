@@ -5,6 +5,7 @@ platforms = ["linux-64", "win-64"]
 
 [dependencies]
 python = "3.11.*"
+pip = "*"
 pytorch = "*"
 scikit-learn = "*"
 matplotlib = "*"
@@ -18,8 +19,11 @@ ipywidgets = "*"
 pytest = "*"
 
 [tasks]
+# Install package in editable mode
+install-dev = "pip install -e ."
+
 # Quick environment validation
-check-setup = { cmd = "python -c 'import gimbal, pymc, nutpie; print(\"✓ Environment OK\")'" }
+check-setup = { cmd = "python -c 'import gimbal_pymc, pymc, nutpie; print(\"✓ Environment OK\")'" }
 
 # Run the synthetic GIMBAL demo (legacy Torch implementation)
 run-demo = "python -m examples.run_gimbal_demo"

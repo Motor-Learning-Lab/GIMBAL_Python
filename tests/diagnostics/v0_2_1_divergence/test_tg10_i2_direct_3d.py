@@ -45,8 +45,6 @@ import pymc as pm
 import pytensor.tensor as pt
 
 # Add repo root to path
-repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(repo_root))
 
 from test_utils import (
     get_standard_synth_data,
@@ -55,8 +53,7 @@ from test_utils import (
     extract_metrics,
     save_diagnostic_plots,
 )
-import gimbal
-
+import gimbal_pymc 
 
 def build_test_model_direct_3d(
     synth_data: Dict[str, Any],

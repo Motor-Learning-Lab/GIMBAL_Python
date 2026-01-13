@@ -1,6 +1,6 @@
 """Visualization functions for synthetic dataset validation.
 
-This module wraps the focused visualization functions from gimbal.viz_* modules
+This module wraps the focused visualization functions from gimbal_pymc.viz_* modules
 for use in the pipeline. The focused functions in gimbal/ do not depend on
 GeneratedDataset and can be reused elsewhere.
 """
@@ -12,8 +12,7 @@ from typing import Optional
 
 from .config_generator import GeneratedDataset
 
-# Import focused visualization functions from gimbal
-from gimbal.skeleton_visualization import (
+# Import focused visualization functions from gimbal_pymc from gimbal_pymc.skeleton_visualization import (
     plot_skeleton_motion_3d,
     plot_skeleton_poses_3d,
     plot_2d_reprojections,

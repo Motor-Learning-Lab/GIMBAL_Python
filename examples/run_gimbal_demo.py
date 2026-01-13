@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import torch
 
-from gimbal.torch_legacy.camera import project_points
-from gimbal.fit_params import build_gimbal_parameters
-from gimbal.torch_legacy.inference import HMCConfig, run_gibbs_sampler
+from gimbal_pymc.torch_legacy.camera import project_points
+from gimbal_pymc.fit_params import build_gimbal_parameters
+from gimbal_pymc.torch_legacy.inference import HMCConfig, run_gibbs_sampler
 
 
 def simulate_synthetic_data(T: int = 20):

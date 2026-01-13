@@ -13,11 +13,8 @@ import json
 from pathlib import Path
 
 # Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 # Add test utilities path
-sys.path.insert(0, str(project_root / "tests" / "diagnostics" / "v0_2_1_divergence"))
 
 import numpy as np
 import pymc as pm

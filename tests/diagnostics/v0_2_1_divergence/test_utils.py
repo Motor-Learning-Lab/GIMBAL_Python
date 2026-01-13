@@ -31,7 +31,7 @@ def get_standard_synth_data(T: int = 100, C: int = 3, S: int = 3, seed: int = 42
     dict
         Synthetic data dictionary
     """
-    from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+    from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 
     config = SyntheticDataConfig(
         T=T,
@@ -92,8 +92,7 @@ def build_test_model(
     pm.Model
         PyMC model
     """
-    import gimbal
-
+    import gimbal_pymc 
     # Initialize from observations
     init_result = gimbal.fit_params.initialize_from_observations_dlt(
         y_observed=synth_data["observations_uv"],
@@ -111,14 +110,14 @@ def build_test_model(
     with pm.Model() as model:
         if use_directional_hmm:
             # Build data-driven priors for HMM
-            from gimbal.triangulation import triangulate_multi_view
-            from gimbal.data_cleaning import (
+            from gimbal_pymc.triangulation import triangulate_multi_view
+            from gimbal_pymc.data_cleaning import (
                 clean_keypoints_2d,
                 clean_keypoints_3d,
                 CleaningConfig,
             )
-            from gimbal.direction_statistics import compute_direction_statistics
-            from gimbal.prior_building import build_priors_from_statistics
+            from gimbal_pymc.direction_statistics import compute_direction_statistics
+            from gimbal_pymc.prior_building import build_priors_from_statistics
 
             # Clean and triangulate
             cleaning_config = CleaningConfig()

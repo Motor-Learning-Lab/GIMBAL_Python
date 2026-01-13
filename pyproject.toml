@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gimbal_pymc"
+version = "0.2.1"
+description = "Geometric Manifolds for Body Articulation and Localization - PyMC implementation"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "GIMBAL Contributors"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
+requires-python = ">=3.11"
+
+# Note: Dependencies are managed by pixi.toml
+# This minimal pyproject.toml is for making the package installable via pip install -e .
+
+[tool.setuptools.packages.find]
+include = ["gimbal_pymc*"]

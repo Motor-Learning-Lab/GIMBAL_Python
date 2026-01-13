@@ -3,7 +3,6 @@
 import numpy as np
 import sys
 
-sys.path.insert(0, ".")
 
 # Test manually first
 P1 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=np.float64)
@@ -49,8 +48,7 @@ print(f"Error: {np.linalg.norm(X_reconstructed - X_true)}")
 # Now test with gimbal
 print("\n" + "=" * 60)
 print("Testing with gimbal.triangulate_multi_view:")
-import gimbal
-
+import gimbal_pymc 
 # Create simple 3x3 projection matrices for 2 cameras
 # Camera 1: Identity view
 P1 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=np.float64)

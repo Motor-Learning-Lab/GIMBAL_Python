@@ -12,7 +12,6 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path().resolve().parent))
 
 # %%
 import numpy as np
@@ -21,8 +20,7 @@ import pymc as pm
 import arviz as az
 
 # v0.2.1 imports
-import gimbal
-from gimbal import (
+import gimbal_pymc from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
     generate_demo_sequence,
@@ -37,7 +35,7 @@ from gimbal import (
     build_camera_observation_model,
     add_directional_hmm_prior,
 )
-from gimbal.fit_params import initialize_from_groundtruth
+from gimbal_pymc.fit_params import initialize_from_groundtruth
 
 print("✓ Imports successful!")
 print(f"PyMC version: {pm.__version__}")
@@ -84,7 +82,7 @@ print(f"  Occlusions: {np.sum(np.isnan(y_observed_2d))} pixels")
 
 # %%
 from mpl_toolkits.mplot3d import Axes3D
-from gimbal.camera_utils import camera_center_from_proj
+from gimbal_pymc.camera_utils import camera_center_from_proj
 
 # Plot ground truth 3D skeleton at multiple timesteps
 fig = plt.figure(figsize=(18, 5))
@@ -1857,15 +1855,15 @@ print("=" * 70)
 # %%
 # Reload modules to pick up the S=1 separate code path
 import importlib
-import gimbal.hmm_directional
-import gimbal.pymc_model
+import gimbal_pymc.hmm_directional
+import gimbal_pymc.pymc_model
 
 # Reload in dependency order
 importlib.reload(gimbal.hmm_directional)
 importlib.reload(gimbal.pymc_model)
 
 # Re-import the function we use
-from gimbal import build_camera_observation_model
+from gimbal_pymc import build_camera_observation_model
 
 print("✓ Reloaded gimbal.hmm_directional and gimbal.pymc_model modules")
 print("✓ S=1 now uses completely separate code path (no PyTensor warnings expected)")
@@ -2221,7 +2219,7 @@ print("Testing gradient correctness on a toy problem (T=3, S=2).\n")
 
 import pytensor
 import pytensor.tensor as pt
-from gimbal.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
 
 # Toy problem
 T_toy = 3

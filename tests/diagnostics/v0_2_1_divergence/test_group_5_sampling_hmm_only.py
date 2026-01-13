@@ -24,11 +24,8 @@ import arviz as az
 import matplotlib.pyplot as plt
 
 # Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
 
-import gimbal
-from _diag_utils import (
+import gimbal_pymc from _diag_utils import (
     make_paths,
     collect_environment,
     write_json,
@@ -92,7 +89,7 @@ def build_model(data):
     C, T, K, _ = data["y_2d"].shape
 
     print("  Initializing from observations (DLT triangulation)...")
-    from gimbal.fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.fit_params import initialize_from_observations_dlt
 
     init_result = initialize_from_observations_dlt(
         y_observed=data["y_2d"],

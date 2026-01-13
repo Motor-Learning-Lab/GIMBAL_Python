@@ -22,9 +22,8 @@ The main GIMBAL pipeline consists of three stages:
 
 Quick Start
 -----------
->>> import gimbal
->>> from gimbal import DEMO_V0_1_SKELETON
->>> from gimbal.synthetic_data import generate_demo_sequence
+>>> import gimbal_pymc >>> from gimbal_pymc import DEMO_V0_1_SKELETON
+>>> from gimbal_pymc.synthetic_data import generate_demo_sequence
 >>>
 >>> # Generate synthetic data
 >>> data = generate_demo_sequence(DEMO_V0_1_SKELETON)

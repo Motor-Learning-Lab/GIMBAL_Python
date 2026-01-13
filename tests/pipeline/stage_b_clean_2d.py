@@ -17,10 +17,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Add repo root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import gimbal
-from gimbal.data_cleaning import CleaningConfig
+import gimbal_pymc from gimbal_pymc.data_cleaning import CleaningConfig
 
 
 def plot_2d_cleaning_comparison(

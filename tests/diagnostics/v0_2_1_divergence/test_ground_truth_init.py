@@ -15,10 +15,8 @@ from pathlib import Path
 from datetime import datetime
 
 # Add repository root to path
-repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(repo_root))
 
-from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 from tests.diagnostics.v0_2_1_divergence.test_utils import build_test_model
 
 

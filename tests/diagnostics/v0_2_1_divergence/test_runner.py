@@ -11,7 +11,6 @@ import time
 from datetime import datetime
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from tests.diagnostics.v0_2_1_divergence.test_baseline import run_baseline_tests
 from tests.diagnostics.v0_2_1_divergence.test_hmm_effect import run_hmm_effect_tests

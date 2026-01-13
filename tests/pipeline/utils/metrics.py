@@ -1,6 +1,6 @@
 """Metrics computation for synthetic dataset validation.
 
-This module wraps the focused metric functions from gimbal.metrics_* modules
+This module wraps the focused metric functions from gimbal_pymc.metrics_* modules
 for use in the pipeline. The focused functions in gimbal/ do not depend on
 GeneratedDataset and can be reused elsewhere.
 """
@@ -12,21 +12,21 @@ import json
 
 from .config_generator import GeneratedDataset
 
-# Import focused metric functions from gimbal
-from gimbal.skeleton_metrics import (
+# Import focused metric functions from gimbal_pymc
+from gimbal_pymc.skeleton_metrics import (
     compute_bone_length_metrics,
     compute_direction_metrics,
     compute_smoothness_metrics,
     compute_state_metrics,
     compute_observation_metrics,
 )
-from gimbal.identifiability import check_identifiability, IdentifiabilityConfig
+from gimbal_pymc.identifiability import check_identifiability, IdentifiabilityConfig
 
 
 def compute_dataset_metrics(dataset: GeneratedDataset) -> Dict[str, Any]:
     """Compute comprehensive metrics for generated dataset.
 
-    Wraps focused metric functions from gimbal.metrics_* modules.
+    Wraps focused metric functions from gimbal_pymc.metrics_* modules.
 
     Parameters
     ----------

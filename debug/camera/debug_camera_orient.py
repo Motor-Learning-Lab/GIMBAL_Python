@@ -1,7 +1,7 @@
 """Debug camera orientations"""
 
-from gimbal.synthetic_data import generate_camera_matrices
-from gimbal.camera_utils import camera_center_from_proj
+from gimbal_pymc.synthetic_data import generate_camera_matrices
+from gimbal_pymc.camera_utils import camera_center_from_proj
 import numpy as np
 
 rng = np.random.default_rng(42)

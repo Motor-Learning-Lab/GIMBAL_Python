@@ -24,16 +24,16 @@ def forward_log_prob_single(
     Parameters
     ----------
     logp_emit : (T, S) tensor
-        Log emission probabilities: logp_emit[t, s] = log p(y_t | z_t=s, θ)
+        Log emission probabilities: logp_emit[t, s] = log p(y_t | z_t=s, ╬╕)
     logp_init : (S,) tensor
-        Log initial state probabilities: logp_init[s] = log π_s
+        Log initial state probabilities: logp_init[s] = log ╧Ç_s
     logp_trans : (S, S) tensor
         Log transition probabilities: logp_trans[i, j] = log p(z_t=j | z_{t-1}=i)
 
     Returns
     -------
     logp : scalar tensor
-        Collapsed log-likelihood: log p(y_{0:T-1} | π, A, θ)
+        Collapsed log-likelihood: log p(y_{0:T-1} | ╧Ç, A, ╬╕)
 
     Notes
     -----

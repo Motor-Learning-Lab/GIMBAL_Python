@@ -22,8 +22,7 @@ import numpy as np
 import pymc as pm
 
 # Import GIMBAL PyMC pipeline
-import gimbal
-from gimbal import (
+import gimbal_pymc from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
     generate_demo_sequence,

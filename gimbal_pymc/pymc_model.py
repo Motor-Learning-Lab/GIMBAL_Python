@@ -318,8 +318,8 @@ def _build_camera_observation_model_full(
 
     Examples
     --------
-    >>> from gimbal.fit_params import initialize_from_observations_dlt
-    >>> from gimbal.pymc_model import build_camera_observation_model
+    >>> from gimbal_pymc.fit_params import initialize_from_observations_dlt
+    >>> from gimbal_pymc.pymc_model import build_camera_observation_model
     >>>
     >>> # Initialize from observations
     >>> result = initialize_from_observations_dlt(y_obs, camera_proj, parents)
@@ -773,7 +773,7 @@ def _build_camera_observation_model_full(
                     "hmm_num_states must be provided when use_directional_hmm=True"
                 )
 
-            from gimbal.hmm_directional import add_directional_hmm_prior
+            from gimbal_pymc.hmm_directional import add_directional_hmm_prior
 
             _hmm_result = add_directional_hmm_prior(
                 U=U,

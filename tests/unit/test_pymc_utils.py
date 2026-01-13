@@ -7,23 +7,16 @@ This tests:
 3. compile_model_with_initialization produces working compiled model
 """
 
-import sys
-from pathlib import Path
-
-# Add project root to path
-project_root = Path(__file__).resolve().parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 import numpy as np
 import pymc as pm
 
-from gimbal.fit_params import initialize_from_groundtruth
-from gimbal.pymc_utils import (
+from gimbal_pymc.fit_params import initialize_from_groundtruth
+from gimbal_pymc.pymc_utils import (
     build_initial_points_for_nutpie,
     validate_initial_points,
     compile_model_with_initialization,
 )
-from gimbal.pymc_distributions import VonMisesFisher
+from gimbal_pymc.pymc_distributions import VonMisesFisher
 
 # Create simple test data from groundtruth
 np.random.seed(42)

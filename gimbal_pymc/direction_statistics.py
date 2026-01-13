@@ -44,7 +44,7 @@ def _compute_vmf_concentration(directions: np.ndarray) -> float:
     Estimate concentration parameter kappa for vMF distribution.
 
     Uses the approximation from Banerjee et al. (2005):
-        kappa ≈ R_bar * (3 - R_bar^2) / (1 - R_bar^2)
+        kappa Γëê R_bar * (3 - R_bar^2) / (1 - R_bar^2)
     where R_bar is the mean resultant length.
 
     Parameters
@@ -55,7 +55,7 @@ def _compute_vmf_concentration(directions: np.ndarray) -> float:
     Returns
     -------
     kappa : float
-        Estimated concentration parameter. Returns NaN if N < 3 or R_bar ≈ 1.
+        Estimated concentration parameter. Returns NaN if N < 3 or R_bar Γëê 1.
     """
     N = directions.shape[0]
     if N < 3:
@@ -68,7 +68,7 @@ def _compute_vmf_concentration(directions: np.ndarray) -> float:
     # Mean resultant length
     R_bar = R_length / N
 
-    # Avoid division by zero (R_bar ≈ 1 means perfect concentration)
+    # Avoid division by zero (R_bar Γëê 1 means perfect concentration)
     if R_bar > 0.999:
         # Very high concentration, return large value
         return 100.0

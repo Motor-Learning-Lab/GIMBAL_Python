@@ -180,14 +180,14 @@ def hmm_ffbs(log_init: Tensor, log_trans: Tensor, log_lik: Tensor) -> Tensor:
 
 
 # -----------------------------------------------------------------------------
-# Gibbs updates for u, h, s, z (Sections 3.2–3.5)
+# Gibbs updates for u, h, s, z (Sections 3.2ΓÇô3.5)
 # -----------------------------------------------------------------------------
 
 
 def sample_u(x: Tensor, s: Tensor, h: Tensor, params: GimbalParameters) -> Tensor:
     """Sample directions u_{t,k} (Section 3.2).
 
-    Uses the conditional vMF form with parameters (\tilde ν_{t,k},\tilde κ_{t,k}).
+    Uses the conditional vMF form with parameters (\tilde ╬╜_{t,k},\tilde ╬║_{t,k}).
     """
 
     T, K, _ = x.shape
@@ -243,8 +243,8 @@ def vector_to_angles(v: Tensor) -> Tuple[Tensor, Tensor]:
 def sample_h(u: Tensor, s: Tensor, params: GimbalParameters) -> Tensor:
     """Sample headings h_t (Section 3.3).
 
-    Given u_{t,k} and s_t, compute von Mises parameters (θ_t, τ_t)
-    and sample h_t ~ vM(θ_t, τ_t).
+    Given u_{t,k} and s_t, compute von Mises parameters (╬╕_t, ╧ä_t)
+    and sample h_t ~ vM(╬╕_t, ╧ä_t).
     """
 
     T, K, _ = u.shape
@@ -372,7 +372,7 @@ def hmc_update_x(
     """Single HMC update for x (Section 3.1).
 
     Treats x as a flattened vector in R^{3TK} and performs L leapfrog
-    steps with step size ε, using autodiff to compute ∇_x log p.
+    steps with step size ╬╡, using autodiff to compute Γêç_x log p.
     """
 
     step_size = config.step_size

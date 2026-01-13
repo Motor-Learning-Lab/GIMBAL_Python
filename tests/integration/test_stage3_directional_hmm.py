@@ -10,18 +10,11 @@ including:
 - kappa sharing options
 """
 
-import sys
-from pathlib import Path
-
-# Add project root to path
-project_root = Path(__file__).resolve().parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from gimbal.hmm_directional import add_directional_hmm_prior, _build_kappa
+from gimbal_pymc.hmm_directional import add_directional_hmm_prior, _build_kappa
 
 
 def test_kappa_sharing_options():
@@ -300,8 +293,8 @@ def test_logp_normalization():
 def test_integration_with_stage2():
     """Test that v0.1.3 integrates correctly with v0.1.2 camera model."""
     try:
-        from gimbal.pymc_model import build_camera_observation_model
-        from gimbal.fit_params import InitializationResult
+        from gimbal_pymc.pymc_model import build_camera_observation_model
+        from gimbal_pymc.fit_params import InitializationResult
     except ImportError:
         print("Skipping test_integration_with_stage2 - gimbal.pymc_model not available")
         return

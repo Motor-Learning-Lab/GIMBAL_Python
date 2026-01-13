@@ -26,23 +26,23 @@ Adds directional prior over joint orientations with state-dependent canonical po
 ### Quick Start
 
 ```python
-import gimbal
-from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig
+import gimbal_pymc
+from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig
 import pymc as pm
 
 # Generate synthetic data
 config = SyntheticDataConfig(T=20, C=2, S=2)
-data = gimbal.generate_demo_sequence(DEMO_V0_1_SKELETON, config)
+data = gimbal_pymc.generate_demo_sequence(DEMO_V0_1_SKELETON, config)
 
 # Build complete model
 with pm.Model() as model:
-    _, U, x_all, y_pred, log_obs_t = gimbal.build_camera_observation_model(
+    _, U, x_all, y_pred, log_obs_t = gimbal_pymc.build_camera_observation_model(
         y_obs=data.y_observed,
         proj_param=data.camera_proj,
         parents=DEMO_V0_1_SKELETON.parents,
         bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
     )
-    gimbal.add_directional_hmm_prior(U, log_obs_t, S=2)
+    gimbal_pymc.add_directional_hmm_prior(U, log_obs_t, S=2)
     
     # Sample with nutpie or PyMC samplers
     # idata = pm.sample(...)
@@ -67,7 +67,7 @@ See `examples/demo_v0_1_complete.ipynb` or `notebook/demo_stage3_complete.ipynb`
 
 **Example:**
 ```python
-import gimbal
+import gimbal_pymc
 
 # Load real motion capture data (2D keypoints)
 y_2d = load_observations()  # Shape: (T, C, N, 2)
@@ -171,6 +171,15 @@ pixi install
 ```
 
 This creates an isolated environment with all required dependencies specified in `pixi.toml`.
+
+### Install gimbal_pymc Package
+
+After installing dependencies, install the package in editable mode:
+```powershell
+pixi run install-dev
+```
+
+This makes `gimbal_pymc` importable from tests and scripts.
 
 ### Verify Installation
 

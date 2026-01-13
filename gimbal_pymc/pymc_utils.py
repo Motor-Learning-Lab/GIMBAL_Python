@@ -139,7 +139,7 @@ def build_initial_points_for_nutpie(
 
     Examples
     --------
-    >>> from gimbal.fit_params import initialize_from_observations_dlt
+    >>> from gimbal_pymc.fit_params import initialize_from_observations_dlt
     >>> init_result = initialize_from_observations_dlt(y_obs, camera_proj, parents)
     >>> initial_points = build_initial_points_for_nutpie(model, init_result, parents)
     >>> compiled = nutpie.compile_pymc_model(model, initial_points=initial_points)
@@ -313,7 +313,7 @@ def validate_stage2_outputs(
     C: int,
 ) -> None:
     """
-    Validate Stage 2 → Stage 3 interface tensor shapes.
+    Validate Stage 2 ΓåÆ Stage 3 interface tensor shapes.
 
     This function checks that the refactored PyMC model produces all required
     outputs with correct shapes for Stage 3 HMM integration.
@@ -337,7 +337,7 @@ def validate_stage2_outputs(
     Examples
     --------
     >>> validate_stage2_outputs(model, T=50, K=10, C=4)
-    ✓ All v0.1.2 outputs have correct shapes
+    Γ£ô All v0.1.2 outputs have correct shapes
     """
     required_vars = {
         "U": (T, K, 3),
@@ -377,7 +377,7 @@ def validate_stage2_outputs(
                     f"  Got: {actual_shape}"
                 )
 
-    print("✓ All v0.1.2 outputs have correct shapes")
+    print("Γ£ô All v0.1.2 outputs have correct shapes")
 
 
 def compile_model_with_initialization(
@@ -434,8 +434,8 @@ def compile_model_with_initialization(
 
     Examples
     --------
-    >>> from gimbal.fit_params import initialize_from_observations_dlt
-    >>> from gimbal.pymc_utils import compile_model_with_initialization
+    >>> from gimbal_pymc.fit_params import initialize_from_observations_dlt
+    >>> from gimbal_pymc.pymc_utils import compile_model_with_initialization
     >>>
     >>> # Get initialization
     >>> init_result = initialize_from_observations_dlt(y_obs, camera_proj, parents)

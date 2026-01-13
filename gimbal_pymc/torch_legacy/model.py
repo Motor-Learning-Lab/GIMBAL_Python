@@ -1,6 +1,6 @@
 """Core probabilistic model components for GIMBAL.
 
-This module mirrors Sections 1–2 and 4 of `GIMBAL spec.md`.
+This module mirrors Sections 1ΓÇô2 and 4 of `GIMBAL spec.md`.
 
 Key responsibilities
 --------------------
@@ -35,11 +35,11 @@ class SkeletonParameters:
     parent : Tensor
         Shape (K,), integer indices with parent[0] == -1 for root.
     rho : Tensor
-        Shape (K,), average distances ρ_k (Section 2.2).
+        Shape (K,), average distances ╧ü_k (Section 2.2).
     sigma2 : Tensor
-        Shape (K,), variances σ_k^2 (Section 2.2).
+        Shape (K,), variances ╧â_k^2 (Section 2.2).
     eta2 : Tensor
-        Shape (K,), temporal variances η_k^2 (Sections 2.1 and 2.2).
+        Shape (K,), temporal variances ╬╖_k^2 (Sections 2.1 and 2.2).
     """
 
     parent: Tensor
@@ -55,11 +55,11 @@ class PosePriorParameters:
     Attributes
     ----------
     nu : Tensor
-        Mean directions ν_{s,k} on S^2, shape (S, K, 3).
+        Mean directions ╬╜_{s,k} on S^2, shape (S, K, 3).
     kappa : Tensor
-        Concentrations κ_{s,k} ≥ 0, shape (S, K).
+        Concentrations ╬║_{s,k} ΓëÑ 0, shape (S, K).
     transition : Tensor
-        HMM transition matrix Λ, shape (S, S), rows sum to 1.
+        HMM transition matrix ╬¢, shape (S, S), rows sum to 1.
     """
 
     nu: Tensor
@@ -86,11 +86,11 @@ class OutlierMixtureParameters:
     Attributes
     ----------
     beta : Tensor
-        Outlier probabilities β_{k,c}, shape (K, C).
+        Outlier probabilities ╬▓_{k,c}, shape (K, C).
     mu : Tensor
-        Means μ_{k,c,z}, shape (K, C, 2, 2) where z in {0,1}.
+        Means ╬╝_{k,c,z}, shape (K, C, 2, 2) where z in {0,1}.
     sigma2 : Tensor
-        Variances ω_{k,c,z}^2, shape (K, C, 2).
+        Variances ╧ë_{k,c,z}^2, shape (K, C, 2).
     """
 
     beta: Tensor
@@ -102,8 +102,8 @@ class OutlierMixtureParameters:
 class RootDynamicsParameters:
     """Root keypoint dynamics (Section 2.1)."""
 
-    mu0: Tensor  # μ_1, shape (3,)
-    sigma2_0: float  # σ_1^2
+    mu0: Tensor  # ╬╝_1, shape (3,)
+    sigma2_0: float  # ╧â_1^2
 
 
 @dataclass
@@ -123,12 +123,12 @@ def vmf_log_norm_const(kappa: Tensor, dim: int = 3) -> Tensor:
     This uses an approximation via log of modified Bessel function of
     the first kind. For dim=3, the exact form is
 
-        C(κ) = κ / (4π sinh κ).
+        C(╬║) = ╬║ / (4╧Ç sinh ╬║).
 
     Parameters
     ----------
     kappa : Tensor
-        Concentration parameter κ ≥ 0.
+        Concentration parameter ╬║ ΓëÑ 0.
     dim : int, optional
         Dimension of embedding space, default 3.
     """
@@ -136,7 +136,7 @@ def vmf_log_norm_const(kappa: Tensor, dim: int = 3) -> Tensor:
     if dim != 3:
         raise NotImplementedError("Only dim=3 vMF is implemented.")
 
-    # Avoid numerical issues at κ≈0 using series expansion.
+    # Avoid numerical issues at ╬║Γëê0 using series expansion.
     kappa = torch.clamp(kappa, min=1e-8)
     log_c = torch.log(kappa) - torch.log(4.0 * torch.pi * torch.sinh(kappa))
     return log_c
@@ -145,7 +145,7 @@ def vmf_log_norm_const(kappa: Tensor, dim: int = 3) -> Tensor:
 def vmf_log_pdf(x: Tensor, mu: Tensor, kappa: Tensor) -> Tensor:
     """Log-density of vMF on S^2 (Section 2.3) up to constants.
 
-    Implements log vMF(x | μ, κ) = κ μ^T x - log C(κ).
+    Implements log vMF(x | ╬╝, ╬║) = ╬║ ╬╝^T x - log C(╬║).
     Shapes broadcast as needed.
     """
 
@@ -158,7 +158,7 @@ def vmf_log_pdf(x: Tensor, mu: Tensor, kappa: Tensor) -> Tensor:
 
 
 def log_normal_isotropic(x: Tensor, mean: Tensor, sigma2: float) -> Tensor:
-    """Isotropic Gaussian log-density N(x | mean, σ^2 I)."""
+    """Isotropic Gaussian log-density N(x | mean, ╧â^2 I)."""
 
     d = x.shape[-1]
     diff = x - mean
@@ -237,7 +237,7 @@ def log_pose_directional_prior(
     """Log p(u | s, h) (Section 2.3).
 
     Applies a heading rotation R(h_t) around z-axis to each mean
-    direction ν_{s_t,k} and evaluates the vMF likelihood.
+    direction ╬╜_{s_t,k} and evaluates the vMF likelihood.
     """
 
     T, K, _ = u.shape
@@ -296,7 +296,7 @@ def log_pose_hmm(s: Tensor, u: Tensor, h: Tensor, params: GimbalParameters) -> T
 def log_heading_prior(h: Tensor, params: HeadingPriorParameters) -> Tensor:
     """Log p(h) (Section 2.5).
 
-    Currently implements a uniform prior over [-π, π), i.e. constant
+    Currently implements a uniform prior over [-╧Ç, ╧Ç), i.e. constant
     log-density, which can be treated as zero for inference.
     """
 
@@ -365,7 +365,7 @@ def log_joint(
     proj: Tensor,
     params: GimbalParameters,
 ) -> Tensor:
-    """Full unnormalized log joint log p(x,u,s,h,z,y) (Sections 2–3)."""
+    """Full unnormalized log joint log p(x,u,s,h,z,y) (Sections 2ΓÇô3)."""
 
     lp = torch.zeros((), dtype=x.dtype, device=x.device)
     lp = lp + log_root_dynamics(x, params)

@@ -45,8 +45,6 @@ import pymc as pm
 import pytensor.tensor as pt
 
 # Add repo root to path
-repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(repo_root))
 
 from test_utils import (
     get_standard_synth_data,
@@ -55,8 +53,7 @@ from test_utils import (
     extract_metrics,
     save_diagnostic_plots,
 )
-import gimbal
-from gimbal.prior_building import get_gamma_shape_rate
+import gimbal_pymc from gimbal_pymc.prior_building import get_gamma_shape_rate
 
 
 def compute_ground_truth_directions(

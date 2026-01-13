@@ -12,16 +12,8 @@ The reconstruction error should be small, confirming that:
 """
 
 import numpy as np
-import sys
-from pathlib import Path
-
-# Add project root to path
-project_root = Path(__file__).resolve().parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
-from gimbal.triangulation import triangulate_multi_view
+from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc.triangulation import triangulate_multi_view
 
 
 def test_dlt_round_trip():

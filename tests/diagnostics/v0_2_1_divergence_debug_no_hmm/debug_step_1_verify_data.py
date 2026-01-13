@@ -21,11 +21,8 @@ from datetime import datetime
 from pathlib import Path
 
 # Add repo root to path
-repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(repo_root))
 
 # Import test utilities from the working diagnostics directory
-sys.path.insert(0, str(repo_root / "tests" / "diagnostics" / "v0_2_1_divergence"))
 from test_utils import get_standard_synth_data
 
 

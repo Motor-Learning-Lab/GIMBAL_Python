@@ -21,11 +21,8 @@ import numpy as np
 import pymc as pm
 
 # Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
 
-import gimbal
-from _diag_utils import (
+import gimbal_pymc from _diag_utils import (
     make_paths,
     collect_environment,
     write_json,
@@ -89,7 +86,7 @@ def build_model(data):
 
     # Initialize using library estimator (not ad-hoc)
     print("  Initializing from observations (DLT triangulation)...")
-    from gimbal.fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.fit_params import initialize_from_observations_dlt
 
     # Reshape y_2d from (C, T, K, 2) as expected by library
     init_result = initialize_from_observations_dlt(

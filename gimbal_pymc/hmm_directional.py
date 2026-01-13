@@ -1,5 +1,5 @@
 """
-v0.1.3 — Directional HMM Prior over Joint Directions
+v0.1.3 ΓÇö Directional HMM Prior over Joint Directions
 
 This module provides the directional HMM prior that operates on top of the
 v0.1.2 camera observation model. It implements:
@@ -16,7 +16,7 @@ inside a PyMC model context.
 
 import pymc as pm
 import pytensor.tensor as pt
-from gimbal.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
 
 
 def _add_single_state_directional_prior(
@@ -95,7 +95,7 @@ def _add_single_state_directional_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven kappa priors
-        from gimbal.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.prior_building import get_gamma_shape_rate
 
         kappa_list = []
         for k in range(K):
@@ -283,7 +283,7 @@ def add_directional_hmm_prior(
         Names of all joints (length K+1, including root at index 0).
         Required when using prior_config. Default: None.
     name_prefix : str, optional
-        Prefix for variable names (e.g., "dir_hmm" → "dir_hmm_mu", etc.).
+        Prefix for variable names (e.g., "dir_hmm" ΓåÆ "dir_hmm_mu", etc.).
         Default: "dir_hmm".
     share_kappa_across_joints : bool, optional
         If True, `kappa` is shared across joints (shape `(S,)` broadcast to `(S, K)`).
@@ -323,7 +323,7 @@ def add_directional_hmm_prior(
     -----
     - Canonical directions `mu` are parameterized as normalized Gaussian vectors,
       avoiding fragile vMF distributions.
-    - Directional emissions use dot-product energy: kappa * (U · mu), summed over joints.
+    - Directional emissions use dot-product energy: kappa * (U ┬╖ mu), summed over joints.
     - Numerical stabilization is applied via per-timestep max subtraction before
       calling the HMM engine.
     - The function adds a `pm.Potential` to the model with the HMM log-likelihood.
@@ -433,7 +433,7 @@ def add_directional_hmm_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven Gamma priors per joint
-        from gimbal.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.prior_building import get_gamma_shape_rate
 
         kappa_list = []
         for s in range(S):
@@ -487,7 +487,7 @@ def add_directional_hmm_prior(
     U_exp = U.dimshuffle(0, "x", 1, 2)  # (T, 1, K, 3)
     mu_exp = mu.dimshuffle("x", 0, 1, 2)  # (1, S, K, 3)
 
-    # Dot-products U_tk · mu_sk
+    # Dot-products U_tk ┬╖ mu_sk
     cosine = (U_exp * mu_exp).sum(axis=-1)  # (T, S, K)
 
     # Apply concentration weights and sum over joints

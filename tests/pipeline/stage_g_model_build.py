@@ -18,10 +18,8 @@ import numpy as np
 import pymc as pm
 
 # Add repo root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import gimbal
-
+import gimbal_pymc 
 
 def load_all_preprocessing_outputs(dataset_dir: Path, fits_dir: Path) -> Dict[str, Any]:
     """Load outputs from all preprocessing stages."""
@@ -97,7 +95,7 @@ def run_stage_g(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> Dict[str
 
     # Initialize from observations using library estimator
     print("\n[2/4] Computing initialization from observations...")
-    from gimbal.fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.fit_params import initialize_from_observations_dlt
 
     # Use library estimator (DLT triangulation + robust estimation)
     # This ensures parents array is used consistently

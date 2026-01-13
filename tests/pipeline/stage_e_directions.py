@@ -17,10 +17,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # Add repo root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import gimbal
-
+import gimbal_pymc 
 
 def plot_direction_distributions(
     stats: Dict, joint_names: list[str], output_path: Path

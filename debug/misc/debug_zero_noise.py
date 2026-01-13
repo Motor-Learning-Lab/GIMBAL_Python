@@ -1,4 +1,4 @@
-from gimbal import *
+from gimbal_pymc import *
 import numpy as np
 
 cfg = SyntheticDataConfig(

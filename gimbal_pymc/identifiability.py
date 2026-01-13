@@ -8,7 +8,7 @@ Tier 2: iteratively_adjust_cameras() - Optimization-based adjustment
 Tier 3: auto_place_cameras() - Intelligent initial placement
 
 The optimization objective (Tier 2) uses three normalized terms:
-- J_θ: Ray-angle geometry (minimum pairwise angles)
+- J_╬╕: Ray-angle geometry (minimum pairwise angles)
 - J_d: Camera distance shell (preferred working distance)
 - J_F: Coverage fraction (percentage of well-constrained points)
 """
@@ -167,7 +167,7 @@ def _compute_identifiability_objective(
 ) -> float:
     """Compute identifiability objective for optimization.
 
-    Objective: J = J_θ + J_d + J_F
+    Objective: J = J_╬╕ + J_d + J_F
 
     Parameters
     ----------
@@ -189,7 +189,7 @@ def _compute_identifiability_objective(
     camera_positions = camera_positions_flat.reshape(C, 3)
     P = x_3d_samples.shape[0]
 
-    # === J_θ: Ray-angle geometry term ===
+    # === J_╬╕: Ray-angle geometry term ===
     angle_penalties = []
     point_scores = []
 

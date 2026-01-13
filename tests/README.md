@@ -2,6 +2,12 @@
 
 Organized test suite for GIMBAL
 
+**Prerequisites**: Tests assume the package is installed in editable mode:
+```powershell
+pixi install         # Install dependencies
+pixi run install-dev # Install gimbal_pymc package
+```
+
 ## Structure
 
 - **`test_stage*.py`**: Core pipeline stages (Stage 1: HMM, Stage 2: Camera model)

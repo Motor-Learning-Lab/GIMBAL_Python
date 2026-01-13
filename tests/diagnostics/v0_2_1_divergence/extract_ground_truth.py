@@ -13,10 +13,8 @@ from typing import Dict, Tuple, Optional
 from pathlib import Path
 import sys
 
-repo_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(repo_root))
 
-from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
 
 
 def extract_complete_ground_truth(
@@ -328,7 +326,7 @@ if __name__ == "__main__":
     """
     Test the extraction and transformation functions.
     """
-    from gimbal import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+    from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
     from test_utils import build_test_model
 
     print("=" * 80)

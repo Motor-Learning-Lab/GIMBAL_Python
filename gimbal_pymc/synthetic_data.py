@@ -38,7 +38,7 @@ class SyntheticDataConfig:
     S : int
         Number of hidden states
     dt : float
-        Timestep in seconds (default 1/60 ≈ 0.0167)
+        Timestep in seconds (default 1/60 Γëê 0.0167)
     random_seed : int | None
         Random seed for reproducibility (None = no seeding)
 
@@ -765,8 +765,8 @@ def generate_demo_sequence(
 
     Examples
     --------
-    >>> from gimbal.skeleton_config import DEMO_V0_1_SKELETON
-    >>> from gimbal.synthetic_data import generate_demo_sequence
+    >>> from gimbal_pymc.skeleton_config import DEMO_V0_1_SKELETON
+    >>> from gimbal_pymc.synthetic_data import generate_demo_sequence
     >>> data = generate_demo_sequence(DEMO_V0_1_SKELETON)
     >>> print(f"Generated {data.config.T} timesteps with {data.config.S} states")
     """

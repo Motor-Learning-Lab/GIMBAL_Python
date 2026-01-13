@@ -1,7 +1,7 @@
 """
 Experimental / Legacy PyMC distributions for directional data.
 
-⚠️ **NOTE:** The main GIMBAL-HMM pipeline (Stage 3) currently uses a
+ΓÜá∩╕Å **NOTE:** The main GIMBAL-HMM pipeline (Stage 3) currently uses a
 dot-product energy directional prior (see `hmm_directional.py`), not the
 full VonMisesFisher distribution defined here.
 
@@ -17,12 +17,12 @@ Historical Context
 ------------------
 Early GIMBAL experiments used full vMF distributions for directional priors.
 The current Stage 3 implementation uses a simpler and more computationally
-efficient dot-product energy formulation: kappa * (U · mu), which captures
+efficient dot-product energy formulation: kappa * (U ┬╖ mu), which captures
 the essential directional clustering without the complexity of the full vMF
 normalization constant.
 
 If you need the main GIMBAL functionality, use:
-    from gimbal import add_directional_hmm_prior
+    from gimbal_pymc import add_directional_hmm_prior
 
 This module implements:
 - VonMisesFisher: Full distribution on the unit sphere S^2 for directional vectors
@@ -45,7 +45,7 @@ def vmf_log_norm_const(kappa):
                     = log(kappa) - log(4*pi) - (log(exp(kappa) - exp(-kappa)) - log(2))
 
     For numerical stability when kappa is large:
-        sinh(kappa) ≈ exp(kappa)/2, so log(sinh(kappa)) ≈ kappa - log(2)
+        sinh(kappa) Γëê exp(kappa)/2, so log(sinh(kappa)) Γëê kappa - log(2)
 
     Parameters
     ----------
@@ -60,7 +60,7 @@ def vmf_log_norm_const(kappa):
     log_4pi = pt.log(4.0 * np.pi)
 
     # For numerical stability, use different formulas for large/small kappa
-    # When kappa is large: log(sinh(kappa)) ≈ kappa - log(2)
+    # When kappa is large: log(sinh(kappa)) Γëê kappa - log(2)
     # When kappa is small: use exact formula
 
     # Exact formula (stable for small kappa)
@@ -171,7 +171,7 @@ def vmf_random(mu, kappa, size=None, rng=None):
             samples[i] = v
             continue
 
-        # Rejection sampling for w ~ f(w) ∝ exp(kappa * w)
+        # Rejection sampling for w ~ f(w) Γê¥ exp(kappa * w)
         b = (-2.0 * kappa_i + np.sqrt(4.0 * kappa_i**2 + 1.0)) / 1.0
         x0 = (1.0 - b) / (1.0 + b)
         c = kappa_i * x0 + 2.0 * np.log(1.0 - x0**2)
