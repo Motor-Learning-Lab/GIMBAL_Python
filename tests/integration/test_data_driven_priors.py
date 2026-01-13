@@ -5,7 +5,7 @@ with hmm_directional.py.
 """
 
 import numpy as np
-import gimbal_pymc as gimbal
+import gimbal_pymc as gp
 
 
 def test_triangulate_multi_view_basic():
@@ -40,7 +40,7 @@ def test_triangulate_multi_view_basic():
     keypoints_2d = np.array([[[[x1[0], x1[1]]]], [[[x2[0], x2[1]]]]])
 
     # Triangulate with very high threshold (simple cameras have poor conditioning)
-    positions_3d = gimbal.triangulate_multi_view(
+    positions_3d = gp.triangulate_multi_view(
         keypoints_2d, camera_proj, condition_threshold=1e17
     )
 
@@ -60,7 +60,7 @@ def test_triangulate_multi_view_insufficient_cameras():
 
     keypoints_2d = np.random.rand(1, 5, 3, 2)  # (C=1, T=5, K=3, 2)
 
-    result = gimbal.triangulate_multi_view(keypoints_2d, camera_proj, min_cameras=2)
+    result = gp.triangulate_multi_view(keypoints_2d, camera_proj, min_cameras=2)
 
     # Should return all NaN
     assert result.shape == (5, 3, 3)
@@ -77,11 +77,11 @@ def test_clean_keypoints_2d_outlier_detection():
     keypoints_2d[0, 5, 1, :] += 100.0  # Huge jump
 
     parents = np.array([-1, 0])  # Root and child
-    config = gimbal.CleaningConfig(
+    config = gp.CleaningConfig(
         jump_z_thresh=3.0, bone_z_thresh=3.0, max_gap=2, max_bad_joint_fraction=0.5
     )
 
-    keypoints_clean, valid_mask, summary = gimbal.clean_keypoints_2d(
+    keypoints_clean, valid_mask, summary = gp.clean_keypoints_2d(
         keypoints_2d, parents, config
     )
 
@@ -102,9 +102,9 @@ def test_clean_keypoints_2d_interpolation():
     keypoints_2d[0, 4:6, 0, :] = np.nan
 
     parents = np.array([-1])
-    config = gimbal.CleaningConfig(max_gap=5)
+    config = gp.CleaningConfig(max_gap=5)
 
-    keypoints_clean, valid_mask, summary = gimbal.clean_keypoints_2d(
+    keypoints_clean, valid_mask, summary = gp.clean_keypoints_2d(
         keypoints_2d, parents, config
     )
 
@@ -123,9 +123,9 @@ def test_clean_keypoints_3d_statistics_mask():
     positions_3d[10, 1, :] += 100.0
 
     parents = np.array([-1, 0, 1])
-    config = gimbal.CleaningConfig(jump_z_thresh=3.0, max_gap=2)
+    config = gp.CleaningConfig(jump_z_thresh=3.0, max_gap=2)
 
-    positions_clean, valid_mask, use_for_stats, summary = gimbal.clean_keypoints_3d(
+    positions_clean, valid_mask, use_for_stats, summary = gp.clean_keypoints_3d(
         positions_3d, parents, config
     )
 
@@ -160,7 +160,7 @@ def test_compute_direction_statistics_basic():
     joint_names = ["root", "child"]
     use_for_stats = np.ones((T, K), dtype=bool)
 
-    stats = gimbal.compute_direction_statistics(
+    stats = gp.compute_direction_statistics(
         positions_3d, parents, use_for_stats, joint_names, min_samples=10
     )
 
@@ -189,7 +189,7 @@ def test_compute_direction_statistics_insufficient_samples():
     joint_names = ["root", "child"]
     use_for_stats = np.ones((T, K), dtype=bool)
 
-    stats = gimbal.compute_direction_statistics(
+    stats = gp.compute_direction_statistics(
         positions_3d, parents, use_for_stats, joint_names, min_samples=10
     )
 
@@ -221,7 +221,7 @@ def test_build_priors_from_statistics():
 
     joint_names = ["root", "joint1", "joint2"]
 
-    prior_config = gimbal.build_priors_from_statistics(
+    prior_config = gp.build_priors_from_statistics(
         emp_stats, joint_names, kappa_min=0.1, kappa_scale=5.0
     )
 
@@ -250,7 +250,7 @@ def test_get_gamma_shape_rate():
     mode = 2.0
     sd = 1.0
 
-    shape, rate = gimbal.get_gamma_shape_rate(mode, sd)
+    shape, rate = gp.get_gamma_shape_rate(mode, sd)
 
     # Check that shape > 1 (required for valid mode)
     assert shape > 1.0
@@ -267,7 +267,7 @@ def test_get_gamma_shape_rate():
 def test_integration_full_pipeline():
     """Integration test: Full pipeline from 2D observations to prior config."""
     # Use demo skeleton
-    skeleton = gimbal.DEMO_V0_1_SKELETON
+    skeleton = gp.DEMO_V0_1_SKELETON
     K_full = len(skeleton.joint_names)
     K = K_full - 1  # Non-root joints
 
@@ -303,25 +303,25 @@ def test_integration_full_pipeline():
                 keypoints_2d[c, t, k, :] = x_h[:2] / x_h[2]
 
     # Step 1: Clean 2D
-    config = gimbal.CleaningConfig()
-    kp_2d_clean, valid_2d, summary_2d = gimbal.clean_keypoints_2d(
+    config = gp.CleaningConfig()
+    kp_2d_clean, valid_2d, summary_2d = gp.clean_keypoints_2d(
         keypoints_2d, skeleton.parents, config
     )
     assert kp_2d_clean.shape == keypoints_2d.shape
 
     # Step 2: Triangulate
-    positions_3d_tri = gimbal.triangulate_multi_view(kp_2d_clean, camera_proj)
+    positions_3d_tri = gp.triangulate_multi_view(kp_2d_clean, camera_proj)
     assert positions_3d_tri.shape == (T, K_full, 3)
 
     # Step 3: Clean 3D
-    pos_3d_clean, valid_3d, use_for_stats, summary_3d = gimbal.clean_keypoints_3d(
+    pos_3d_clean, valid_3d, use_for_stats, summary_3d = gp.clean_keypoints_3d(
         positions_3d_tri, skeleton.parents, config
     )
     assert pos_3d_clean.shape == (T, K_full, 3)
     assert use_for_stats.shape == (T, K_full)
 
     # Step 4: Compute statistics
-    stats = gimbal.compute_direction_statistics(
+    stats = gp.compute_direction_statistics(
         pos_3d_clean,
         skeleton.parents,
         use_for_stats,
@@ -331,7 +331,7 @@ def test_integration_full_pipeline():
     assert len(stats) == K_full
 
     # Step 5: Build priors
-    prior_config = gimbal.build_priors_from_statistics(
+    prior_config = gp.build_priors_from_statistics(
         stats, skeleton.joint_names, kappa_scale=5.0
     )
 
@@ -386,7 +386,7 @@ def test_hmm_directional_with_prior_config():
         U = pt.as_tensor_variable(U_data)
         log_obs_t = pt.as_tensor_variable(log_obs_t_data)
 
-        result = gimbal.add_directional_hmm_prior(
+        result = gp.add_directional_hmm_prior(
             U,
             log_obs_t,
             S,
@@ -416,7 +416,7 @@ def test_hmm_directional_without_prior_config():
         log_obs_t = pt.as_tensor_variable(log_obs_t_data)
 
         # Should work without joint_names or prior_config (v0.1 mode)
-        result = gimbal.add_directional_hmm_prior(
+        result = gp.add_directional_hmm_prior(
             U, log_obs_t, S, share_kappa_across_joints=True
         )
 

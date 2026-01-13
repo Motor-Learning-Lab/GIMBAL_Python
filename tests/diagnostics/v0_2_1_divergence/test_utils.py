@@ -92,9 +92,9 @@ def build_test_model(
     pm.Model
         PyMC model
     """
-    import gimbal_pymc 
+    import gimbal_pymc as gp 
     # Initialize from observations
-    init_result = gimbal.fit_params.initialize_from_observations_dlt(
+    init_result = gp.fit_params.initialize_from_observations_dlt(
         y_observed=synth_data["observations_uv"],
         camera_proj=synth_data["camera_matrices"],
         parents=synth_data["parents"],
@@ -148,7 +148,7 @@ def build_test_model(
             )
 
             # Build model with HMM
-            gimbal.build_camera_observation_model(
+            gp.build_camera_observation_model(
                 y_observed=synth_data["observations_uv"],
                 camera_proj=synth_data["camera_matrices"],
                 parents=synth_data["parents"],
@@ -163,7 +163,7 @@ def build_test_model(
             )
         else:
             # Build model without HMM
-            gimbal.build_camera_observation_model(
+            gp.build_camera_observation_model(
                 y_observed=synth_data["observations_uv"],
                 camera_proj=synth_data["camera_matrices"],
                 parents=synth_data["parents"],

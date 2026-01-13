@@ -30,9 +30,9 @@ This Torch code will not receive major updates but will be kept functional.
 
 See Also
 --------
-gimbal.hmm_pytensor : Stage 1 - Collapsed HMM engine (PyMC)
-gimbal.pymc_model : Stage 2 - Camera observation model (PyMC)
-gimbal.hmm_directional : Stage 3 - Directional HMM prior (PyMC)
+gp.hmm_pytensor : Stage 1 - Collapsed HMM engine (PyMC)
+gp.pymc_model : Stage 2 - Camera observation model (PyMC)
+gp.hmm_directional : Stage 3 - Directional HMM prior (PyMC)
 """
 
 from . import model, inference, camera  # noqa: F401

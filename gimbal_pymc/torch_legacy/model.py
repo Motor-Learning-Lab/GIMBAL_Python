@@ -15,7 +15,7 @@ Key responsibilities
   * Robust observation model (Eq. 2.6)
 
 All log densities are implemented using PyTorch tensors so that
-`gimbal.inference` can use automatic differentiation for HMC.
+`gp.inference` can use automatic differentiation for HMC.
 """
 
 from __future__ import annotations
@@ -324,7 +324,7 @@ def log_observation_likelihood(
     proj : Tensor
         Camera parameters packed as (C, 3, 4) or similar.
         Here we assume a simple linear projective camera; see
-        `gimbal.camera.project` for the actual implementation.
+        `gp.camera.project` for the actual implementation.
     outlier : OutlierMixtureParameters
     """
 

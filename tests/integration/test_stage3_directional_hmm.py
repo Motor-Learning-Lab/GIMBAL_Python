@@ -296,7 +296,7 @@ def test_integration_with_stage2():
         from gimbal_pymc.pymc_model import build_camera_observation_model
         from gimbal_pymc.fit_params import InitializationResult
     except ImportError:
-        print("Skipping test_integration_with_stage2 - gimbal.pymc_model not available")
+        print("Skipping test_integration_with_stage2 - gp.pymc_model not available")
         return
 
     # Create minimal synthetic data

@@ -27,7 +27,7 @@ def plot_3d_skeleton_motion(
 ) -> None:
     """Plot 3D trajectories of selected joints with camera visualization.
 
-    Wraps gimbal.viz_motion_3d.plot_skeleton_motion_3d for pipeline use.
+    Wraps gp.viz_motion_3d.plot_skeleton_motion_3d for pipeline use.
     """
     # Extract camera positions and targets
     camera_positions = None
@@ -55,7 +55,7 @@ def plot_3d_pose_snapshots(
 ) -> None:
     """Plot grid of 3D skeleton poses at evenly spaced timesteps with cameras.
 
-    Wraps gimbal.viz_poses_3d.plot_skeleton_poses_3d for pipeline use.
+    Wraps gp.viz_poses_3d.plot_skeleton_poses_3d for pipeline use.
     """
     # Extract camera positions and targets
     camera_positions = None
@@ -85,7 +85,7 @@ def plot_2d_reprojection_montage(
 ) -> None:
     """Plot 2D keypoints overlaid on a grid for one camera.
 
-    Wraps gimbal.viz_reprojection_2d.plot_2d_reprojections for pipeline use.
+    Wraps gp.viz_reprojection_2d.plot_2d_reprojections for pipeline use.
     """
     # Get image size
     if camera_idx < len(dataset.camera_metadata):
@@ -197,7 +197,7 @@ def plot_missingness_outlier_summary(
 def plot_state_timeline(dataset: GeneratedDataset, output_path: Path) -> None:
     """Plot state sequence over time and transition matrix.
 
-    Wraps gimbal.viz_state_timeline.plot_state_timeline for pipeline use.
+    Wraps gp.viz_state_timeline.plot_state_timeline for pipeline use.
     """
     trans_matrix = np.array(
         dataset.config["dataset_spec"]["states"]["transition_matrix"]

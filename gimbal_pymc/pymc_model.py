@@ -370,15 +370,15 @@ def _build_camera_observation_model_full(
 
     **Nutpie compatibility:**
     The model uses exact variable naming conventions expected by
-    gimbal.pymc_utils functions for nutpie sampling. All RV names are fixed
+    gp.pymc_utils functions for nutpie sampling. All RV names are fixed
     and follow the pattern documented in build_initial_points_for_nutpie().
 
     See Also
     --------
     project_points_pytensor : PyTensor camera projection function
-    gimbal.fit_params.initialize_from_observations_dlt : DLT initialization
-    gimbal.fit_params.initialize_from_observations_anipose : Anipose initialization
-    gimbal.pymc_utils.compile_model_with_initialization : Compile for nutpie
+    gp.fit_params.initialize_from_observations_dlt : DLT initialization
+    gp.fit_params.initialize_from_observations_anipose : Anipose initialization
+    gp.pymc_utils.compile_model_with_initialization : Compile for nutpie
     """
     # Extract dimensions
     C, T, K, _ = y_observed.shape

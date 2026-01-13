@@ -104,7 +104,7 @@ def build_model(data):
 
     # Build model with failing configuration
     with pm.Model() as model:
-        gimbal.build_camera_observation_model(
+        gp.build_camera_observation_model(
             y_observed=data["y_2d"],
             camera_proj=data["camera_proj"],
             parents=data["parents"],
@@ -120,7 +120,7 @@ def build_model(data):
         log_obs_t = model["log_obs_t"]
 
         # Add Stage 3 directional HMM with K=1
-        gimbal.add_directional_hmm_prior(
+        gp.add_directional_hmm_prior(
             U=U,
             log_obs_t=log_obs_t,
             S=1,  # K=1 HMM

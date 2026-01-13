@@ -31,13 +31,13 @@ Quick Start
 >>> # Build Stage 1-3 model
 >>> import pymc as pm
 >>> with pm.Model() as model:
->>>     model, U, x_all, y_pred, log_obs_t = gimbal.build_camera_observation_model(
+>>>     model, U, x_all, y_pred, log_obs_t = gp.build_camera_observation_model(
 >>>         y_obs=data.y_observed,
 >>>         proj_param=data.camera_proj,
 >>>         parents=DEMO_V0_1_SKELETON.parents,
 >>>         bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
 >>>     )
->>>     gimbal.add_directional_hmm_prior(U, log_obs_t, S=3)
+>>>     gp.add_directional_hmm_prior(U, log_obs_t, S=3)
 >>>     # Sample with nutpie or PyMC samplers...
 
 Legacy Torch Implementation
@@ -47,7 +47,7 @@ The original PyTorch-based GIMBAL implementation is available in the
 `torch_legacy` subpackage. This code is maintained for reference but is
 not the primary development path.
 
-See `gimbal.torch_legacy` for the Gibbs sampler and HMC inference code.
+See `gp.torch_legacy` for the Gibbs sampler and HMC inference code.
 
 See Also
 --------

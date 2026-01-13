@@ -6,7 +6,7 @@ We assume a calibrated projective mapping f_c: R^3 -> R^2 of the form
     f_c(x) = (u/w, v/w)^T.
 
 This module primarily provides a batched projection function used by
-`gimbal.model.log_observation_likelihood` and the example script.
+`gp.model.log_observation_likelihood` and the example script.
 """
 
 from __future__ import annotations

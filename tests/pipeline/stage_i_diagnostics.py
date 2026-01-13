@@ -27,7 +27,7 @@ import numpy as np
 import arviz as az
 import matplotlib.pyplot as plt
 
-import gimbal_pymc 
+import gimbal_pymc as gp 
 
 def compute_reprojection_error(x_3d, y_2d_obs, camera_proj, valid_mask):
     """Compute reprojection RMSE between predicted and observed 2D."""

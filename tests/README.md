@@ -8,76 +8,77 @@ pixi install         # Install dependencies
 pixi run install-dev # Install gimbal_pymc package
 ```
 
+**Package Imports**: All tests use the standardized import pattern:
+```python
+import gimbal_pymc as gp
+```
+
 ## Structure
 
+Tests are organized by purpose (enforced by `pytest.ini` configuration):
+
 - **`test_stage*.py`**: Core pipeline stages (Stage 1: HMM, Stage 2: Camera model)
-- **`unit/`**: Unit tests for individual modules (initialization, utilities)
-- **`integration/`**: Integration tests for multi-module features (Stage 3, data-driven priors)
-- **`smoke/`**: Quick smoke tests for rapid validation
-- **`pipeline/`**: End-to-end pipeline tests (stages A-J, synthetic data generation)
-- **`diagnostics/`**: Comprehensive diagnostic test suites (divergence analysis)
+- **`unit/`**: Unit tests for individual modules (DLT, initialization, utilities)
+- **`integration/`**: Integration tests for multi-module features (Stage 3, priors)
+- **`smoke/`**: Quick smoke tests for rapid validation (~30s total)
+- **`pipeline/`**: End-to-end pipeline tests (synthetic data generation, stages A-J)
+- **`diagnostics/`**: Comprehensive diagnostic suites (opt-in, excluded by default)
 
 ## Running Tests
 
-### Quick Validation
+### Using Pixi Tasks (Recommended)
+
 ```powershell
-# Quick smoke tests (30 seconds)
-pixi run test-smoke
+# Quick validation
+pixi run test-smoke        # ~30 seconds
 
-# Core HMM stages (10 minutes)
-pixi run test-stages
+# Specific test suites
+pixi run test-unit         # Unit tests
+pixi run test-integration  # Integration features
+pixi run test-pipeline     # Synthetic data pipeline
 
-# Integration features (10 minutes)
-pixi run test-integration
-```
-
-### Comprehensive Testing
-```powershell
-# All tests (45 minutes)
+# All normal tests (excludes diagnostics)
 pixi run test-all
 
-# Specific suites
-pixi run test-unit          # Unit tests only
-pixi run test-pipeline      # Synthetic data pipeline
+# Diagnostics (opt-in)
+pixi run test-diagnostics
 ```
 
-### Diagnostics
-```powershell
-# Run divergence diagnostic suite
-cd tests/diagnostics/v0_2_1_divergence
-pixi run python test_runner.py
-```
+**Note**: By default, `test-all` excludes `diagnostics/` via `pytest.ini` configuration. Use `test-diagnostics` to explicitly run comprehensive analysis suites.
 
-**Important**: Test outputs (reports, plots) go in `results/` directory, NOT in `tests/`.
+### Output Organization
+
+Test outputs (reports, plots, JSON results) go in `results/` directory, NOT in `tests/`. See `IMPORTANT_FILE_NAMING_CONVENTIONS.md` for diagnostic test naming rules.
 
 ## Test Files
 
 ### Core Pipeline Stages
-- **`test_stage1_collapsed_hmm.py`** - Stage 1: Collapsed HMM forward algorithm
+- **`test_stage1_collapsed_hmm.py`** — Stage 1: Collapsed HMM forward algorithm
   - Brute-force verification, edge cases, gradient validation
-- **`test_stage2_camera_model.py`** - Stage 2: Camera observation model
-  - Shape validation, mixture/Gaussian modes, compilation tests
+- **`test_stage2_camera_model.py`** — Stage 2: Camera observation model
+  - Shape validation, Gaussian/mixture modes, compilation tests
 
 ### Integration Tests
-- **`integration/test_stage3_directional_hmm.py`** - Stage 3: Directional HMM prior
-  - Kappa sharing, numerical stability, gradient computation
-- **`integration/test_data_driven_priors.py`** - Data-driven priors pipeline
+- **`integration/test_stage3_directional_hmm.py`** — Stage 3: Directional HMM prior
+  - Kappa sharing modes, numerical stability, gradient computation
+- **`integration/test_data_driven_priors.py`** — Data-driven priors pipeline (v0.2.1)
   - Triangulation, cleaning, statistics, prior building
 
 ### Unit Tests
-- **`unit/test_dlt_*.py`** - DLT triangulation tests
-- **`unit/test_model_init.py`** - Initialization tests
-- **`unit/test_pymc_utils.py`** - Utility function tests
+- **`unit/test_dlt_*.py`** — DLT triangulation tests
+- **`unit/test_model_init.py`** — Initialization tests
+- **`unit/test_pymc_utils.py`** — Utility function tests
 
 ### Smoke Tests
-- **`smoke/test_api_exports_smoke.py`** - Quick API export validation
-- **`smoke/test_full_pipeline_smoke.py`** - Full pipeline build test
+- **`smoke/test_api_exports_smoke.py`** — Quick API export validation
+- **`smoke/test_full_pipeline_smoke.py`** — Full pipeline build test
 
 ### Pipeline Tests
-- **`pipeline/test_synthetic_data_generator.py`** - Synthetic dataset validation
-- **`pipeline/stage_*.py`** - Individual pipeline stages (A-J)
-  - Tests Gamma prior on obs_sigma (mode/SD parameterization)
-  - Compares mixture vs non-mixture likelihoods
+- **`pipeline/test_synthetic_data_generator.py`** — Synthetic dataset validation
+- **`pipeline/stage_*.py`** — Individual pipeline stages (A-J)
+- **`pipeline/generate_dataset.py`** — Dataset generation script
+
+For pipeline camera configuration schema, see `pipeline/README.md`.
   - Provides divergence, ESS, and RMSE metrics
   - Isolates camera/kinematic issues from HMM
   - Usage: `python tests/test_sampling_camera_model.py`

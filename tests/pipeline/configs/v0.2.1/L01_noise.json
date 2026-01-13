@@ -43,26 +43,24 @@
     },
     
     "cameras": {
+      "target_position": [0, 0, 100],
       "cameras": [
         {
           "name": "cam0_front",
-          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
-          "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-          "t": [-80, 0, 0],
+          "camera_position": [300, 0, 100],
+          "focal_length": 800.0,
           "image_size": [1280, 720]
         },
         {
-          "name": "cam1_side",
-          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
-          "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
-          "t": [0, -80, 0],
+          "name": "cam1_left",
+          "camera_position": [-150, 260, 100],
+          "focal_length": 800.0,
           "image_size": [1280, 720]
         },
         {
-          "name": "cam2_overhead",
-          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
-          "R": [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
-          "t": [0, 0, -80],
+          "name": "cam2_right_elevated",
+          "camera_position": [-150, -260, 180],
+          "focal_length": 800.0,
           "image_size": [1280, 720]
         }
       ]

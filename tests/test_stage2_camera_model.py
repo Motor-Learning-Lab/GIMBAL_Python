@@ -55,18 +55,19 @@ def test_shape_validation():
 
     # Build model (Gaussian mode for simplicity)
     print("Building PyMC model (Gaussian mode)...")
-    model = build_camera_observation_model(
-        y_observed=y_observed,
-        camera_proj=camera_proj,
-        parents=parents,
-        init_result=init_result,
-        use_mixture=False,
-        validate_init_points=False,
-    )
+    with pm.Model() as model:
+        build_camera_observation_model(
+            y_observed=y_observed,
+            camera_proj=camera_proj,
+            parents=parents,
+            init_result=init_result,
+            use_mixture=False,
+            validate_init_points=False,
+        )
 
-    # Validate shapes
-    print("Validating v0.1.2 output shapes...")
-    validate_stage2_outputs(model, T=T, K=K, C=C)
+        # Validate shapes
+        print("Validating v0.1.2 output shapes...")
+        validate_stage2_outputs(model, T=T, K=K, C=C)
 
     print("✓ TEST 1 PASSED\n")
     return model
@@ -88,19 +89,20 @@ def test_mixture_mode():
 
     # Build model (Mixture mode)
     print("Building PyMC model (Mixture mode)...")
-    model = build_camera_observation_model(
-        y_observed=y_observed,
-        camera_proj=camera_proj,
-        parents=parents,
-        init_result=init_result,
-        use_mixture=True,
-        image_size=(640, 480),
-        validate_init_points=False,
-    )
+    with pm.Model() as model:
+        build_camera_observation_model(
+            y_observed=y_observed,
+            camera_proj=camera_proj,
+            parents=parents,
+            init_result=init_result,
+            use_mixture=True,
+            image_size=(640, 480),
+            validate_init_points=False,
+        )
 
-    # Validate shapes
-    print("Validating v0.1.2 output shapes...")
-    validate_stage2_outputs(model, T=T, K=K, C=C)
+        # Validate shapes
+        print("Validating v0.1.2 output shapes...")
+        validate_stage2_outputs(model, T=T, K=K, C=C)
 
     print("✓ TEST 2 PASSED\n")
     return model
@@ -122,32 +124,33 @@ def test_model_compilation():
 
     # Build model
     print("Building PyMC model...")
-    model = build_camera_observation_model(
-        y_observed=y_observed,
-        camera_proj=camera_proj,
-        parents=parents,
-        init_result=init_result,
-        use_mixture=False,
-        validate_init_points=False,
-    )
+    with pm.Model() as model:
+        build_camera_observation_model(
+            y_observed=y_observed,
+            camera_proj=camera_proj,
+            parents=parents,
+            init_result=init_result,
+            use_mixture=False,
+            validate_init_points=False,
+        )
 
-    # Try to evaluate log-likelihood (this checks gradients can be computed)
-    print("Testing that model can be evaluated...")
-    try:
-        with model:
+        # Try to evaluate log-likelihood (this checks gradients can be computed)
+        print("Testing that model can be evaluated...")
+        try:
             # Evaluate the model's log-likelihood
-            logp = model.compile_logp()
             test_point = model.initial_point()
-            logp_value = logp(test_point)
-            print(f"✓ Model evaluation successful, logp = {logp_value:.2f}")
+            logp_value = model.point_logps(test_point)
+            print(
+                f"✓ Model evaluation successful, total logp = {sum(logp_value.values()):.2f}"
+            )
 
             # Check that log_obs_t can be evaluated
-            log_obs_t_val = model["log_obs_t"].eval()
+            log_obs_t_val = pm.draw(model["log_obs_t"], draws=1)
             print(f"  log_obs_t shape: {log_obs_t_val.shape}")
             print(f"  log_obs_t finite: {np.all(np.isfinite(log_obs_t_val))}")
-    except Exception as e:
-        print(f"✗ Model evaluation failed: {e}")
-        raise
+        except Exception as e:
+            print(f"✗ Model evaluation failed: {e}")
+            raise
 
     print("✓ TEST 3 PASSED\n")
 
@@ -166,18 +169,18 @@ def test_log_obs_t_values():
     init_result = initialize_from_observations_dlt(y_observed, camera_proj, parents)
 
     # Build model
-    model = build_camera_observation_model(
-        y_observed=y_observed,
-        camera_proj=camera_proj,
-        parents=parents,
-        init_result=init_result,
-        use_mixture=False,
-        validate_init_points=False,
-    )
+    with pm.Model() as model:
+        build_camera_observation_model(
+            y_observed=y_observed,
+            camera_proj=camera_proj,
+            parents=parents,
+            init_result=init_result,
+            use_mixture=False,
+            validate_init_points=False,
+        )
 
-    # Evaluate log_obs_t
-    with model:
-        log_obs_t_val = model["log_obs_t"].eval()
+        # Evaluate log_obs_t
+        log_obs_t_val = pm.draw(model["log_obs_t"], draws=1)
 
     print(f"log_obs_t shape: {log_obs_t_val.shape}")
     print(f"log_obs_t range: [{log_obs_t_val.min():.2f}, {log_obs_t_val.max():.2f}]")

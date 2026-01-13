@@ -91,36 +91,35 @@
     },
     
     "cameras": {
-      "_comment": "Multi-camera setup. Can specify explicit K/R/t or use placement helpers.",
+      "_comment": "Multi-camera setup using position/target specification (R/t/K no longer supported)",
+      "target_position": [0, 0, 100],
+      "_comment_target": "Point all cameras look at in world coords [x, y, z]",
       "cameras": [
         {
           "name": "cam0_front",
-          "_comment": "Explicit camera specification",
-          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
-          "_comment_K": "Intrinsic matrix: [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]. Units: pixels (if image_size given) or generic",
-          "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-          "_comment_R": "Rotation matrix (3x3). Identity = camera aligned with world axes",
-          "t": [-80, 0, 0],
-          "_comment_t": "Translation vector (3,). For camera at position c: t = -R @ c",
+          "_comment": "Camera placement using intuitive position/target",
+          "camera_position": [300, 0, 100],
+          "_comment_position": "Camera location in world coords [x, y, z]",
+          "focal_length": 800.0,
+          "_comment_focal": "Focal length in pixels (determines FOV given image size)",
           "image_size": [1280, 720],
-          "_comment_image_size": "[width_px, height_px]. Used for bounds checking and FOV calculations"
+          "_comment_image_size": "[width_px, height_px]. Principal point auto-set to center"
         },
         {
-          "name": "cam1_side",
-          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
-          "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
-          "t": [0, -80, 0],
+          "name": "cam1_left",
+          "camera_position": [-150, 260, 100],
+          "focal_length": 800.0,
           "image_size": [1280, 720]
         },
         {
-          "name": "cam2_overhead",
-          "K": [[10, 0, 0], [0, 10, 0], [0, 0, 1]],
-          "R": [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
-          "t": [0, 0, -80],
+          "name": "cam2_right_elevated",
+          "camera_position": [-150, -260, 180],
+          "_comment_elevated": "Non-coplanar camera improves 3D reconstruction",
+          "focal_length": 800.0,
           "image_size": [1280, 720]
         }
       ],
-      "_comment_placement_helper": "FUTURE: Support placement parameters (position, target, FOV) that get converted to K/R/t"
+      "_comment_geometry": "Place cameras in ring around target with diverse azimuths and one elevated camera for good identifiability"
     },
     
     "camera_quality": {

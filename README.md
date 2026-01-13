@@ -26,29 +26,38 @@ Adds directional prior over joint orientations with state-dependent canonical po
 ### Quick Start
 
 ```python
-import gimbal_pymc
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig
+import gimbal_pymc as gp
 import pymc as pm
 
 # Generate synthetic data
-config = SyntheticDataConfig(T=20, C=2, S=2)
-data = gimbal_pymc.generate_demo_sequence(DEMO_V0_1_SKELETON, config)
+config = gp.SyntheticDataConfig(T=20, C=2, S=2)
+data = gp.generate_demo_sequence(gp.DEMO_V0_1_SKELETON, config)
+
+# Initialize from observations
+init_result = gp.fit_params.initialize_from_observations_dlt(
+    data.y_observed, data.camera_proj, 
+    gp.DEMO_V0_1_SKELETON.parents
+)
 
 # Build complete model
 with pm.Model() as model:
-    _, U, x_all, y_pred, log_obs_t = gimbal_pymc.build_camera_observation_model(
-        y_obs=data.y_observed,
-        proj_param=data.camera_proj,
-        parents=DEMO_V0_1_SKELETON.parents,
-        bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+    gp.build_camera_observation_model(
+        y_observed=data.y_observed,
+        camera_proj=data.camera_proj,
+        parents=gp.DEMO_V0_1_SKELETON.parents,
+        init_result=init_result
     )
-    gimbal_pymc.add_directional_hmm_prior(U, log_obs_t, S=2)
+    # Access U and log_obs_t from model
+    U = model["U"]
+    log_obs_t = model["log_obs_t"]
+    
+    gp.add_directional_hmm_prior(U, log_obs_t, S=2)
     
     # Sample with nutpie or PyMC samplers
     # idata = pm.sample(...)
 ```
 
-See `examples/demo_v0_1_complete.ipynb` or `notebook/demo_stage3_complete.ipynb` for complete runnable examples.
+See `examples/demo_v0_2_0_pymc_pipeline.py` and `examples/demo_v0_2_1_data_driven_priors.py` for complete runnable examples.
 
 ---
 
@@ -67,27 +76,27 @@ See `examples/demo_v0_1_complete.ipynb` or `notebook/demo_stage3_complete.ipynb`
 
 **Example:**
 ```python
-import gimbal_pymc
-
-# Load real motion capture data (2D keypoints)
-y_2d = load_observations()  # Shape: (T, C, N, 2)
+import gimbal_pymc as gp
 
 # Triangulate to 3D
-x_3d, valid_triangulations = gimbal.triangulate_multi_view(y_2d, proj_matrices)
+x_3d = gp.triangulate_multi_view(y_2d, proj_matrices)
 
 # Clean outliers
-x_clean = gimbal.clean_keypoints_3d(x_3d, threshold=0.05)
+config = gp.CleaningConfig()
+x_clean, valid, use_stats, summary = gp.clean_keypoints_3d(x_3d, parents, config)
 
 # Compute directional statistics
-statistics = gimbal.compute_direction_statistics(x_clean, skeleton)
+statistics = gp.compute_direction_statistics(x_clean, parents, use_stats, joint_names)
 
 # Build priors
-priors = gimbal.build_priors_from_statistics(statistics, skeleton)
+priors = gp.build_priors_from_statistics(statistics, joint_names)
 
 # Use in HMM
 with pm.Model() as model:
-    _, U, x_all, y_pred, log_obs_t = gimbal.build_camera_observation_model(...)
-    gimbal.add_directional_hmm_prior(U, log_obs_t, S=3, prior_config=priors)
+    gp.build_camera_observation_model(...)
+    U = model["U"]
+    log_obs_t = model["log_obs_t"]
+    gp.add_directional_hmm_prior(U, log_obs_t, S=3, prior_config=priors)
 ```
 
 See `examples/demo_v0_2_1_data_driven_priors.py` for a complete walkthrough.
@@ -96,14 +105,16 @@ See `examples/demo_v0_2_1_data_driven_priors.py` for a complete walkthrough.
 
 ## Legacy Torch Implementation
 
-The original PyTorch-based GIMBAL implementation (Gibbs sampler + HMC) is available in `gimbal.torch_legacy`. This code is maintained for reference and compatibility but is not the primary development path.
+The original PyTorch-based GIMBAL implementation (Gibbs sampler + HMC) is available in `gimbal_pymc.torch_legacy`. This code is maintained for reference and compatibility but is not the primary development path.
 
-See `gimbal/torch_legacy/README.md` for details and `examples/run_gimbal_demo.py` for usage.
+See `gimbal_pymc/torch_legacy/README.md` for details.
 
----## Repository Structure
+---
+
+## Repository Structure
 
 ```
-gimbal/                        # Core library modules
+gimbal_pymc/                   # Core library modules
 ├── __init__.py               # Public API (imports Stage 1-3 functions)
 ├── skeleton_config.py        # Skeleton definitions (DEMO_V0_1_SKELETON)
 ├── synthetic_data.py         # Synthetic data generation utilities
@@ -112,9 +123,15 @@ gimbal/                        # Core library modules
 ├── pymc_model.py             # Stage 2: Camera observation model
 ├── hmm_directional.py        # Stage 3: Directional HMM prior
 │
+├── camera_utils.py           # Camera geometry and projection utilities
 ├── fit_params.py             # Initialization from observations (DLT)
 ├── pymc_utils.py             # PyMC helper functions
-├── pymc_distributions.py     # Custom distributions (experimental vMF)
+├── pymc_distributions.py     # Custom distributions
+│
+├── triangulation.py          # 3D reconstruction (v0.2.1)
+├── data_cleaning.py          # Data cleaning utilities (v0.2.1)
+├── direction_statistics.py   # Directional statistics (v0.2.1)
+├── prior_building.py         # Prior construction from data (v0.2.1)
 │
 └── torch_legacy/             # Legacy PyTorch implementation
     ├── model.py              # Torch probabilistic model
@@ -129,22 +146,25 @@ tests/                         # Test suite
 │   └── test_data_driven_priors.py      # Data-driven priors pipeline tests
 ├── unit/                               # Unit tests (DLT, initialization, utilities)
 ├── smoke/                              # Quick validation tests
-├── pipeline/                           # End-to-end pipeline tests (stages A-J)
+├── pipeline/                           # End-to-end pipeline tests
+│   ├── test_synthetic_data_generator.py
+│   └── configs/v0.2.1/                 # Dataset configurations
 └── diagnostics/                        # Comprehensive diagnostic suites
 
 notebook/                      # Interactive demonstrations
 ├── demo_v0_1_complete.ipynb  # Full v0.1 integration demo
-└── demo_pymc_*.ipynb         # Component demos
+└── demo_v0_2_1_data_driven_priors.ipynb
 
 examples/                      # Standalone examples
-├── demo_pymc_pipeline.py     # PyMC "hello world" demo (NEW)
-└── run_gimbal_demo.py        # Legacy Torch demo
+├── demo_v0_2_0_pymc_pipeline.py     # PyMC pipeline demo
+├── demo_v0_2_1_data_driven_priors.py # Data-driven priors demo
+└── run_gimbal_demo.py               # Legacy Torch demo
 
 plans/                         # Design documents and roadmaps
 ├── v0.1-overview.md          # v0.1 architecture
 ├── v0.1.{1,2,3}-completion-report.md
-├── v0.2-overview.md          # v0.2 roadmap (priors, AIST++, PCA)
-└── v0.2.0-detailed-spec.md   # Current phase (restructuring)
+├── v0.2-overview.md          # v0.2 roadmap
+└── v0.2.{0,1}-completion-report.md
 ```
 
 ## Installation
@@ -163,31 +183,77 @@ iwr -useb https://pixi.sh/install.ps1 | iex
 curl -fsSL https://pixi.sh/install.sh | bash
 ```
 
-### Install GIMBAL Dependencies
+### Install Dependencies and Package
 
 From the repository root:
+
 ```powershell
+# 1. Install all dependencies
 pixi install
-```
 
-This creates an isolated environment with all required dependencies specified in `pixi.toml`.
-
-### Install gimbal_pymc Package
-
-After installing dependencies, install the package in editable mode:
-```powershell
+# 2. Install gimbal_pymc in editable mode
 pixi run install-dev
 ```
 
-This makes `gimbal_pymc` importable from tests and scripts.
+**Note:** `install-dev` installs the `gimbal_pymc` package in editable mode so tests and scripts can import it.
 
 ### Verify Installation
 
 ```powershell
 pixi run check-setup
+# Should output: ✓ Environment OK
 ```
 
-Should output: `✓ Environment OK`
+---
+
+## Sanity Checks
+
+Quick validation after installation:
+
+```powershell
+# Quick smoke tests (~30 seconds)
+pixi run test-smoke
+
+# Integration tests (~2 minutes)
+pixi run test-integration
+
+# Pipeline tests (~10 seconds)
+pixi run test-pipeline
+```
+
+---
+
+## Testing
+
+### Test Taxonomy
+
+Tests are organized by purpose (defined in `pytest.ini`):
+
+- **Smoke tests** (`tests/smoke/`) — Quick API validation (~30s)
+- **Unit tests** (`tests/unit/`) — Individual module tests
+- **Integration tests** (`tests/integration/`) — Multi-module features (Stage 3, priors)
+- **Pipeline tests** (`tests/pipeline/`) — Synthetic data generation and validation
+- **Diagnostics** (`tests/diagnostics/`) — Comprehensive analysis suites (opt-in)
+
+### Running Tests
+
+```powershell
+# Run normal tests (excludes diagnostics by default)
+pixi run test-all
+
+# Run specific test suites
+pixi run test-smoke        # Quick validation
+pixi run test-unit         # Unit tests only
+pixi run test-integration  # Integration features
+pixi run test-pipeline     # Synthetic data pipeline
+
+# Run diagnostics (opt-in, comprehensive analysis)
+pixi run test-diagnostics
+```
+
+**Note:** By default, `test-all` excludes `diagnostics/` via `pytest.ini` configuration.
+
+See `tests/README.md` for detailed test organization and documentation.
 
 ## Running the Code
 
@@ -195,30 +261,26 @@ Should output: `✓ Environment OK`
 
 Run any task with `pixi run <task-name>`:
 
-**Setup:**
-- **`pixi run check-setup`** — Verify environment is correctly configured
-
-**Demos:**
-- **`pixi run demo-pymc`** — Complete v0.2.0 PyMC pipeline demo
-- **`pixi run demo-priors`** — Data-driven priors demo (v0.2.1)
-- **`pixi run run-demo`** — Legacy Torch GIMBAL demo
-- **`pixi run notebook`** — Launch JupyterLab for interactive notebooks
+**Setup & Demos:**
+- `check-setup` — Verify environment configuration
+- `demo-pymc` — v0.2.0 PyMC pipeline demo
+- `demo-priors` — v0.2.1 data-driven priors demo
+- `run-demo` — Legacy Torch GIMBAL demo
+- `notebook` — Launch JupyterLab
 
 **Testing:**
-- **`pixi run test-stages`** — Test core HMM stages (Stage 1-2)
-- **`pixi run test-integration`** — Test integration features (Stage 3, data-driven priors)
-- **`pixi run test-unit`** — Run unit tests
-- **`pixi run test-smoke`** — Quick smoke tests
-- **`pixi run test-pipeline`** — Test synthetic data pipeline
-- **`pixi run test-all`** — Run all tests
+- `test-smoke` — Quick validation (~30s)
+- `test-unit` — Unit tests
+- `test-integration` — Integration tests (Stage 3, priors)
+- `test-pipeline` — Synthetic data pipeline tests
+- `test-all` — All tests (excludes diagnostics)
+- `test-diagnostics` — Comprehensive diagnostic suites (opt-in)
 
-**Dataset Generation:**
-- **`pixi run generate-datasets`** — Generate synthetic datasets
-
-**Pipeline Stages (L00_minimal dataset):**
-- **`pixi run pipeline-clean`** — Stage B: Clean 2D keypoints
-- **`pixi run pipeline-triangulate`** — Stage C: Triangulate to 3D
-- **`pixi run pipeline-full`** — Run complete L00 pipeline (stages A-J)
+**Data Generation:**
+- `generate-datasets` — Generate synthetic datasets from configs
+- `pipeline-clean` — Stage B: Clean 2D keypoints (L00 dataset)
+- `pipeline-triangulate` — Stage C: Triangulate to 3D (L00 dataset)
+- `pipeline-full` — Complete L00 pipeline (stages A-J)
 
 ### PyMC Pipeline Demos
 

@@ -47,8 +47,8 @@ print(f"Error: {np.linalg.norm(X_reconstructed - X_true)}")
 
 # Now test with gimbal
 print("\n" + "=" * 60)
-print("Testing with gimbal.triangulate_multi_view:")
-import gimbal_pymc 
+print("Testing with gp.triangulate_multi_view:")
+import gimbal_pymc as gp 
 # Create simple 3x3 projection matrices for 2 cameras
 # Camera 1: Identity view
 P1 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=np.float64)
@@ -81,7 +81,7 @@ print(f"keypoints_2d shape: {keypoints_2d.shape}")
 print(f"keypoints_2d: {keypoints_2d}")
 
 # Triangulate
-positions_3d = gimbal.triangulate_multi_view(keypoints_2d, camera_proj)
+positions_3d = gp.triangulate_multi_view(keypoints_2d, camera_proj)
 print(f"positions_3d shape: {positions_3d.shape}")
 print(f"positions_3d: {positions_3d}")
 

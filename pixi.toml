@@ -45,6 +45,7 @@ test-stages = "pytest tests/test_stage1_collapsed_hmm.py tests/test_stage2_camer
 test-integration = "pytest tests/integration/ -v"
 test-smoke = "pytest tests/smoke/ -v"
 test-all = "pytest tests/ -v"
+test-diagnostics = "pytest tests/diagnostics/ -v"
 
 # Pipeline stages (for L00_minimal dataset)
 pipeline-clean = "python tests/pipeline/stage_b_clean_2d.py tests/pipeline/datasets/L00_minimal tests/pipeline/fits/L00_minimal"

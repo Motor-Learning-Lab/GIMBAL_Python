@@ -106,7 +106,7 @@ def build_model_frozen(data):
 
     # Build model with mixture but without HMM
     with pm.Model() as model:
-        gimbal.build_camera_observation_model(
+        gp.build_camera_observation_model(
             y_observed=data["y_2d"],
             camera_proj=data["camera_proj"],
             parents=data["parents"],

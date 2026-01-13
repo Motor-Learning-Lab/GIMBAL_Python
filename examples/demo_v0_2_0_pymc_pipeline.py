@@ -22,7 +22,8 @@ import numpy as np
 import pymc as pm
 
 # Import GIMBAL PyMC pipeline
-import gimbal_pymc from gimbal_pymc import (
+import gimbal_pymc as gp
+from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
     generate_demo_sequence,
@@ -55,7 +56,7 @@ def main():
     
     data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
     
-    print(f"✓ Generated {config.T} timesteps")
+    print(f"[OK] Generated {config.T} timesteps")
     print(f"  - Skeleton: {len(DEMO_V0_1_SKELETON.joint_names)} joints")
     print(f"  - Cameras: {config.C}")
     print(f"  - Hidden states: {config.S}")
@@ -66,15 +67,28 @@ def main():
     # -------------------------------------------------------------------------
     print("\nStep 2: Building Stage 2 camera observation model...")
     
+    # Initialize using DLT triangulation
+    init_result = gp.fit_params.initialize_from_observations_dlt(
+        y_observed=data.y_observed,
+        camera_proj=data.camera_proj,
+        parents=DEMO_V0_1_SKELETON.parents,
+    )
+    
     with pm.Model() as model:
-        model_result, U, x_all, y_pred, log_obs_t = build_camera_observation_model(
-            y_obs=data.y_observed,
-            proj_param=data.camera_proj,
+        build_camera_observation_model(
+            y_observed=data.y_observed,
+            camera_proj=data.camera_proj,
             parents=DEMO_V0_1_SKELETON.parents,
-            bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+            init_result=init_result,
         )
         
-        print(f"✓ Stage 2 built successfully")
+        # Extract variables from model context
+        U = model["U"]
+        x_all = model["x_all"]
+        y_pred = model["y_pred"]
+        log_obs_t = model["log_obs_t"]
+        
+        print(f"[OK] Stage 2 built successfully")
         print(f"  - U (directions): {U.type.shape}")
         print(f"  - x_all (positions): {x_all.type.shape}")
         print(f"  - y_pred (2D projections): {y_pred.type.shape}")
@@ -95,7 +109,7 @@ def main():
             kappa_scale=5.0,
         )
         
-        print(f"✓ Stage 3 added successfully")
+        print(f"[OK] Stage 3 added successfully")
         print(f"  - mu (canonical directions): {hmm_vars['mu'].type.shape}")
         print(f"  - kappa (concentrations): {hmm_vars['kappa'].type.shape}")
         print(f"  - HMM log-likelihood added to model")
@@ -106,12 +120,12 @@ def main():
         print("\nStep 4: Validating model structure...")
         
         n_free_vars = len(model.free_RVs)
-        print(f"✓ Model has {n_free_vars} free random variables")
+        print(f"[OK] Model has {n_free_vars} free random variables")
         
         # Check that model is well-formed (no shape errors)
         try:
             model.debug()
-            print("✓ Model graph is valid (no shape errors)")
+            print("[OK] Model graph is valid (no shape errors)")
         except Exception as e:
             print(f"⚠ Model validation warning: {e}")
         
@@ -126,7 +140,7 @@ def main():
                 random_seed=42,
             )
             
-            print("✓ Prior predictive sampling successful")
+            print("[OK] Prior predictive sampling successful")
             print(f"  - Sampled {len(prior_pred.prior.chains)} chain(s)")
             print(f"  - Variables: {list(prior_pred.prior.data_vars)[:5]}...")
             
@@ -141,9 +155,9 @@ def main():
     print("Demo Complete!")
     print("=" * 70)
     print("\nThe full GIMBAL v0.1 PyMC pipeline has been successfully built:")
-    print("  ✓ Stage 1: Collapsed HMM engine (via collapsed_hmm_loglik)")
-    print("  ✓ Stage 2: Camera observation model")
-    print("  ✓ Stage 3: Directional HMM prior")
+    print("  [OK] Stage 1: Collapsed HMM engine (via collapsed_hmm_loglik)")
+    print("  [OK] Stage 2: Camera observation model")
+    print("  [OK] Stage 3: Directional HMM prior")
     print("\nNext steps:")
     print("  - For full inference, use pm.sample() with nutpie")
     print("  - See notebook/demo_v0_1_complete.ipynb for detailed walkthrough")

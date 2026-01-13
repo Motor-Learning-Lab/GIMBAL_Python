@@ -20,7 +20,8 @@ import pymc as pm
 import arviz as az
 
 # v0.2.1 imports
-import gimbal_pymc from gimbal_pymc import (
+import gimbal_pymc as gp
+from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
     generate_demo_sequence,
@@ -1859,13 +1860,13 @@ import gimbal_pymc.hmm_directional
 import gimbal_pymc.pymc_model
 
 # Reload in dependency order
-importlib.reload(gimbal.hmm_directional)
-importlib.reload(gimbal.pymc_model)
+importlib.reload(gp.hmm_directional)
+importlib.reload(gp.pymc_model)
 
 # Re-import the function we use
 from gimbal_pymc import build_camera_observation_model
 
-print("✓ Reloaded gimbal.hmm_directional and gimbal.pymc_model modules")
+print("✓ Reloaded gp.hmm_directional and gp.pymc_model modules")
 print("✓ S=1 now uses completely separate code path (no PyTensor warnings expected)")
 
 # %%

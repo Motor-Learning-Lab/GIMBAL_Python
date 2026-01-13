@@ -219,7 +219,7 @@ def run_stage_b(dataset_dir: Path, output_dir: Path) -> Dict[str, Any]:
 
     # Apply cleaning
     print("\n[1/3] Applying 2D cleaning...")
-    y_2d_clean, valid_mask, cleaning_summary = gimbal.clean_keypoints_2d(
+    y_2d_clean, valid_mask, cleaning_summary = gp.clean_keypoints_2d(
         y_2d, parents, cleaning_config
     )
 

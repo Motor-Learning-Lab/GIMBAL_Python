@@ -238,7 +238,7 @@ def run_stage_d(
     # Apply cleaning
     print("\n[1/4] Applying 3D cleaning...")
     x_3d_clean, valid_mask, use_for_stats_mask, cleaning_summary = (
-        gimbal.clean_keypoints_3d(x_3d, parents, cleaning_config)
+        gp.clean_keypoints_3d(x_3d, parents, cleaning_config)
     )
 
     print(f"  Cleaning summary:")

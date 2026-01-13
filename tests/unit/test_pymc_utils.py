@@ -1,5 +1,5 @@
 """
-Test gimbal.pymc_utils functions with simple camera model.
+Test gp.pymc_utils functions with simple camera model.
 
 This tests:
 1. build_initial_points_for_nutpie creates correct dict structure

@@ -280,27 +280,60 @@ def generate_from_config(
     # === Build cameras ===
     cam_specs = spec["cameras"]["cameras"]
     C = len(cam_specs)
+
+    # Get shared target position (or use default)
+    target_pos = np.array(spec["cameras"].get("target_position", [0, 0, 100]))
+
     camera_proj = np.zeros((C, 3, 4))
     camera_metadata = []
 
     for c, cam_spec in enumerate(cam_specs):
-        K_mat = np.array(cam_spec["K"])
-        R_mat = np.array(cam_spec["R"])
-        t_vec = np.array(cam_spec["t"])
+        # Enforce new schema: position/target only
+        if "R" in cam_spec or "t" in cam_spec or "K" in cam_spec:
+            raise ValueError(
+                f"Camera config must use position/target specification only. "
+                f"Found legacy R/t/K in camera '{cam_spec.get('name', c)}'. "
+                f"Required fields: camera_position, focal_length, image_size"
+            )
 
-        # Build P = K[R|t]
-        Rt = np.hstack([R_mat, t_vec.reshape(3, 1)])
-        camera_proj[c] = K_mat @ Rt
+        if "camera_position" not in cam_spec:
+            raise ValueError(
+                f"Camera '{cam_spec.get('name', c)}' missing required field: camera_position"
+            )
 
-        # Compute camera position from R and t: C = -R^T @ t
-        camera_position = -R_mat.T @ t_vec
+        camera_pos = np.array(cam_spec["camera_position"])
+        focal_length = cam_spec.get("focal_length", 800.0)
+        image_size = cam_spec.get("image_size", [1280, 720])
 
-        # Compute target as position + forward direction (negative z-axis in camera frame)
-        # Camera looks along negative z-axis, so forward is third column of R^T (or third row of R)
-        forward_direction = -R_mat[2, :]  # negative z-axis in world coords
-        camera_target = (
-            camera_position + forward_direction * 10
-        )  # arbitrary scale for visualization
+        # Compute principal point from image size
+        width, height = image_size
+        principal_point = (width / 2.0, height / 2.0)
+
+        # Build projection matrix using canonical method
+        P = build_projection_matrix(
+            camera_pos=camera_pos,
+            target_pos=target_pos,
+            focal_length=focal_length,
+            principal_point=principal_point,
+        )
+
+        camera_proj[c] = P
+
+        # Extract R, t for metadata (useful for visualization)
+        K_mat = np.array(
+            [
+                [focal_length, 0, principal_point[0]],
+                [0, focal_length, principal_point[1]],
+                [0, 0, 1],
+            ]
+        )
+
+        # Decompose P = K[R|t] to get R and t
+        # P = K @ [R | t], so [R | t] = K^{-1} @ P
+        K_inv = np.linalg.inv(K_mat)
+        Rt = K_inv @ P
+        R_mat = Rt[:, :3]
+        t_vec = Rt[:, 3]
 
         camera_metadata.append(
             {
@@ -308,9 +341,9 @@ def generate_from_config(
                 "K": K_mat,
                 "R": R_mat,
                 "t": t_vec,
-                "image_size": cam_spec.get("image_size", [1280, 720]),
-                "position": camera_position.tolist(),
-                "target": camera_target.tolist(),
+                "image_size": image_size,
+                "position": camera_pos.tolist(),
+                "target": target_pos.tolist(),
             }
         )
 
@@ -331,6 +364,33 @@ def generate_from_config(
                     y_2d[c, t, k] = y_proj[:2] / w
                 else:
                     y_2d[c, t, k] = np.nan
+
+    # VALIDATION: Check bounds violation rate before adding noise/outliers
+    # This catches bad camera geometry early
+    bounds_violations = 0
+    valid_points = 0
+
+    for c in range(C):
+        width, height = camera_metadata[c]["image_size"]
+        for t in range(T):
+            for k in range(K):
+                if not np.any(np.isnan(y_2d[c, t, k])):
+                    valid_points += 1
+                    u, v = y_2d[c, t, k]
+                    if u < 0 or u >= width or v < 0 or v >= height:
+                        bounds_violations += 1
+
+    if valid_points > 0:
+        violation_rate = bounds_violations / valid_points
+        if violation_rate > 0.5:  # More than 50% out of bounds is unusable
+            raise ValueError(
+                f"Camera placement produces {violation_rate:.1%} out-of-bounds projections "
+                f"({bounds_violations}/{valid_points} points). This indicates invalid camera "
+                f"geometry. Check camera positions, target position, and focal length. "
+                f"Cameras: {[cam['name'] for cam in camera_metadata]}, "
+                f"Target: {target_pos.tolist()}, "
+                f"Positions: {[cam['position'] for cam in camera_metadata]}"
+            )
 
     # Add noise
     if noise_px > 0:

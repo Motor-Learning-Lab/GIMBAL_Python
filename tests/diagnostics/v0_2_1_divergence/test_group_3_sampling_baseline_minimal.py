@@ -113,7 +113,7 @@ def build_model(data):
 
     # Build minimal model
     with pm.Model() as model:
-        gimbal.build_camera_observation_model(
+        gp.build_camera_observation_model(
             y_observed=data["y_2d"],
             camera_proj=data["camera_proj"],
             parents=data["parents"],
