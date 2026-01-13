@@ -186,6 +186,10 @@ results/diagnostics/
 results/benchmarks/
 results/figures/*.png
 
+# GIMBAL Generated Plots
+# Diagnostic plots and visualizations - can be regenerated
+plots/
+
 # GIMBAL Pipeline Artifacts
 # Policy: Configs are versioned, generated artifacts are not
 # Keep: config.json, config_template.json (define datasets)
