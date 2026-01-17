@@ -281,11 +281,9 @@ def _estimate_observation_parameters_numpy(
 
     C, T, K, _ = y_observed.shape
 
-    # Project 3D points to 2D using numpy-based projection
-    # Shape: (T, K, C, 2)
+    # Reproject using cleaned 3D positions
+    # Returns shape: (C, T, K, 2) - already in correct format
     y_reproj = project_points_numpy(x_triangulated, camera_proj)
-    # Transpose to (C, T, K, 2) to match y_observed
-    y_reproj = np.transpose(y_reproj, (2, 0, 1, 3))
 
     errors = []
     for c in range(C):

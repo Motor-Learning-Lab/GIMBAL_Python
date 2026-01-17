@@ -13,11 +13,11 @@ Run with: pixi run python test_hmm_v0_1_2.py
 import numpy as np
 import pymc as pm
 
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
-from gimbal_pymc.pymc_model import (
+from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
+from gimbal_pymc.hmm.observation_model import (
     _build_camera_observation_model_full as build_camera_observation_model,
 )
-from gimbal_pymc.pymc_utils import validate_stage2_outputs
+from gimbal_pymc.priors.utils import validate_stage2_outputs
 
 
 def create_synthetic_data(T=20, K=5, C=3, seed=42):

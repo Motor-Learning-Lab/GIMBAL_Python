@@ -36,7 +36,7 @@ from gimbal_pymc import (
     build_camera_observation_model,
     add_directional_hmm_prior,
 )
-from gimbal_pymc.fit_params import initialize_from_groundtruth
+from gimbal_pymc.priors.initialization import initialize_from_groundtruth
 
 print("✓ Imports successful!")
 print(f"PyMC version: {pm.__version__}")
@@ -83,7 +83,7 @@ print(f"  Occlusions: {np.sum(np.isnan(y_observed_2d))} pixels")
 
 # %%
 from mpl_toolkits.mplot3d import Axes3D
-from gimbal_pymc.camera_utils import camera_center_from_proj
+from gimbal_pymc.cameras.projection import camera_center_from_proj
 
 # Plot ground truth 3D skeleton at multiple timesteps
 fig = plt.figure(figsize=(18, 5))
@@ -2220,7 +2220,7 @@ print("Testing gradient correctness on a toy problem (T=3, S=2).\n")
 
 import pytensor
 import pytensor.tensor as pt
-from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm.engine import collapsed_hmm_loglik
 
 # Toy problem
 T_toy = 3

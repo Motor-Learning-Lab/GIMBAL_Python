@@ -108,7 +108,7 @@ def build_camera_observation_model_simple(
     tuple
         (model, U, x_all, y_pred, log_obs_t) - Same as stage 2 output in v0.1 demos
     """
-    from .fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
 
     # Perform DLT initialization (automatically calculates bone lengths)
     init_result = initialize_from_observations_dlt(
@@ -253,8 +253,8 @@ def _build_camera_observation_model_full(
 
     Examples
     --------
-    >>> from gimbal_pymc.fit_params import initialize_from_observations_dlt
-    >>> from gimbal_pymc.pymc_model import build_camera_observation_model
+    >>> from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
+    >>> from gimbal_pymc.hmm.observation_model import build_camera_observation_model
     >>>
     >>> # Initialize from observations
     >>> result = initialize_from_observations_dlt(y_obs, camera_proj, parents)
@@ -708,7 +708,7 @@ def _build_camera_observation_model_full(
                     "hmm_num_states must be provided when use_directional_hmm=True"
                 )
 
-            from gimbal_pymc.hmm_directional import add_directional_hmm_prior
+            from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
 
             _hmm_result = add_directional_hmm_prior(
                 U=U,

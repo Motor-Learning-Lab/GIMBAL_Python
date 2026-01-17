@@ -13,7 +13,7 @@ from gimbal_pymc import (
     SyntheticDataConfig,
     generate_demo_sequence,
 )
-from gimbal_pymc.camera_utils import camera_center_from_proj, project_points_numpy
+from gimbal_pymc.cameras.projection import camera_center_from_proj, project_points_numpy
 
 # Generate a short test sequence
 config = SyntheticDataConfig(

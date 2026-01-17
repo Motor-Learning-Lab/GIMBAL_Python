@@ -15,8 +15,9 @@ The package is organized into focused subpackages:
     - gaussian_example: Example Gaussian HMM implementation
 
 **cameras/** - Camera projection and triangulation
-    - utils: Camera projection utilities
+    - projection: Camera projection utilities
     - triangulation: DLT and Anipose triangulation
+    - identifiability: Camera configuration validation
 
 **skeleton/** - Skeletal structure and motion
     - config: Skeleton configuration and validation
@@ -25,8 +26,8 @@ The package is organized into focused subpackages:
     - visualization: Visualization utilities
 
 **joints/** - Joint-level operations
-    - forward_kinematics: Joint position computation
-    - directions: Direction vector utilities
+    - distributions: VonMisesFisher and other joint distributions
+    - statistics: Direction distribution analysis
 
 **priors/** - Prior specification and initialization
     - building: Prior distribution builders
@@ -34,8 +35,7 @@ The package is organized into focused subpackages:
     - utils: Nutpie integration utilities
 
 **data_cleaning/** - Data preprocessing (v0.2.1)
-    - keypoint_cleaning: 2D/3D keypoint cleaning
-    - direction_statistics: Direction distribution analysis
+    - cleaning: 2D/3D keypoint cleaning
 
 Quick Start
 -----------
@@ -110,7 +110,6 @@ from . import data_cleaning
 from .priors import initialization as fit_params
 from .skeleton import metrics as skeleton_metrics
 from .skeleton import visualization as skeleton_visualization
-from . import identifiability
 
 __all__ = [
     # Stage 1-3 PyMC pipeline

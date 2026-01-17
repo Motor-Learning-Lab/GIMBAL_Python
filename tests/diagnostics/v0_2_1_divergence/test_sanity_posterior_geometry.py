@@ -43,8 +43,8 @@ import pymc as pm
 # Add repo root to path for imports
 
 from test_utils import get_standard_synth_data
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
-from gimbal_pymc.pymc_model import _build_camera_observation_model_full
+from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
+from gimbal_pymc.hmm.observation_model import _build_camera_observation_model_full
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -120,7 +120,7 @@ def run_geometry_analysis():
         import nutpie
 
         print("  Using nutpie sampler...")
-        from gimbal_pymc.pymc_utils import compile_model_with_initialization
+        from gimbal_pymc.priors.utils import compile_model_with_initialization
 
         compiled_model = compile_model_with_initialization(model, init_result, parents)
         trace = nutpie.sample(

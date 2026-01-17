@@ -33,7 +33,8 @@ import pymc as pm
 import arviz as az
 import matplotlib.pyplot as plt
 
-import gimbal_pymc as gp 
+import gimbal_pymc as gp
+
 
 def run_stage_h(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> dict:
     """Run Stage H: Fitting/Sampling."""
@@ -93,7 +94,7 @@ def run_stage_h(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> dict:
     # Initialize from cleaned 3D (same as Stage G)
     # Initialize from observations using library estimator
     print("\n[2/5] Computing initialization from observations...")
-    from gimbal_pymc.fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
 
     try:
         init_result = initialize_from_observations_dlt(

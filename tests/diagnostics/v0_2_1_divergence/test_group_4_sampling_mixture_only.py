@@ -89,7 +89,7 @@ def build_model(data):
     C, T, K, _ = data["y_2d"].shape
 
     print("  Initializing from observations (DLT triangulation)...")
-    from gimbal_pymc.fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
 
     init_result = initialize_from_observations_dlt(
         y_observed=data["y_2d"],

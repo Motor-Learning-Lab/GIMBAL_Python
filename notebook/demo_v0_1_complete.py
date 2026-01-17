@@ -47,7 +47,7 @@ from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
-from gimbal_pymc.fit_params import InitializationResult
+from gimbal_pymc.priors.initialization import InitializationResult
 
 print("Libraries imported successfully!")
 print(f"PyMC version: {pm.__version__}")

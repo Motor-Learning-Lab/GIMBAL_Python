@@ -434,8 +434,8 @@ def compile_model_with_initialization(
 
     Examples
     --------
-    >>> from gimbal_pymc.fit_params import initialize_from_observations_dlt
-    >>> from gimbal_pymc.pymc_utils import compile_model_with_initialization
+    >>> from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
+    >>> from gimbal_pymc.priors.utils import compile_model_with_initialization
     >>>
     >>> # Get initialization
     >>> init_result = initialize_from_observations_dlt(y_obs, camera_proj, parents)

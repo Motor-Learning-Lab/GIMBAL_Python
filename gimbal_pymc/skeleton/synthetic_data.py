@@ -617,7 +617,7 @@ def generate_camera_matrices(
         Projection is: [u', v', w'] = P @ [x, y, z, 1]
                        u = u'/w', v = v'/w' (perspective division)
     """
-    from .camera_utils import build_projection_matrix
+    from gimbal_pymc.cameras.projection import build_projection_matrix
 
     camera_proj = np.zeros((C, 3, 4))
 
