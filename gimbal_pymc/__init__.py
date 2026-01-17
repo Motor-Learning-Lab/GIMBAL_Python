@@ -109,7 +109,7 @@ from . import data_cleaning
 # Backward compatibility: Keep old module names as aliases
 from .priors import initialization as fit_params
 from .skeleton import metrics as skeleton_metrics
-from .skeleton import visualization as skeleton_visualization  
+from .skeleton import visualization as skeleton_visualization
 from . import identifiability
 
 __all__ = [

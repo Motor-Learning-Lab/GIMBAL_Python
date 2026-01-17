@@ -72,10 +72,11 @@ def _triangulate_dlt(
     condition_threshold: float = 1e6,
 ) -> np.ndarray:
     """Triangulate using Direct Linear Transform (DLT).
-    
+
     Wrapper that calls gimbal_pymc.cameras.triangulation.triangulate_dlt.
     """
     from gimbal_pymc.cameras.triangulation import triangulate_dlt
+
     return triangulate_dlt(y_observed, camera_proj, min_cameras, condition_threshold)
 
 
@@ -83,10 +84,11 @@ def _triangulate_anipose(
     y_observed: np.ndarray, camera_proj: np.ndarray, **kwargs
 ) -> np.ndarray:
     """Triangulate using Anipose (aniposelib).
-    
+
     Wrapper that calls gimbal_pymc.cameras.triangulation.triangulate_anipose.
     """
     from gimbal_pymc.cameras.triangulation import triangulate_anipose
+
     return triangulate_anipose(y_observed, camera_proj, **kwargs)
 
 
@@ -477,7 +479,7 @@ def initialize_from_groundtruth(
         All estimated parameters
     """
     T, K, _ = x_gt.shape
-    
+
     # Use numpy-based estimation functions
     eta2 = _estimate_temporal_variances_numpy(x_gt, parents)
     rho, sigma2 = _estimate_skeletal_parameters_numpy(x_gt, parents)

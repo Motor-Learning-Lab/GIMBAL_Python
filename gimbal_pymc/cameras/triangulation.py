@@ -19,9 +19,9 @@ def triangulate_dlt(
 ) -> np.ndarray:
     """
     Triangulate 3D positions using Direct Linear Transform (DLT).
-    
+
     Public function for DLT triangulation with explicit parameter control.
-    
+
     Parameters
     ----------
     y_observed : ndarray, shape (C, T, K, 2)
@@ -33,7 +33,7 @@ def triangulate_dlt(
         Minimum number of cameras required for triangulation.
     condition_threshold : float, default=1e6
         Maximum condition number for SVD (largest/smallest singular value).
-        
+
     Returns
     -------
     x_triangulated : ndarray, shape (T, K, 3)
@@ -88,9 +88,9 @@ def triangulate_anipose(
 ) -> np.ndarray:
     """
     Triangulate using Anipose (aniposelib).
-    
+
     Falls back to DLT if aniposelib is not available.
-    
+
     Parameters
     ----------
     y_observed : ndarray, shape (C, T, K, 2)
@@ -99,7 +99,7 @@ def triangulate_anipose(
         Camera projection matrices.
     **kwargs
         Additional arguments passed to triangulate_dlt fallback.
-        
+
     Returns
     -------
     x_triangulated : ndarray, shape (T, K, 3)
