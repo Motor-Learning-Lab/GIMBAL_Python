@@ -16,7 +16,7 @@ inside a PyMC model context.
 
 import pymc as pm
 import pytensor.tensor as pt
-from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm.engine import collapsed_hmm_loglik
 
 
 def _add_single_state_directional_prior(

@@ -8,7 +8,7 @@ with PyMC models, specifically for 1D Gaussian emissions.
 import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
-from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm.engine import collapsed_hmm_loglik
 
 
 def build_gaussian_hmm_model(y, S):

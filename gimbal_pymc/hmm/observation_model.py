@@ -19,78 +19,13 @@ import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from .fit_params import InitializationResult
-from .pymc_utils import (
+from gimbal_pymc.priors.initialization import InitializationResult
+from gimbal_pymc.priors.utils import (
     _interpolate_nans,
     build_initial_points_for_nutpie,
     validate_initial_points,
 )
-
-
-def gamma_from_mode_sd(
-    mode: float | np.ndarray, sd: float | np.ndarray
-) -> tuple[float, float] | tuple[np.ndarray, np.ndarray]:
-    """
-    Convert desired mode and SD of a positive quantity into Gamma(alpha, beta)
-    where beta is the rate parameter (1/scale).
-
-    mode = (alpha - 1) / beta  for alpha > 1
-    var  = alpha / beta**2     and sd = sqrt(var)
-
-    Parameters
-    ----------
-    mode : float or array-like
-        Desired mode of the Gamma distribution (must be positive)
-    sd : float or array-like
-        Desired standard deviation (must be positive)
-
-    Returns
-    -------
-    alpha : float or ndarray
-        Shape parameter of Gamma distribution
-    beta : float or ndarray
-        Rate parameter (1/scale) of Gamma distribution
-
-    Raises
-    ------
-    ValueError
-        If mode or sd are not positive
-
-    Notes
-    -----
-    If arrays are provided, operates element-wise.
-    """
-    mode_arr = np.atleast_1d(mode)
-    sd_arr = np.atleast_1d(sd)
-
-    if np.any(mode_arr <= 0) or np.any(sd_arr <= 0):
-        raise ValueError("mode and sd for Gamma must be positive")
-
-    target = (sd_arr**2) / (mode_arr**2)
-
-    # Start from alpha = 2 as a reasonable guess
-    alpha = np.full_like(target, 2.0)
-    for _ in range(20):
-        num = alpha
-        den = (alpha - 1.0) ** 2
-        f = num / den - target  # f(alpha) = alpha / (alpha-1)^2 - target
-
-        # Derivative: f'(alpha)
-        df = ((alpha - 1.0) ** 2 - alpha * 2.0 * (alpha - 1.0)) / (alpha - 1.0) ** 4
-        # If derivative is tiny, break
-        converged = np.abs(df) < 1e-8
-        if np.all(converged):
-            break
-        alpha_new = alpha - f / df
-        alpha_new = np.maximum(alpha_new, 1.01)  # keep it > 1
-        alpha = alpha_new
-
-    beta = (alpha - 1.0) / mode_arr
-
-    # Return scalar if input was scalar
-    if alpha.size == 1:
-        return float(alpha[0]), float(beta[0])
-    return alpha.astype(np.float64), beta.astype(np.float64)
+from gimbal_pymc.priors.building import get_gamma_shape_rate as gamma_from_mode_sd
 
 
 def project_points_pytensor(

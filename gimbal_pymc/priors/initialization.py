@@ -25,33 +25,20 @@ from dataclasses import dataclass
 from typing import Tuple, NamedTuple, Literal, Optional, Callable
 
 import numpy as np
-import torch
-from torch import Tensor
-
-from .torch_legacy.model import (
-    GimbalParameters,
-    HeadingPriorParameters,
-    OutlierMixtureParameters,
-    PosePriorParameters,
-    RootDynamicsParameters,
-    SkeletonParameters,
-)
 
 
 class InitializationResult(NamedTuple):
     """Results from parameter initialization.
 
-    Attributes
-    ----------
-    x_init : ndarray or Tensor, shape (T, K, 3)
+    Attributes, shape (T, K, 3)
         Initial 3D joint positions
-    eta2 : ndarray or Tensor, shape (K,)
+    eta2 : ndarray, shape (K,)
         Temporal variance estimates
-    rho : ndarray or Tensor, shape (K-1,)
+    rho : ndarray, shape (K-1,)
         Mean bone lengths
-    sigma2 : ndarray or Tensor, shape (K-1,)
+    sigma2 : ndarray, shape (K-1,)
         Bone length variances
-    u_init : ndarray or Tensor, shape (T, K, 3)
+    u_init : ndarray, shape (T, K, 3)
         Initial direction vectors (unit vectors)
     obs_sigma : float
         Observation noise standard deviation
@@ -61,197 +48,16 @@ class InitializationResult(NamedTuple):
         Additional information (method, success rates, etc.)
     """
 
-    x_init: np.ndarray | Tensor
-    eta2: np.ndarray | Tensor
-    rho: np.ndarray | Tensor
+    x_init: np.ndarray
+    eta2: np.ndarray
+    rho: np.ndarray
+    sigma2: np.ndarray
+    u_init: np.ndarray
     sigma2: np.ndarray | Tensor
     u_init: np.ndarray | Tensor
     obs_sigma: float
     inlier_prob: float
     metadata: dict
-
-
-def estimate_temporal_variances(x_gt: Tensor) -> Tensor:
-    """Estimate ╬╖_k^2 from ground truth (Section 4.1).
-
-    x_gt has shape (T, K, 3).
-    """
-
-    diffs = x_gt[1:] - x_gt[:-1]
-    # Use average squared step length per keypoint
-    sq = (diffs**2).sum(dim=-1)  # (T-1, K)
-    eta2 = sq.mean(dim=0)
-    return eta2.clamp_min(1e-3)
-
-
-def estimate_skeletal_parameters(x_gt: Tensor, parent: Tensor) -> Tuple[Tensor, Tensor]:
-    """Estimate (╧ü_k, ╧â_k^2) from ground truth (Section 4.2)."""
-
-    T, K, _ = x_gt.shape
-    rho = torch.zeros(K, dtype=x_gt.dtype, device=x_gt.device)
-    sigma2 = torch.zeros(K, dtype=x_gt.dtype, device=x_gt.device)
-
-    for k in range(1, K):
-        p = int(parent[k].item())
-        d = (x_gt[:, k] - x_gt[:, p]).norm(dim=-1)
-        rho[k] = d.mean()
-        sigma2[k] = d.var(unbiased=True).clamp_min(1e-4)
-
-    return rho, sigma2
-
-
-def estimate_root_dynamics(x_gt: Tensor) -> RootDynamicsParameters:
-    """Estimate ╬╝_1 and ╧â_1^2 for root keypoint (Section 2.1, 4.1)."""
-
-    root_traj = x_gt[:, 0]
-    mu0 = root_traj.mean(dim=0)
-    diffs = root_traj[1:] - root_traj[:-1]
-    sigma2_0 = diffs.pow(2).sum(dim=-1).mean().item()
-    return RootDynamicsParameters(mu0=mu0, sigma2_0=sigma2_0)
-
-
-def estimate_outlier_parameters(
-    x_gt: Tensor,
-    y_obs: Tensor,
-    proj: Tensor,
-    beta_init: float = 0.1,
-) -> OutlierMixtureParameters:
-    """Very simple initialization of outlier model (Section 4.3).
-
-    This is a heuristic alternative to full EM on error magnitudes.
-    It sets a shared inlier and outlier variance for each keypoint
-    and camera, based on reprojection errors.
-
-    x_gt: (T, K, 3)
-    y_obs: (T, K, C, 2)
-    proj: (C, 3, 4)
-    """
-
-    from .torch_legacy.camera import project_points
-
-    T, K, C, _ = y_obs.shape
-    device = x_gt.device
-
-    x_flat = x_gt.view(T * K, 3)
-    y_pred = project_points(x_flat, proj).view(T, K, C, 2)
-
-    eps = y_obs - y_pred
-    mag = eps.norm(dim=-1)  # (T,K,C)
-
-    beta = torch.full((K, C), beta_init, dtype=x_gt.dtype, device=device)
-
-    mu = torch.zeros(K, C, 2, 2, dtype=x_gt.dtype, device=device)
-    sigma2 = torch.zeros(K, C, 2, dtype=x_gt.dtype, device=device)
-
-    # Simple robust split by median
-    for k in range(K):
-        for c in range(C):
-            m = mag[:, k, c]
-            thresh = m.median()
-            inlier = m[m <= thresh]
-            outlier = m[m > thresh]
-            if inlier.numel() == 0:
-                var_in = torch.tensor(1.0, device=device)
-            else:
-                var_in = (inlier**2).mean()
-            if outlier.numel() == 0:
-                var_out = 100.0 * var_in
-            else:
-                var_out = (outlier**2).mean()
-            sigma2[k, c, 0] = var_in
-            sigma2[k, c, 1] = var_out
-
-    return OutlierMixtureParameters(beta=beta, mu=mu, sigma2=sigma2)
-
-
-def estimate_pose_priors(
-    x_gt: Tensor,
-    parent: Tensor,
-    num_states: int,
-) -> PosePriorParameters:
-    """Rudimentary pose prior estimation (Section 4.4).
-
-    This uses k-means clustering on concatenated unit directions to
-    obtain S pose states, then estimates per-state vMF parameters and
-    a transition matrix ╬¢ from the resulting state sequence.
-    """
-
-    from sklearn.cluster import KMeans
-
-    T, K, _ = x_gt.shape
-    device = x_gt.device
-
-    dirs = []
-    for t in range(T):
-        vecs = []
-        for k in range(1, K):
-            p = int(parent[k].item())
-            diff = x_gt[t, k] - x_gt[t, p]
-            diff = diff / diff.norm()
-            vecs.append(diff)
-        dirs.append(torch.cat(vecs, dim=0))
-    X = torch.stack(dirs).cpu().numpy()  # (T, (K-1)*3)
-
-    kmeans = KMeans(n_clusters=num_states, n_init=10).fit(X)
-    labels = kmeans.labels_
-
-    S = num_states
-    nu = torch.zeros(S, K, 3, dtype=x_gt.dtype, device=device)
-    kappa = torch.zeros(S, K, dtype=x_gt.dtype, device=device)
-
-    for s_idx in range(S):
-        idx = torch.tensor((labels == s_idx).nonzero()[0], dtype=torch.long)
-        if idx.numel() == 0:
-            continue
-        for k in range(1, K):
-            p = int(parent[k].item())
-            diffs = x_gt[idx, k] - x_gt[idx, p]
-            diffs = diffs / diffs.norm(dim=-1, keepdim=True)
-            mean_dir = diffs.mean(dim=0)
-            R = mean_dir.norm()
-            nu[s_idx, k] = mean_dir / (R + 1e-8)
-            kappa[s_idx, k] = (R * diffs.shape[0] - R**3) / (1 - R**2 + 1e-8)
-
-    # Transition matrix from labels
-    Lambda = torch.zeros(S, S, dtype=x_gt.dtype, device=device)
-    for t in range(1, T):
-        i = labels[t - 1]
-        j = labels[t]
-        Lambda[i, j] += 1.0
-    Lambda = Lambda + 1.0  # add-one smoothing
-    Lambda = Lambda / Lambda.sum(dim=-1, keepdim=True)
-
-    return PosePriorParameters(nu=nu, kappa=kappa, transition=Lambda)
-
-
-def build_gimbal_parameters(
-    x_gt: Tensor,
-    parent: Tensor,
-    y_obs: Tensor,
-    proj: Tensor,
-    num_states: int,
-) -> GimbalParameters:
-    """High-level helper to build GimbalParameters from ground truth.
-
-    This roughly follows Section 4 of the spec.
-    """
-
-    eta2 = estimate_temporal_variances(x_gt)
-    rho, sigma2 = estimate_skeletal_parameters(x_gt, parent)
-    root_dyn = estimate_root_dynamics(x_gt)
-    outlier = estimate_outlier_parameters(x_gt, y_obs, proj)
-    pose_prior = estimate_pose_priors(x_gt, parent, num_states)
-    heading_prior = HeadingPriorParameters()
-
-    skeleton = SkeletonParameters(parent=parent, rho=rho, sigma2=sigma2, eta2=eta2)
-
-    return GimbalParameters(
-        skeleton=skeleton,
-        pose_prior=pose_prior,
-        heading_prior=heading_prior,
-        outlier=outlier,
-        root_dyn=root_dyn,
-    )
 
 
 # =============================================================================
@@ -265,66 +71,23 @@ def _triangulate_dlt(
     min_cameras: int = 2,
     condition_threshold: float = 1e6,
 ) -> np.ndarray:
-    """Triangulate using Direct Linear Transform (DLT)."""
-    C, T, K, _ = y_observed.shape
-    x_triangulated = np.zeros((T, K, 3))
-
-    for k in range(K):
-        for t in range(T):
-            y_tk = y_observed[:, t, k, :]
-            valid_mask = ~np.isnan(y_tk[:, 0]) & ~np.isnan(y_tk[:, 1])
-            n_valid = valid_mask.sum()
-
-            if n_valid < min_cameras:
-                x_triangulated[t, k, :] = np.nan
-                continue
-
-            A = []
-            for c in np.where(valid_mask)[0]:
-                u, v = y_tk[c]
-                P = camera_proj[c]
-                A.append(u * P[2, :] - P[0, :])
-                A.append(v * P[2, :] - P[1, :])
-
-            A = np.array(A)
-
-            try:
-                _, S, Vt = np.linalg.svd(A)
-                cond = S[0] / (S[-1] + 1e-10)
-
-                if cond > condition_threshold:
-                    x_triangulated[t, k, :] = np.nan
-                    continue
-
-                X_homog = Vt[-1, :]
-
-                if np.abs(X_homog[3]) < 1e-8:
-                    x_triangulated[t, k, :] = np.nan
-                else:
-                    x_triangulated[t, k, :] = X_homog[:3] / X_homog[3]
-
-            except np.linalg.LinAlgError:
-                x_triangulated[t, k, :] = np.nan
-
-    return x_triangulated
+    """Triangulate using Direct Linear Transform (DLT).
+    
+    Wrapper that calls gimbal_pymc.cameras.triangulation.triangulate_dlt.
+    """
+    from gimbal_pymc.cameras.triangulation import triangulate_dlt
+    return triangulate_dlt(y_observed, camera_proj, min_cameras, condition_threshold)
 
 
 def _triangulate_anipose(
     y_observed: np.ndarray, camera_proj: np.ndarray, **kwargs
 ) -> np.ndarray:
-    """Triangulate using Anipose (aniposelib)."""
-    try:
-        from aniposelib.cameras import CameraGroup
-
-        # TODO: Full Anipose integration with CameraGroup
-        print(
-            "Warning: Full Anipose integration not yet implemented. Falling back to DLT."
-        )
-        return _triangulate_dlt(y_observed, camera_proj, **kwargs)
-    except ImportError:
-        print("Warning: aniposelib not installed. Falling back to DLT.")
-        print("  To use full Anipose features: pip install aniposelib")
-        return _triangulate_dlt(y_observed, camera_proj, **kwargs)
+    """Triangulate using Anipose (aniposelib).
+    
+    Wrapper that calls gimbal_pymc.cameras.triangulation.triangulate_anipose.
+    """
+    from gimbal_pymc.cameras.triangulation import triangulate_anipose
+    return triangulate_anipose(y_observed, camera_proj, **kwargs)
 
 
 def _estimate_temporal_variances_numpy(
@@ -512,13 +275,14 @@ def _estimate_observation_parameters_numpy(
     outlier_threshold_px: float = 15.0,
 ) -> Tuple[float, float]:
     """Estimate observation noise and inlier probability from reprojection errors."""
-    from .torch_legacy.camera import project_points
+    from gimbal_pymc.cameras.projection import project_points_numpy
 
     C, T, K, _ = y_observed.shape
 
-    x_torch = torch.from_numpy(x_triangulated).float()
-    proj_torch = torch.from_numpy(camera_proj).float()
-    y_reproj = project_points(x_torch, proj_torch).numpy()
+    # Project 3D points to 2D using numpy-based projection
+    # Shape: (T, K, C, 2)
+    y_reproj = project_points_numpy(x_triangulated, camera_proj)
+    # Transpose to (C, T, K, 2) to match y_observed
     y_reproj = np.transpose(y_reproj, (2, 0, 1, 3))
 
     errors = []
@@ -687,24 +451,22 @@ def initialize_from_observations_anipose(
 
 
 def initialize_from_groundtruth(
-    x_gt: np.ndarray | Tensor,
-    parents: np.ndarray | Tensor,
-    return_numpy: bool = True,
+    x_gt: np.ndarray,
+    parents: np.ndarray,
     obs_noise_std: float | None = None,
 ) -> InitializationResult:
     """
     Initialize parameters from ground truth 3D positions.
 
     Useful for debugging and validation when ground truth is available.
+    Uses numpy-based estimation (torch support removed in v0.2.2).
 
     Parameters
     ----------
-    x_gt : ndarray or Tensor, shape (T, K, 3)
+    x_gt : ndarray, shape (T, K, 3)
         Ground truth 3D joint positions
-    parents : ndarray or Tensor, shape (K,)
+    parents : ndarray, shape (K,)
         Skeleton parent indices
-    return_numpy : bool
-        If True, return numpy arrays; if False, return torch Tensors
     obs_noise_std : float, optional
         Observation noise standard deviation from data config.
         If provided, used to set obs_sigma initialization (scaled by 1.5).
@@ -714,41 +476,12 @@ def initialize_from_groundtruth(
     result : InitializationResult
         All estimated parameters
     """
-    # Convert to torch if needed
-    if isinstance(x_gt, np.ndarray):
-        x_gt_torch = torch.from_numpy(x_gt).float()
-        parents_torch = torch.from_numpy(parents).long()
-    else:
-        x_gt_torch = x_gt
-        parents_torch = parents
-
-    eta2 = estimate_temporal_variances(x_gt_torch)
-    rho, sigma2 = estimate_skeletal_parameters(x_gt_torch, parents_torch)
-
-    # Compute direction vectors
-    T, K, _ = x_gt_torch.shape
-    u_init = torch.zeros(T, K, 3, dtype=x_gt_torch.dtype, device=x_gt_torch.device)
-
-    for k in range(1, K):
-        parent_k = int(parents_torch[k].item())
-        for t in range(T):
-            bone_vec = x_gt_torch[t, k] - x_gt_torch[t, parent_k]
-            length = bone_vec.norm()
-            u_init[t, k] = (
-                bone_vec / length if length > 1e-6 else torch.tensor([0.0, 0.0, 1.0])
-            )
-
-    # Convert to numpy if requested
-    if return_numpy:
-        x_init = x_gt_torch.cpu().numpy()
-        eta2 = eta2.cpu().numpy()
-        rho = rho.cpu().numpy()[1:]  # Skip root
-        sigma2 = sigma2.cpu().numpy()[1:]  # Skip root
-        u_init = u_init.cpu().numpy()
-    else:
-        x_init = x_gt_torch
-        rho = rho[1:]
-        sigma2 = sigma2[1:]
+    T, K, _ = x_gt.shape
+    
+    # Use numpy-based estimation functions
+    eta2 = _estimate_temporal_variances_numpy(x_gt, parents)
+    rho, sigma2 = _estimate_skeletal_parameters_numpy(x_gt, parents)
+    u_init = _estimate_direction_vectors_numpy(x_gt, parents)
 
     metadata = {
         "method": "groundtruth",
@@ -763,7 +496,7 @@ def initialize_from_groundtruth(
         obs_sigma_init = 2.0  # fallback
 
     return InitializationResult(
-        x_init=x_init,
+        x_init=x_gt,
         eta2=eta2,
         rho=rho,
         sigma2=sigma2,

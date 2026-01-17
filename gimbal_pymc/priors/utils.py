@@ -46,7 +46,7 @@ import warnings
 import numpy as np
 import pymc as pm
 
-from .fit_params import InitializationResult
+from gimbal_pymc.priors.initialization import InitializationResult
 
 
 def _interpolate_nans(arr: np.ndarray) -> np.ndarray:

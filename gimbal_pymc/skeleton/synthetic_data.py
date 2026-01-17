@@ -13,7 +13,7 @@ import hashlib
 from pathlib import Path
 from typing import NamedTuple, Optional, Dict, Any
 from dataclasses import dataclass, field
-from .skeleton_config import SkeletonConfig
+from gimbal_pymc.skeleton.config import SkeletonConfig
 
 
 @dataclass
