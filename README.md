@@ -2,11 +2,13 @@
 
 **GIMBAL** (Geometric Manifolds for Body Articulation and Localization) is a Bayesian framework for inferring 3D skeletal motion from multi-camera 2D keypoint observations using Hidden Markov Models.
 
-## Current Status: v0.2.1 (Data-Driven Priors) ✅
+## Current Status: v0.2.2 (Module Reorganization) ✅
 
 **v0.1 Complete ✅** - The PyMC HMM pipeline (Stage 1-3) is fully implemented and tested.
 
 **v0.2.1 Complete ✅** - Data-driven priors from real motion capture data, comprehensive diagnostic framework.
+
+**v0.2.2 P0 Complete ✅** - Package restructured into 6 domain-specific subpackages with cleaner naming. All imports use explicit subpackage paths.
 
 ---
 
@@ -14,13 +16,13 @@
 
 The main GIMBAL pipeline consists of three stages:
 
-### Stage 1: Collapsed HMM Engine (`hmm_pytensor.py`)
+### Stage 1: Collapsed HMM Engine (`gimbal_pymc/hmm/engine.py`)
 Forward algorithm for marginalizing discrete states in log-space. Provides numerically stable HMM inference via `collapsed_hmm_loglik()`.
 
-### Stage 2: Camera Observation Model (`pymc_model.py`)
+### Stage 2: Camera Observation Model (`gimbal_pymc/hmm/observation_model.py`)
 Combines skeletal kinematics with multi-camera 2D projections. Builds joint positions, directions, and observation likelihoods via `build_camera_observation_model()`.
 
-### Stage 3: Directional HMM Prior (`hmm_directional.py`)
+### Stage 3: Directional HMM Prior (`gimbal_pymc/hmm/directional_prior.py`)
 Adds directional prior over joint orientations with state-dependent canonical poses. Uses dot-product energy for computational efficiency via `add_directional_hmm_prior()`.
 
 ### Quick Start
@@ -113,40 +115,34 @@ See `examples/demo_v0_2_1_data_driven_priors.py` for a complete walkthrough.
 
 ---
 
-## Legacy Torch Implementation
-
-The original PyTorch-based GIMBAL implementation (Gibbs sampler + HMC) is available in `gimbal_pymc.torch_legacy`. This code is maintained for reference and compatibility but is not the primary development path.
-
-See `gimbal_pymc/torch_legacy/README.md` for details.
-
----
-
 ## Repository Structure
 
 ```
-gimbal_pymc/                   # Core library modules
-├── __init__.py               # Public API (imports Stage 1-3 functions)
-├── skeleton_config.py        # Skeleton definitions (DEMO_V0_1_SKELETON)
-├── synthetic_data.py         # Synthetic data generation utilities
-│
-├── hmm_pytensor.py           # Stage 1: Collapsed HMM engine
-├── pymc_model.py             # Stage 2: Camera observation model
-├── hmm_directional.py        # Stage 3: Directional HMM prior
-│
-├── camera_utils.py           # Camera geometry and projection utilities
-├── fit_params.py             # Initialization from observations (DLT)
-├── pymc_utils.py             # PyMC helper functions
-├── pymc_distributions.py     # Custom distributions
-│
-├── triangulation.py          # 3D reconstruction (v0.2.1)
-├── data_cleaning.py          # Data cleaning utilities (v0.2.1)
-├── direction_statistics.py   # Directional statistics (v0.2.1)
-├── prior_building.py         # Prior construction from data (v0.2.1)
-│
-└── torch_legacy/             # Legacy PyTorch implementation
-    ├── model.py              # Torch probabilistic model
-    ├── inference.py          # Gibbs sampler + HMC
-    └── camera.py             # Torch camera utilities
+gimbal_pymc/                   # Core library (v0.2.2: subpackage organization)
+├── __init__.py               # Subpackage exports only (no convenience exports)
+├── hmm/                      # Hidden Markov Model components
+│   ├── engine.py             # Stage 1: Collapsed HMM forward algorithm
+│   ├── observation_model.py  # Stage 2: Camera observation model
+│   ├── directional_prior.py  # Stage 3: Directional HMM prior
+│   └── gaussian_example.py   # Gaussian HMM example
+├── cameras/                  # Multi-view geometry
+│   ├── projection.py         # Camera projection utilities
+│   ├── triangulation.py      # DLT 3D reconstruction
+│   └── identifiability.py    # Camera configuration validation
+├── skeleton/                 # Articulated body kinematics
+│   ├── config.py             # Skeleton definitions (DEMO_V0_1_SKELETON)
+│   ├── synthetic_data.py     # Synthetic motion generation
+│   ├── metrics.py            # Quality metrics
+│   └── visualization.py      # Plotting utilities
+├── joints/                   # Directional statistics
+│   ├── statistics.py         # vMF parameter estimation
+│   └── distributions.py      # vMF distribution for PyMC
+├── priors/                   # Prior construction & initialization
+│   ├── building.py           # Prior construction from data (v0.2.1)
+│   ├── initialization.py     # Initialization from observations (DLT)
+│   └── utils.py              # Distribution helpers
+└── data_cleaning/            # Data preprocessing (v0.2.1)
+    └── cleaning.py           # 2D/3D keypoint cleaning
 
 tests/                         # Test suite
 ├── test_stage1_collapsed_hmm.py    # Stage 1: Collapsed HMM tests
@@ -167,8 +163,7 @@ notebook/                      # Interactive demonstrations
 
 examples/                      # Standalone examples
 ├── demo_v0_2_0_pymc_pipeline.py     # PyMC pipeline demo
-├── demo_v0_2_1_data_driven_priors.py # Data-driven priors demo
-└── run_gimbal_demo.py               # Legacy Torch demo
+└── demo_v0_2_1_data_driven_priors.py # Data-driven priors demo
 
 plans/                         # Design documents and roadmaps
 ├── v0.1-overview.md          # v0.1 architecture
@@ -275,7 +270,6 @@ Run any task with `pixi run <task-name>`:
 - `check-setup` — Verify environment configuration
 - `demo-pymc` — v0.2.0 PyMC pipeline demo
 - `demo-priors` — v0.2.1 data-driven priors demo
-- `run-demo` — Legacy Torch GIMBAL demo
 - `notebook` — Launch JupyterLab
 
 **Testing:**
@@ -302,11 +296,6 @@ pixi run demo-pymc
 **Data-driven priors (v0.2.1):**
 ```powershell
 pixi run demo-priors
-```
-
-**Legacy Torch demo:**
-```powershell
-pixi run run-demo
 ```
 
 ### Interactive Notebooks
