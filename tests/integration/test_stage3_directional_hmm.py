@@ -351,9 +351,9 @@ def test_integration_with_stage2():
         assert "test_hmm_mu" in model.named_vars, "v0.1.3 mu should be in model"
         assert "test_hmm_kappa" in model.named_vars, "v0.1.3 kappa should be in model"
         assert (
-            "test_hmm_hmm_loglik" in model.named_vars
+            "test_hmm_loglik" in model.named_vars
         ), "v0.1.3 hmm_loglik should be in model"
-        assert "test_hmm_hmm_loglik" in [
+        assert "test_hmm_potential" in [
             pot.name for pot in model.potentials
         ], "v0.1.3 potential should be in model"
 
