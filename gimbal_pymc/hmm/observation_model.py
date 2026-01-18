@@ -25,7 +25,7 @@ from gimbal_pymc.priors.utils import (
     build_initial_points_for_nutpie,
     validate_initial_points,
 )
-from gimbal_pymc.priors.building import get_gamma_shape_rate as gamma_from_mode_sd
+from gimbal_pymc.priors.building import gamma_mode_sd_to_shape_rate
 
 
 def project_points_pytensor(
@@ -118,7 +118,7 @@ def build_camera_observation_model_simple(
     )
 
     # Call the full function with init_result (use current model context)
-    model_obj = _build_camera_observation_model_full(
+    model_obj = build_camera_observation_model(
         y_observed=y_obs,
         camera_proj=proj_param,
         parents=parents,
@@ -137,7 +137,7 @@ def build_camera_observation_model_simple(
     return model_obj, U, x_all, y_pred, log_obs_t
 
 
-def _build_camera_observation_model_full(
+def build_camera_observation_model(
     y_observed: np.ndarray,
     camera_proj: np.ndarray,
     parents: np.ndarray,
@@ -462,7 +462,7 @@ def _build_camera_observation_model_full(
         # Root temporal variance: data-driven Gamma prior with 100% CV
         eta2_root_mode = max(0.01, float(eta2_init[0]))
         eta2_root_sd = eta2_root_mode * 1.0  # 100% coefficient of variation (relaxed)
-        alpha_eta2_root, beta_eta2_root = gamma_from_mode_sd(
+        alpha_eta2_root, beta_eta2_root = gamma_mode_sd_to_shape_rate(
             eta2_root_mode, eta2_root_sd
         )
         eta2_root = pm.Gamma(
@@ -475,7 +475,7 @@ def _build_camera_observation_model_full(
         # Bone length scales: data-driven Gamma priors with 100% CV
         rho_mode = np.maximum(0.01, rho_init)
         rho_sd = rho_mode * 1.0
-        alpha_rho, beta_rho = gamma_from_mode_sd(rho_mode, rho_sd)
+        alpha_rho, beta_rho = gamma_mode_sd_to_shape_rate(rho_mode, rho_sd)
         rho = pm.Gamma(
             "rho", alpha=alpha_rho, beta=beta_rho, shape=K - 1, initval=rho_init
         )
@@ -483,7 +483,7 @@ def _build_camera_observation_model_full(
         # Direction variances: data-driven Gamma priors with 100% CV
         sigma2_mode = np.maximum(0.01, sigma2_init)
         sigma2_sd = sigma2_mode * 1.0
-        alpha_sigma2, beta_sigma2 = gamma_from_mode_sd(sigma2_mode, sigma2_sd)
+        alpha_sigma2, beta_sigma2 = gamma_mode_sd_to_shape_rate(sigma2_mode, sigma2_sd)
         sigma2 = pm.Gamma(
             "sigma2",
             alpha=alpha_sigma2,
@@ -606,7 +606,7 @@ def _build_camera_observation_model_full(
             # New approach: Gamma prior with mode/SD
             mode = hyperparams["obs_sigma_mode"]
             sd = hyperparams["obs_sigma_sd"]
-            alpha, beta = gamma_from_mode_sd(mode, sd)
+            alpha, beta = gamma_mode_sd_to_shape_rate(mode, sd)
             obs_sigma = pm.Gamma(
                 "obs_sigma",
                 alpha=alpha,

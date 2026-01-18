@@ -14,7 +14,11 @@ from pathlib import Path
 import sys
 
 
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
 
 
 def extract_complete_ground_truth(
@@ -326,7 +330,11 @@ if __name__ == "__main__":
     """
     Test the extraction and transformation functions.
     """
-    from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+    from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+    from gimbal_pymc.skeleton.synthetic_data import (
+        SyntheticDataConfig,
+        generate_demo_sequence,
+    )
     from test_utils import build_test_model
 
     print("=" * 80)

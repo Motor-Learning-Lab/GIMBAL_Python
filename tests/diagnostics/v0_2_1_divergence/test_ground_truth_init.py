@@ -16,7 +16,11 @@ from datetime import datetime
 
 # Add repository root to path
 
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
 from tests.diagnostics.v0_2_1_divergence.test_utils import build_test_model
 
 

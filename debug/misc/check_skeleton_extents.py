@@ -3,7 +3,11 @@ import sys
 from pathlib import Path
 
 
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
 
 config = SyntheticDataConfig(T=100, C=3, S=3, random_seed=42)
 data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)

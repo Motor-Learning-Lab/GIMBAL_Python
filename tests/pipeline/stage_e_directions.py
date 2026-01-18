@@ -18,7 +18,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # Add repo root to path
 
-import gimbal_pymc as gp 
+import gimbal_pymc.joints.statistics as gp_stats
+
 
 def plot_direction_distributions(
     stats: Dict, joint_names: list[str], output_path: Path
@@ -145,7 +146,7 @@ def run_stage_e(
 
     # Compute direction statistics
     print("\n[1/3] Computing directional statistics...")
-    stats = gp.compute_direction_statistics(
+    stats = gp_stats.compute_direction_statistics(
         x_3d_clean, parents, use_for_stats_mask, joint_names, min_samples=10
     )
 

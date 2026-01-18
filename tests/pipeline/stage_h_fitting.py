@@ -33,7 +33,9 @@ import pymc as pm
 import arviz as az
 import matplotlib.pyplot as plt
 
-import gimbal_pymc as gp
+import gimbal_pymc.skeleton.config as gp_config
+import gimbal_pymc.hmm.observation_model as gp_hmm
+import gimbal_pymc.priors.initialization as gp_init
 
 
 def run_stage_h(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> dict:
@@ -117,7 +119,7 @@ def run_stage_h(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> dict:
     # Rebuild model (same as Stage G)
     print("\n[3/5] Rebuilding PyMC model...")
     with pm.Model() as model:
-        gp.build_camera_observation_model(
+        gp_hmm.build_camera_observation_model(
             y_observed=data["y_2d_clean"],
             camera_proj=data["camera_proj"],
             parents=data["parents"],
@@ -133,7 +135,9 @@ def run_stage_h(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> dict:
         log_obs_t = model["log_obs_t"]
 
         # Add Stage 3 directional HMM with data-driven priors
-        gp.add_directional_hmm_prior(
+        from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+
+        add_directional_hmm_prior(
             U=U,
             log_obs_t=log_obs_t,
             S=1,  # K=1 HMM

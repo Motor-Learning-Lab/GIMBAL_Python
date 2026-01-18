@@ -1,6 +1,6 @@
 """Quick test of SyntheticDataConfig refactor."""
 
-from gimbal_pymc import SyntheticDataConfig
+from gimbal_pymc.skeleton.synthetic_data import SyntheticDataConfig
 
 # Test 1: Simple programmatic creation (backward compat)
 print("Test 1: Simple creation...")

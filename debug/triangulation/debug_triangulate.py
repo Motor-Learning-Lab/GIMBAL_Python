@@ -1,7 +1,11 @@
 """Quick check of zero-noise triangulation"""
 
-from gimbal_pymc import *
-from gimbal_pymc.triangulation import triangulate_multi_view
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
+from gimbal_pymc.cameras.triangulation import triangulate_multi_view
 import numpy as np
 
 cfg = SyntheticDataConfig(

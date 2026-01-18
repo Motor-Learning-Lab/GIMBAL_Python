@@ -16,13 +16,13 @@ import pytest
 import numpy as np
 import pymc as pm
 
-from gimbal_pymc import (
-    build_camera_observation_model,
-    add_directional_hmm_prior,
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+from gimbal_pymc.skeleton.synthetic_data import (
     generate_demo_sequence,
-    DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
 from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
 
 

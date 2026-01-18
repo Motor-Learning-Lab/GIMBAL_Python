@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 
 # Add repo root to path
 
-import gimbal_pymc from gimbal_pymc.data_cleaning import CleaningConfig
+import gimbal_pymc
+from gimbal_pymc.data_cleaning.cleaning import CleaningConfig
 
 
 def plot_2d_cleaning_comparison(

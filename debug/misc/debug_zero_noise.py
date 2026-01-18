@@ -1,4 +1,8 @@
-from gimbal_pymc import *
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
 import numpy as np
 
 cfg = SyntheticDataConfig(

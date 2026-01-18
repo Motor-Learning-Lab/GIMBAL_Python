@@ -25,7 +25,7 @@ Implementation Checklist:
 * [x] Results file: tests/diagnostics/v0_2_1_divergence/results_tg11a_i3_redundancy_fixed.json
 * [x] Report file: tests/diagnostics/v0_2_1_divergence/report_tg11a_i3_redundancy_fixed.md
 * [x] Uses test_utils.get_standard_synth_data(T=100, C=3, S=3, seed=42)
-* [x] Uses DLT initialization via gp.fit_params.initialize_from_observations_dlt
+* [x] Uses DLT initialization via initialize_from_observations_dlt
 * [x] Sampler via test_utils.sample_model(model, draws=500, tune=500, chains=2)
 * [x] Baseline uses test_utils.build_test_model(..., use_directional_hmm=False)
 * [x] Variant fixes u_all and lengths using GT-derived values
@@ -55,7 +55,8 @@ from test_utils import (
     extract_metrics,
     save_diagnostic_plots,
 )
-import gimbal_pymc as gp 
+import gimbal_pymc.priors.initialization as gp_init
+
 
 def compute_ground_truth_directions(
     x_true: np.ndarray,
@@ -119,7 +120,7 @@ def build_test_model_fixed_redundancy(
         PyMC model with fixed directions and lengths
     """
     # Initialize from observations using DLT
-    init_result = gp.fit_params.initialize_from_observations_dlt(
+    init_result = gp_init.initialize_from_observations_dlt(
         y_observed=synth_data["observations_uv"],
         camera_proj=synth_data["camera_matrices"],
         parents=synth_data["parents"],

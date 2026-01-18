@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-from gimbal_pymc import (
-    DEMO_V0_1_SKELETON,
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
     SyntheticDataConfig,
     generate_demo_sequence,
 )

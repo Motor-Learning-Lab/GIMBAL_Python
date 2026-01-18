@@ -14,9 +14,7 @@ import numpy as np
 import pymc as pm
 
 from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
-from gimbal_pymc.hmm.observation_model import (
-    _build_camera_observation_model_full as build_camera_observation_model,
-)
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
 from gimbal_pymc.priors.utils import validate_stage2_outputs
 
 

@@ -44,7 +44,7 @@ import pymc as pm
 
 from test_utils import get_standard_synth_data
 from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
-from gimbal_pymc.hmm.observation_model import _build_camera_observation_model_full
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -92,7 +92,7 @@ def run_geometry_analysis():
     # Build model
     print("Building PyMC model...")
     with pm.Model() as model:
-        _build_camera_observation_model_full(
+        build_camera_observation_model(
             y_observed=y_observed,
             camera_proj=camera_proj,
             parents=parents,

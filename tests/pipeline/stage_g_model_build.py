@@ -19,7 +19,9 @@ import pymc as pm
 
 # Add repo root to path
 
-import gimbal_pymc as gp
+import gimbal_pymc.skeleton.config as gp_config
+import gimbal_pymc.hmm.observation_model as gp_hmm
+import gimbal_pymc.priors.initialization as gp_init
 
 
 def load_all_preprocessing_outputs(dataset_dir: Path, fits_dir: Path) -> Dict[str, Any]:
@@ -131,7 +133,7 @@ def run_stage_g(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> Dict[str
 
     with pm.Model() as model:
         # Stage 1-2: Build camera observation model
-        gp.build_camera_observation_model(
+        gp_hmm.build_camera_observation_model(
             y_observed=data["y_2d_clean"],
             camera_proj=data["camera_proj"],
             parents=data["parents"],
@@ -150,7 +152,9 @@ def run_stage_g(dataset_dir: Path, fits_dir: Path, output_dir: Path) -> Dict[str
 
         # Stage 3: Add directional HMM prior with K=1
         print("\n  Adding Stage 3 directional HMM prior (K=1)...")
-        hmm_result = gp.add_directional_hmm_prior(
+        from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+
+        hmm_result = add_directional_hmm_prior(
             U=U,
             log_obs_t=log_obs_t,
             S=1,  # Single state for L00

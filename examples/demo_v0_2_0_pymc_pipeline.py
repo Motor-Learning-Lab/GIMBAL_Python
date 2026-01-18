@@ -23,14 +23,19 @@ import numpy as np
 import pymc as pm
 
 # Import GIMBAL PyMC pipeline
-import gimbal_pymc as gp
-from gimbal_pymc import (
-    DEMO_V0_1_SKELETON,
+import gimbal_pymc.skeleton.config as gp_config
+import gimbal_pymc.skeleton.synthetic_data as gp_synth
+import gimbal_pymc.hmm.observation_model as gp_hmm
+import gimbal_pymc.hmm.directional_prior as gp_prior
+import gimbal_pymc.priors.initialization as gp_init
+
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
     SyntheticDataConfig,
     generate_demo_sequence,
-    build_camera_observation_model,
-    add_directional_hmm_prior,
 )
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
 
 
 def main():
@@ -69,7 +74,7 @@ def main():
     print("\nStep 2: Building Stage 2 camera observation model...")
 
     # Initialize using DLT triangulation
-    init_result = gp.fit_params.initialize_from_observations_dlt(
+    init_result = gp_init.initialize_from_observations_dlt(
         y_observed=data.y_observed,
         camera_proj=data.camera_proj,
         parents=DEMO_V0_1_SKELETON.parents,

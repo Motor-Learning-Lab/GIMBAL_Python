@@ -95,7 +95,9 @@ def _add_single_state_directional_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven kappa priors
-        from gimbal_pymc.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.priors.building import (
+            gamma_mode_sd_to_shape_rate as get_gamma_shape_rate,
+        )
 
         kappa_list = []
         for k in range(K):
@@ -433,7 +435,9 @@ def add_directional_hmm_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven Gamma priors per joint
-        from gimbal_pymc.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.priors.building import (
+            gamma_mode_sd_to_shape_rate as get_gamma_shape_rate,
+        )
 
         kappa_list = []
         for s in range(S):

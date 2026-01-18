@@ -26,32 +26,36 @@ Adds directional prior over joint orientations with state-dependent canonical po
 ### Quick Start
 
 ```python
-import gimbal_pymc as gp
 import pymc as pm
+from gimbal_pymc.skeleton.synthetic_data import generate_demo_sequence, SyntheticDataConfig
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
 
 # Generate synthetic data
-config = gp.SyntheticDataConfig(T=20, C=2, S=2)
-data = gp.generate_demo_sequence(gp.DEMO_V0_1_SKELETON, config)
+config = SyntheticDataConfig(T=20, C=2, S=2)
+data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
 
 # Initialize from observations
-init_result = gp.fit_params.initialize_from_observations_dlt(
+init_result = initialize_from_observations_dlt(
     data.y_observed, data.camera_proj, 
-    gp.DEMO_V0_1_SKELETON.parents
+    DEMO_V0_1_SKELETON.parents
 )
 
 # Build complete model
 with pm.Model() as model:
-    gp.build_camera_observation_model(
+    build_camera_observation_model(
         y_observed=data.y_observed,
         camera_proj=data.camera_proj,
-        parents=gp.DEMO_V0_1_SKELETON.parents,
+        parents=DEMO_V0_1_SKELETON.parents,
         init_result=init_result
     )
     # Access U and log_obs_t from model
     U = model["U"]
     log_obs_t = model["log_obs_t"]
     
-    gp.add_directional_hmm_prior(U, log_obs_t, S=2)
+    add_directional_hmm_prior(U, log_obs_t, S=2)
     
     # Sample with nutpie or PyMC samplers
     # idata = pm.sample(...)
@@ -69,34 +73,40 @@ See `examples/demo_v0_2_0_pymc_pipeline.py` and `examples/demo_v0_2_1_data_drive
 - **Data-Driven Priors** — Build priors from real motion capture data instead of synthetic distributions
 
 **Key functions:**
-- `triangulate_multi_view()` — Multi-camera 3D reconstruction via Direct Linear Transform (DLT)
-- `clean_keypoints_2d()` / `clean_keypoints_3d()` — Robust data cleaning with outlier detection
-- `compute_direction_statistics()` — Compute mean directions and concentration parameters
-- `build_priors_from_statistics()` — Convert statistics to PyMC-compatible priors
+- `gimbal_pymc.cameras.triangulation.triangulate_multi_view()` — Multi-camera 3D reconstruction via Direct Linear Transform (DLT)
+- `gimbal_pymc.data_cleaning.cleaning.clean_keypoints_2d()` / `clean_keypoints_3d()` — Robust data cleaning with outlier detection
+- `gimbal_pymc.joints.statistics.compute_direction_statistics()` — Compute mean directions and concentration parameters
+- `gimbal_pymc.priors.building.build_priors_from_statistics()` — Convert statistics to PyMC-compatible priors
 
 **Example:**
 ```python
-import gimbal_pymc as gp
+from gimbal_pymc.cameras.triangulation import triangulate_multi_view
+from gimbal_pymc.data_cleaning.cleaning import CleaningConfig, clean_keypoints_3d
+from gimbal_pymc.joints.statistics import compute_direction_statistics
+from gimbal_pymc.priors.building import build_priors_from_statistics
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+import pymc as pm
 
 # Triangulate to 3D
-x_3d = gp.triangulate_multi_view(y_2d, proj_matrices)
+x_3d = triangulate_multi_view(y_2d, proj_matrices)
 
 # Clean outliers
-config = gp.CleaningConfig()
-x_clean, valid, use_stats, summary = gp.clean_keypoints_3d(x_3d, parents, config)
+config = CleaningConfig()
+x_clean, valid, use_stats, summary = clean_keypoints_3d(x_3d, parents, config)
 
 # Compute directional statistics
-statistics = gp.compute_direction_statistics(x_clean, parents, use_stats, joint_names)
+statistics = compute_direction_statistics(x_clean, parents, use_stats, joint_names)
 
 # Build priors
-priors = gp.build_priors_from_statistics(statistics, joint_names)
+priors = build_priors_from_statistics(statistics, joint_names)
 
 # Use in HMM
 with pm.Model() as model:
-    gp.build_camera_observation_model(...)
+    build_camera_observation_model(...)
     U = model["U"]
     log_obs_t = model["log_obs_t"]
-    gp.add_directional_hmm_prior(U, log_obs_t, S=3, prior_config=priors)
+    add_directional_hmm_prior(U, log_obs_t, S=3, prior_config=priors)
 ```
 
 See `examples/demo_v0_2_1_data_driven_priors.py` for a complete walkthrough.

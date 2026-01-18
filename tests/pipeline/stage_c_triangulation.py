@@ -18,7 +18,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # Add repo root to path
 
-import gimbal_pymc as gp 
+import gimbal_pymc.cameras.triangulation as gp_tri
+
 
 def plot_3d_skeleton_wireframe(
     x_3d: np.ndarray,

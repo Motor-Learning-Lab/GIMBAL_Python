@@ -53,7 +53,8 @@ from test_utils import (
     extract_metrics,
     save_diagnostic_plots,
 )
-import gimbal_pymc from gimbal_pymc.prior_building import get_gamma_shape_rate
+import gimbal_pymc
+from gimbal_pymc.priors.building import gamma_mode_sd_to_shape_rate
 
 
 def compute_ground_truth_directions(

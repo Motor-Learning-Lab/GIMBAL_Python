@@ -20,22 +20,28 @@ import pymc as pm
 import arviz as az
 
 # v0.2.1 imports
-import gimbal_pymc as gp
-from gimbal_pymc import (
-    DEMO_V0_1_SKELETON,
+import gimbal_pymc.skeleton.config as gp_config
+import gimbal_pymc.skeleton.synthetic_data as gp_synth
+import gimbal_pymc.cameras.triangulation as gp_tri
+import gimbal_pymc.data_cleaning.cleaning as gp_clean
+import gimbal_pymc.joints.statistics as gp_stats
+import gimbal_pymc.priors.building as gp_priors
+
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
     SyntheticDataConfig,
     generate_demo_sequence,
-    # v0.2.1 new functions
-    triangulate_multi_view,
+)
+from gimbal_pymc.cameras.triangulation import triangulate_multi_view
+from gimbal_pymc.data_cleaning.cleaning import (
     CleaningConfig,
     clean_keypoints_2d,
     clean_keypoints_3d,
-    compute_direction_statistics,
-    build_priors_from_statistics,
-    # Model building
-    build_camera_observation_model,
-    add_directional_hmm_prior,
 )
+from gimbal_pymc.joints.statistics import compute_direction_statistics
+from gimbal_pymc.priors.building import build_priors_from_statistics
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
 from gimbal_pymc.priors.initialization import initialize_from_groundtruth
 
 print("✓ Imports successful!")
@@ -1856,17 +1862,19 @@ print("=" * 70)
 # %%
 # Reload modules to pick up the S=1 separate code path
 import importlib
-import gimbal_pymc.hmm_directional
-import gimbal_pymc.pymc_model
+import gimbal_pymc.hmm.directional_prior
+import gimbal_pymc.hmm.observation_model
 
 # Reload in dependency order
-importlib.reload(gp.hmm_directional)
-importlib.reload(gp.pymc_model)
+importlib.reload(gimbal_pymc.hmm.directional_prior)
+importlib.reload(gimbal_pymc.hmm.observation_model)
 
 # Re-import the function we use
-from gimbal_pymc import build_camera_observation_model
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
 
-print("✓ Reloaded gp.hmm_directional and gp.pymc_model modules")
+print(
+    "✓ Reloaded gimbal_pymc.hmm.directional_prior and gimbal_pymc.hmm.observation_model modules"
+)
 print("✓ S=1 now uses completely separate code path (no PyTensor warnings expected)")
 
 # %%

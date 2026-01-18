@@ -25,7 +25,8 @@ import matplotlib.pyplot as plt
 
 # Add project root to path
 
-import gimbal_pymc from _diag_utils import (
+import gimbal_pymc
+from _diag_utils import (
     make_paths,
     collect_environment,
     write_json,
