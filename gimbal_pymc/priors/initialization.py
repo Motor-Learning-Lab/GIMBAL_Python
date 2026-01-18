@@ -4,7 +4,7 @@ This module provides three initialization strategies:
 
 1. **initialize_from_groundtruth()**: Uses ground truth 3D mocap data (Section 4 of GIMBAL spec)
    - For training/validation when ground truth is available
-   - Returns torch.Tensor parameters
+   - Returns numpy arrays
 
 2. **initialize_from_observations_dlt()**: Uses DLT triangulation from 2D observations
    - For real applications without ground truth
@@ -17,6 +17,8 @@ This module provides three initialization strategies:
    - Returns numpy arrays
 
 All functions return InitializationResult with consistent structure.
+
+Note: PyTorch support was removed in v0.2.2. All functions now return numpy arrays only.
 """
 
 from __future__ import annotations
@@ -30,15 +32,19 @@ import numpy as np
 class InitializationResult(NamedTuple):
     """Results from parameter initialization.
 
-    Attributes, shape (T, K, 3)
+    All fields are numpy arrays or Python scalars (torch support removed in v0.2.2).
+
+    Attributes
+    ----------
+    x_init : np.ndarray, shape (T, K, 3)
         Initial 3D joint positions
-    eta2 : ndarray, shape (K,)
+    eta2 : np.ndarray, shape (K,)
         Temporal variance estimates
-    rho : ndarray, shape (K-1,)
+    rho : np.ndarray, shape (K-1,)
         Mean bone lengths
-    sigma2 : ndarray, shape (K-1,)
+    sigma2 : np.ndarray, shape (K-1,)
         Bone length variances
-    u_init : ndarray, shape (T, K, 3)
+    u_init : np.ndarray, shape (T, K, 3)
         Initial direction vectors (unit vectors)
     obs_sigma : float
         Observation noise standard deviation
@@ -53,8 +59,6 @@ class InitializationResult(NamedTuple):
     rho: np.ndarray
     sigma2: np.ndarray
     u_init: np.ndarray
-    sigma2: np.ndarray | Tensor
-    u_init: np.ndarray | Tensor
     obs_sigma: float
     inlier_prob: float
     metadata: dict

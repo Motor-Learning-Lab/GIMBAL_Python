@@ -164,8 +164,13 @@ def test_v0_1_prior_predictive_sampling():
         assert "dir_hmm_kappa_full" in prior_pred.prior
 
 
-def test_v0_1_backward_compatibility():
-    """Test that v0.1 behavior is preserved (no priors changed)."""
+def test_v0_1_behavioral_invariance():
+    """Test that v0.1 default behavior is preserved.
+
+    This tests that explicitly passing prior_config=None produces the same
+    model structure as using the default (HalfNormal priors, not data-driven).
+    This is behavioral invariance, not module-path backward compatibility.
+    """
     config = SyntheticDataConfig(T=20, C=2, S=2, random_seed=42)
     data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
 
