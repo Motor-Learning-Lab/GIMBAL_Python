@@ -6,7 +6,6 @@ platforms = ["linux-64", "win-64"]
 [dependencies]
 python = "3.11.*"
 pip = "*"
-pytorch = "*"
 scikit-learn = "*"
 matplotlib = "*"
 jupyterlab = "*"
@@ -36,6 +35,7 @@ notebook = "jupyter lab"
 generate-datasets = "python tests/pipeline/generate_dataset.py"
 
 # Testing
+test-p0 = "pytest tests/smoke/ tests/unit/ tests/integration/ tests/test_stage1_collapsed_hmm.py tests/test_stage2_camera_model.py -v"
 test-pipeline = "pytest tests/pipeline/test_synthetic_data_generator.py -v"
 test-unit = "pytest tests/unit/ -v"
 test-stages = "pytest tests/test_stage1_collapsed_hmm.py tests/test_stage2_camera_model.py -v"

@@ -273,11 +273,12 @@ Run any task with `pixi run <task-name>`:
 - `notebook` — Launch JupyterLab
 
 **Testing:**
+- `test-p0` — P0-scoped tests (33 tests: core reorganization)
 - `test-smoke` — Quick validation (~30s)
 - `test-unit` — Unit tests
 - `test-integration` — Integration tests (Stage 3, priors)
 - `test-pipeline` — Synthetic data pipeline tests
-- `test-all` — All tests (excludes diagnostics)
+- `test-all` — All tests (60 tests: includes pipeline)
 - `test-diagnostics` — Comprehensive diagnostic suites (opt-in)
 
 **Data Generation:**
