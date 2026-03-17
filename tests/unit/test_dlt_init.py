@@ -1,6 +1,6 @@
 import numpy as np
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
-from gimbal_pymc.camera_utils import build_projection_matrix
+from gimbal_pymc.priors.fit_params import initialize_from_observations_dlt
+from gimbal_pymc.cameras.utils import build_projection_matrix
 
 # Set random seed for reproducibility
 np.random.seed(42)

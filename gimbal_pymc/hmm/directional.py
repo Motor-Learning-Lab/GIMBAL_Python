@@ -16,7 +16,7 @@ inside a PyMC model context.
 
 import pymc as pm
 import pytensor.tensor as pt
-from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm.pytensor import collapsed_hmm_loglik
 
 
 def _add_single_state_directional_prior(
@@ -433,7 +433,7 @@ def add_directional_hmm_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven Gamma priors per joint
-        from gimbal_pymc.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.priors.building import get_gamma_shape_rate  # correct
 
         kappa_list = []
         for s in range(S):

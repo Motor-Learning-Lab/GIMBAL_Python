@@ -13,15 +13,14 @@ import json
 from .config_generator import GeneratedDataset
 
 # Import focused metric functions from gimbal_pymc
-from gimbal_pymc.skeleton_metrics import (
+from gimbal_pymc.skeleton.metrics import (
     compute_bone_length_metrics,
     compute_direction_metrics,
     compute_smoothness_metrics,
     compute_state_metrics,
     compute_observation_metrics,
 )
-from gimbal_pymc.identifiability import check_identifiability, IdentifiabilityConfig
-
+from gimbal_pymc.cameras.identifiability import check_identifiability, IdentifiabilityConfig
 
 def compute_dataset_metrics(dataset: GeneratedDataset) -> Dict[str, Any]:
     """Compute comprehensive metrics for generated dataset.

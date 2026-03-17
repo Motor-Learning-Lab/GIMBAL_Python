@@ -110,14 +110,14 @@ def build_test_model(
     with pm.Model() as model:
         if use_directional_hmm:
             # Build data-driven priors for HMM
-            from gimbal_pymc.triangulation import triangulate_multi_view
-            from gimbal_pymc.data_cleaning import (
+            from gimbal_pymc.cameras.triangulation import triangulate_multi_view
+            from gimbal_pymc.data_cleaning.cleaning import (
                 clean_keypoints_2d,
                 clean_keypoints_3d,
                 CleaningConfig,
             )
-            from gimbal_pymc.direction_statistics import compute_direction_statistics
-            from gimbal_pymc.prior_building import build_priors_from_statistics
+            from gimbal_pymc.joints.direction_statistics import compute_direction_statistics
+            from gimbal_pymc.priors.building import build_priors_from_statistics
 
             # Clean and triangulate
             cleaning_config = CleaningConfig()

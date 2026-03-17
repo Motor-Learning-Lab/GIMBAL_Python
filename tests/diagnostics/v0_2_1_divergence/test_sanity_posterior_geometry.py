@@ -43,8 +43,8 @@ import pymc as pm
 # Add repo root to path for imports
 
 from test_utils import get_standard_synth_data
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
-from gimbal_pymc.pymc_model import _build_camera_observation_model_full
+from gimbal_pymc.priors.fit_params import initialize_from_observations_dlt
+from gimbal_pymc.cameras.observation_model import _build_camera_observation_model_full
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

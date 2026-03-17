@@ -13,7 +13,7 @@ import hashlib
 from pathlib import Path
 from typing import NamedTuple, Optional, Dict, Any
 from dataclasses import dataclass, field
-from .skeleton_config import SkeletonConfig
+from gimbal_pymc.skeleton.config import SkeletonConfig
 
 
 @dataclass
@@ -617,7 +617,7 @@ def generate_camera_matrices(
         Projection is: [u', v', w'] = P @ [x, y, z, 1]
                        u = u'/w', v = v'/w' (perspective division)
     """
-    from .camera_utils import build_projection_matrix
+    from gimbal_pymc.cameras.utils import build_projection_matrix  # correct
 
     camera_proj = np.zeros((C, 3, 4))
 

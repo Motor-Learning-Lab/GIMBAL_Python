@@ -14,7 +14,7 @@ import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from gimbal_pymc.hmm_directional import add_directional_hmm_prior, _build_kappa
+from gimbal_pymc.hmm.directional import add_directional_hmm_prior, _build_kappa
 
 
 def test_kappa_sharing_options():

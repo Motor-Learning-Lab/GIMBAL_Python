@@ -86,7 +86,7 @@ def build_model(data):
 
     # Initialize using library estimator (not ad-hoc)
     print("  Initializing from observations (DLT triangulation)...")
-    from gimbal_pymc.fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.priors.fit_params import initialize_from_observations_dlt
 
     # Reshape y_2d from (C, T, K, 2) as expected by library
     init_result = initialize_from_observations_dlt(

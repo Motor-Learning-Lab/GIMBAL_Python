@@ -12,7 +12,8 @@ from typing import Optional
 
 from .config_generator import GeneratedDataset
 
-# Import focused visualization functions from gimbal_pymc from gimbal_pymc.skeleton_visualization import (
+# Import focused visualization functions 
+from gimbal_pymc.skeleton.config import (
     plot_skeleton_motion_3d,
     plot_skeleton_poses_3d,
     plot_2d_reprojections,

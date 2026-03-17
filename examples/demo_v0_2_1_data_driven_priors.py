@@ -21,7 +21,7 @@ import pymc as pm
 
 import gimbal_pymc as gp
 from gimbal_pymc import DEMO_V0_1_SKELETON
-from gimbal_pymc.synthetic_data import generate_demo_sequence, SyntheticDataConfig
+from gimbal_pymc.skeleton.synthetic_data import generate_demo_sequence, SyntheticDataConfig
 
 # =============================================================================
 # 1. Generate Synthetic Data

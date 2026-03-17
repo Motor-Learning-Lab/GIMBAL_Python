@@ -19,8 +19,8 @@ import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from .fit_params import InitializationResult
-from .pymc_utils import (
+from gimbal_pymc.priors.fit_params import InitializationResult
+from gimbal_pymc.priors.utils import (
     _interpolate_nans,
     build_initial_points_for_nutpie,
     validate_initial_points,
@@ -173,7 +173,7 @@ def build_camera_observation_model_simple(
     tuple
         (model, U, x_all, y_pred, log_obs_t) - Same as stage 2 output in v0.1 demos
     """
-    from .fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.priors.fit_params import initialize_from_observations_dlt
 
     # Perform DLT initialization (automatically calculates bone lengths)
     init_result = initialize_from_observations_dlt(

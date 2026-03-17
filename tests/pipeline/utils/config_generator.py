@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import dataclass
 
-from gimbal_pymc.skeleton_config import SkeletonConfig
-from gimbal_pymc.synthetic_data import generate_skeletal_motion_continuous
-from gimbal_pymc.camera_utils import build_projection_matrix
+from gimbal_pymc.skeleton.config import SkeletonConfig
+from gimbal_pymc.skeleton.synthetic_data import generate_skeletal_motion_continuous
+from gimbal_pymc.cameras.utils import build_projection_matrix
 
 
 @dataclass

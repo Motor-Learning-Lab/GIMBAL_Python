@@ -23,9 +23,7 @@ from gimbal_pymc import (
     DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
-
-
+from gimbal_pymc.priors.fit_params import initialize_from_observations_dlt  # new
 def test_v0_1_pipeline_builds():
     """Test that the full v0.1 pipeline can be built."""
     # Generate minimal synthetic data

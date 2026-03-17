@@ -2,8 +2,8 @@ import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from gimbal_pymc.pymc_distributions import VonMisesFisher
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
+from gimbal_pymc.joints.distributions import VonMisesFisher
+from gimbal_pymc.priors.fit_params import initialize_from_observations_dlt
 
 # Set random seed for reproducibility
 np.random.seed(42)
@@ -15,7 +15,7 @@ T = 20  # Increased for better statistics
 C = 3
 
 # Create realistic camera matrices with proper projection
-from gimbal_pymc.camera_utils import build_projection_matrix
+from gimbal_pymc.cameras.utils import build_projection_matrix
 
 cameras = []
 for i in range(C):

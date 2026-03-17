@@ -10,13 +10,13 @@ This tests:
 import numpy as np
 import pymc as pm
 
-from gimbal_pymc.fit_params import initialize_from_groundtruth
-from gimbal_pymc.pymc_utils import (
+from gimbal_pymc.priors.fit_params import initialize_from_groundtruth
+from gimbal_pymc.priors.utils import (
     build_initial_points_for_nutpie,
     validate_initial_points,
     compile_model_with_initialization,
 )
-from gimbal_pymc.pymc_distributions import VonMisesFisher
+from gimbal_pymc.joints.distributions import VonMisesFisher
 
 # Create simple test data from groundtruth
 np.random.seed(42)
