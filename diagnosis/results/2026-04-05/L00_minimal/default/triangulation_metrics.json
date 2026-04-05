@@ -1,0 +1,50 @@
+{
+  "stage": "C_triangulation",
+  "method": "DLT",
+  "parameters": {
+    "min_cameras": 2,
+    "condition_threshold": 1000000.0
+  },
+  "metrics": {
+    "nan_statistics": {
+      "n_nans": 0,
+      "nan_fraction": 0.0,
+      "note": "NaNs indicate triangulation failure (insufficient cameras or poor conditioning)"
+    },
+    "rmse_vs_ground_truth": {
+      "global_mm": 0.5363032311370356,
+      "per_joint_mm": [
+        0.5152480719421665,
+        0.5334316470652587,
+        0.5516325414342103,
+        0.5442024112516024
+      ]
+    },
+    "bone_length_consistency": [
+      {
+        "joint": 1,
+        "mean_error_pct": 4.570940384520978,
+        "max_error_pct": 17.45919265506215
+      },
+      {
+        "joint": 2,
+        "mean_error_pct": 6.924032552796223,
+        "max_error_pct": 21.538477173998636
+      },
+      {
+        "joint": 3,
+        "mean_error_pct": 7.494759477890852,
+        "max_error_pct": 21.651537495862392
+      }
+    ],
+    "summary": {
+      "triangulation_success_rate": 1.0,
+      "mean_bone_length_error_pct": 6.329910805069351
+    }
+  },
+  "quality_check": {
+    "success_rate_threshold": 0.95,
+    "bone_error_threshold_pct": 5.0,
+    "passed": false
+  }
+}

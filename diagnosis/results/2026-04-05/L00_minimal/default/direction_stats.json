@@ -1,0 +1,53 @@
+{
+  "stage": "E_direction_statistics",
+  "statistics": {
+    "root": {
+      "mu": [
+        NaN,
+        NaN,
+        NaN
+      ],
+      "kappa": null,
+      "n_samples": 0
+    },
+    "proximal": {
+      "mu": [
+        -0.04457865125046315,
+        -0.0015152296474322754,
+        0.9990047286834057
+      ],
+      "kappa": 85.2656097566192,
+      "n_samples": 199
+    },
+    "distal_left": {
+      "mu": [
+        0.7330968512436377,
+        -0.03611585988422544,
+        0.679164671756038
+      ],
+      "kappa": 48.90943511308521,
+      "n_samples": 199
+    },
+    "distal_right": {
+      "mu": [
+        -0.7319125335260749,
+        -0.059874181895287294,
+        0.6787629377108126
+      ],
+      "kappa": 59.92979412516884,
+      "n_samples": 199
+    }
+  },
+  "validation": {
+    "all_joints_have_data": true,
+    "sufficient_samples": true,
+    "reasonable_kappa": true,
+    "issues": []
+  },
+  "summary": {
+    "total_joints": 4,
+    "non_root_joints": 3,
+    "mean_samples_per_joint": 199.0,
+    "mean_kappa": 64.70161299829108
+  }
+}

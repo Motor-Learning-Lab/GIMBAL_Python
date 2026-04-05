@@ -18,6 +18,8 @@ preliz = "*"
 ipywidgets = "*"
 pytest = "*"
 
+[activation]
+env = { PYTENSOR_FLAGS = "compiledir=C:/Users/86153/pytensor_cache" }
 [tasks]
 # Install package in editable mode
 install-dev = "pip install -e ."
@@ -51,3 +53,17 @@ test-diagnostics = "pytest tests/diagnostics/ -v"
 pipeline-clean = "python tests/pipeline/stage_b_clean_2d.py tests/pipeline/datasets/L00_minimal tests/pipeline/fits/L00_minimal"
 pipeline-triangulate = "python tests/pipeline/stage_c_triangulation.py tests/pipeline/datasets/L00_minimal tests/pipeline/fits/L00_minimal"
 pipeline-full = "python tests/pipeline/fit_L00_toolchain.py"
+
+# C1 Capability Ladder
+# Run a single ladder step end-to-end (generate + full pipeline A-J):
+#   pixi run ladder-run L00_minimal
+ladder-run = "python scripts/run_ladder.py"
+
+# Smoke test: L00_minimal through stages A-G only (skips MCMC, fast):
+ladder-smoke = "python scripts/run_ladder.py L00_minimal --stages A-G"
+
+# Full ladder baseline (all steps A-J, slow — run before tagging a release):
+ladder-baseline = { cmd = "python scripts/run_ladder.py L00_minimal && python scripts/run_ladder.py L01_noise && python scripts/run_ladder.py L02_outliers && python scripts/run_ladder.py L03_missingness && python scripts/run_ladder.py L04_combined && python scripts/run_ladder.py L05_topology && python scripts/run_ladder.py L06_coverage && python scripts/run_ladder.py L07_full_challenge" }
+
+# List available ladder steps:
+ladder-list = "python -c \"from pathlib import Path; [print(p.stem) for p in sorted(Path('datasets/ladder').glob('*.yaml'))]\""

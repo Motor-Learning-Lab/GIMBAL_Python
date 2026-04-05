@@ -1,0 +1,68 @@
+# C1 Capability Ladder — Step L01: Increased Noise
+#
+# Complexity axes (delta from L00):
+#   noise: 10 px  (↑ 5x)
+#
+# Purpose: verify the model handles high pixel noise without divergences.
+
+meta:
+  name: L01_noise
+  version: "0.2.2"
+  description: >
+    Noise stress test: same geometry as L00 but observation noise raised
+    to 10 px — well above typical tracker uncertainty.
+  seed: 42
+  dt: 0.0167
+  T: 200
+
+dataset_spec:
+  skeleton:
+    joint_names: [root, proximal, distal_left, distal_right]
+    parents: [-1, 0, 1, 1]
+    lengths: [0, 10, 8, 8]
+
+  states:
+    num_states: 1
+    transition_matrix: [[1.0]]
+
+  motion:
+    per_state_params:
+      "0":
+        mu: [[0, 0, 1], [0.7, 0, 0.7], [-0.7, 0, 0.7]]
+        omega: 3.0
+        zeta: 0.7
+        sigma_pose: 0.1
+    root_params:
+      per_state:
+        "0":
+          mu: [0, 0, 100]
+      omega: 2.0
+      zeta: 0.8
+      sigma_pose: 5.0
+      init_pos: [0, 0, 100]
+
+  cameras:
+    target_position: [0, 0, 100]
+    cameras:
+      - name: cam0_front
+        camera_position: [300, 0, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam1_left
+        camera_position: [-150, 260, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam2_right_elevated
+        camera_position: [-150, -260, 180]
+        focal_length: 800.0
+        image_size: [1280, 720]
+
+  observation:
+    noise_px: 10.0
+    outliers:
+      enabled: false
+    missingness:
+      enabled: false
+
+output:
+  run_name: L01_noise

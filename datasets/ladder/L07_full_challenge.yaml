@@ -1,0 +1,110 @@
+# C1 Capability Ladder — Step L07: Full Challenge
+#
+# Complexity axes (all combined):
+#   joints: 7   states: 3   cameras: 3
+#   noise: 5 px   outliers: 5 %   missingness: 10 %
+#   T: 500
+#
+# Purpose: hardest synthetic rung. Passing this is the definition of
+# "sampling-stable on realistic complexity" for v0.2.2.
+
+meta:
+  name: L07_full_challenge
+  version: "0.2.2"
+  description: >
+    Full challenge: 7 joints, 3 states, 3 cameras, noise=5px,
+    outliers=5%, missingness=10%, T=500. Acceptance gate for A1/A2/A3.
+  seed: 42
+  dt: 0.0167
+  T: 500
+
+dataset_spec:
+  skeleton:
+    joint_names: [root, spine, neck, head, left_shoulder, left_elbow, right_shoulder]
+    parents: [-1, 0, 1, 2, 1, 4, 1]
+    lengths: [0, 10, 5, 3, 8, 8, 8]
+
+  states:
+    num_states: 3
+    transition_matrix:
+      - [0.90, 0.08, 0.02]
+      - [0.05, 0.90, 0.05]
+      - [0.02, 0.08, 0.90]
+
+  motion:
+    per_state_params:
+      "0":
+        mu:
+          - [0, 0, 1]
+          - [0, 0, 1]
+          - [0, 0, 1]
+          - [0.7, 0, 0.7]
+          - [0.7, 0, 0.7]
+          - [-0.7, 0, 0.7]
+        omega: 3.0
+        zeta: 0.7
+        sigma_pose: 0.08
+      "1":
+        mu:
+          - [0, 0, 1]
+          - [0, 0, 1]
+          - [0, 0.5, 0.87]
+          - [0.5, 0.5, 0.7]
+          - [0.5, 0.5, 0.7]
+          - [-0.5, 0.5, 0.7]
+        omega: 4.0
+        zeta: 0.6
+        sigma_pose: 0.15
+      "2":
+        mu:
+          - [0, 0.3, 0.95]
+          - [0, 0.3, 0.95]
+          - [0, 0.3, 0.95]
+          - [0.3, 0.3, 0.9]
+          - [0.3, 0.5, 0.8]
+          - [-0.3, 0.3, 0.9]
+        omega: 2.5
+        zeta: 0.75
+        sigma_pose: 0.12
+    root_params:
+      per_state:
+        "0":
+          mu: [0, 0, 100]
+        "1":
+          mu: [0, 0, 100]
+        "2":
+          mu: [0, 0, 100]
+      omega: 2.0
+      zeta: 0.8
+      sigma_pose: 5.0
+      init_pos: [0, 0, 100]
+
+  cameras:
+    target_position: [0, 0, 100]
+    cameras:
+      - name: cam0_front
+        camera_position: [300, 0, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam1_left
+        camera_position: [-150, 260, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam2_right_elevated
+        camera_position: [-150, -260, 180]
+        focal_length: 800.0
+        image_size: [1280, 720]
+
+  observation:
+    noise_px: 5.0
+    outliers:
+      enabled: true
+      fraction: 0.05
+      noise_scale: 50.0
+    missingness:
+      enabled: true
+      type: bernoulli
+      rate: 0.10
+
+output:
+  run_name: L07_full_challenge

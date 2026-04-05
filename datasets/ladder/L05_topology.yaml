@@ -1,0 +1,92 @@
+# C1 Capability Ladder — Step L05: Richer Topology + 2 States
+#
+# Complexity axes (delta from L00):
+#   joints: 7 (spine chain + bilateral arms)
+#   states: 2 (two behavioural modes with transition)
+#   T: 300
+#
+# Purpose: test multi-state HMM inference on a branching tree skeleton
+# (left/right symmetry forces the model to correctly assign directions).
+
+meta:
+  name: L05_topology
+  version: "0.2.2"
+  description: >
+    Richer topology: 7-joint bilateral skeleton + 2-state HMM (T=300).
+    Challenges the direction model with left/right symmetry and state switching.
+  seed: 42
+  dt: 0.0167
+  T: 300
+
+dataset_spec:
+  skeleton:
+    joint_names: [root, spine, neck, head, left_shoulder, left_elbow, right_shoulder]
+    parents: [-1, 0, 1, 2, 1, 4, 1]
+    lengths: [0, 10, 5, 3, 8, 8, 8]
+
+  states:
+    num_states: 2
+    transition_matrix:
+      - [0.95, 0.05]
+      - [0.05, 0.95]
+
+  motion:
+    per_state_params:
+      "0":
+        mu:
+          - [0, 0, 1]      # spine
+          - [0, 0, 1]      # neck
+          - [0, 0, 1]      # head
+          - [0.7, 0, 0.7]  # left_shoulder
+          - [0.7, 0, 0.7]  # left_elbow
+          - [-0.7, 0, 0.7] # right_shoulder
+        omega: 3.0
+        zeta: 0.7
+        sigma_pose: 0.08
+      "1":
+        mu:
+          - [0, 0, 1]
+          - [0, 0, 1]
+          - [0, 0.5, 0.87]
+          - [0.5, 0.5, 0.7]
+          - [0.5, 0.5, 0.7]
+          - [-0.5, 0.5, 0.7]
+        omega: 4.0
+        zeta: 0.6
+        sigma_pose: 0.15
+    root_params:
+      per_state:
+        "0":
+          mu: [0, 0, 100]
+        "1":
+          mu: [0, 0, 100]
+      omega: 2.0
+      zeta: 0.8
+      sigma_pose: 5.0
+      init_pos: [0, 0, 100]
+
+  cameras:
+    target_position: [0, 0, 100]
+    cameras:
+      - name: cam0_front
+        camera_position: [300, 0, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam1_left
+        camera_position: [-150, 260, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam2_right_elevated
+        camera_position: [-150, -260, 180]
+        focal_length: 800.0
+        image_size: [1280, 720]
+
+  observation:
+    noise_px: 2.0
+    outliers:
+      enabled: false
+    missingness:
+      enabled: false
+
+output:
+  run_name: L05_topology

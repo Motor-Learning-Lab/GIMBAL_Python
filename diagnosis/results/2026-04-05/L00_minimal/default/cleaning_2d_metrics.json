@@ -1,0 +1,52 @@
+{
+  "stage": "B_2d_cleaning",
+  "dataset_path": "C:\\Users\\86153\\Desktop\\GIMBAL_Python\\diagnosis\\results\\2026-04-05\\L00_minimal\\default\\dataset\\dataset.npz",
+  "cleaning_config": {
+    "jump_z_thresh": 3.0,
+    "bone_z_thresh": 3.0,
+    "max_gap": 5,
+    "max_bad_joint_fraction": 0.3
+  },
+  "metrics": {
+    "rmse": {
+      "global": 0.7383961089608682,
+      "per_camera": [
+        0.766956996479038,
+        0.7754113948230131,
+        0.6679824664735841
+      ]
+    },
+    "max_difference": {
+      "global": 7.6681530641429845,
+      "per_camera": [
+        7.296071645555742,
+        7.6681530641429845,
+        7.345248852360669
+      ]
+    },
+    "nan_counts": {
+      "before": 0,
+      "after": 0,
+      "introduced": 0
+    },
+    "frame_validity": {
+      "invalid_frames_per_camera": [
+        0,
+        0,
+        0
+      ],
+      "total_invalid": 0
+    },
+    "cleaning_summary": {
+      "n_jump_outliers": 155,
+      "n_bone_outliers": 8,
+      "n_interpolated": 171,
+      "n_invalid_frames": 0
+    }
+  },
+  "quality_check": {
+    "rmse_threshold_px": 1.0,
+    "passed": true,
+    "note": "For clean L00 data, cleaning should have minimal effect"
+  }
+}

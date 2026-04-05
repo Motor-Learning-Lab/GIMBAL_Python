@@ -1,0 +1,126 @@
+{
+  "stage": "A_load_validation",
+  "dataset_path": "C:\\Users\\86153\\Desktop\\GIMBAL_Python\\diagnosis\\results\\2026-04-05\\L00_minimal\\default\\dataset\\dataset.npz",
+  "metadata": {
+    "dataset_name": "L00_minimal",
+    "num_frames": 200,
+    "num_joints": 4,
+    "num_cameras": 3,
+    "joint_names": [
+      "root",
+      "proximal",
+      "distal_left",
+      "distal_right"
+    ]
+  },
+  "validation": {
+    "shape_validation": {
+      "passed": true,
+      "errors": [],
+      "checks": {
+        "y_2d_shape": {
+          "expected": [
+            3,
+            200,
+            4,
+            2
+          ],
+          "actual": [
+            3,
+            200,
+            4,
+            2
+          ],
+          "passed": true
+        },
+        "x_true_shape": {
+          "expected": [
+            200,
+            4,
+            3
+          ],
+          "actual": [
+            200,
+            4,
+            3
+          ],
+          "passed": true
+        },
+        "camera_proj_shape": {
+          "expected": [
+            3,
+            3,
+            4
+          ],
+          "actual": [
+            3,
+            3,
+            4
+          ],
+          "passed": true
+        },
+        "parents_shape": {
+          "expected": [
+            4
+          ],
+          "actual": [
+            4
+          ],
+          "passed": true
+        },
+        "bone_lengths_shape": {
+          "expected": [
+            4
+          ],
+          "actual": [
+            4
+          ],
+          "passed": true
+        },
+        "z_true_shape": {
+          "expected": [
+            200
+          ],
+          "actual": [
+            200
+          ],
+          "passed": true
+        }
+      }
+    },
+    "nan_check": {
+      "passed": true,
+      "total_nans": 0,
+      "nan_counts_by_array": {
+        "y_2d": 0,
+        "x_true": 0,
+        "camera_proj": 0,
+        "bone_lengths": 0
+      }
+    },
+    "camera_check": {
+      "passed": true,
+      "errors": [],
+      "camera_results": {
+        "camera_0": {
+          "rank": 3,
+          "min_singular_value": 1.2381933705525514,
+          "invertible": true
+        },
+        "camera_1": {
+          "rank": 3,
+          "min_singular_value": 1.2381551793337453,
+          "invertible": true
+        },
+        "camera_2": {
+          "rank": 3,
+          "min_singular_value": 1.2267559511849715,
+          "invertible": true
+        }
+      }
+    }
+  },
+  "summary": {
+    "all_passed": true
+  }
+}

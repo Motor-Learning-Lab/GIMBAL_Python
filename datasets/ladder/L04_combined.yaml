@@ -1,0 +1,73 @@
+# C1 Capability Ladder — Step L04: Combined Nuisance
+#
+# Complexity axes (combined from L01-L03):
+#   noise: 5 px   outliers: 5 %   missingness: 10 %
+#
+# Purpose: simultaneous noise, outliers, and missingness — realistic
+# tracker-quality scenario while keeping the skeleton simple.
+
+meta:
+  name: L04_combined
+  version: "0.2.2"
+  description: >
+    Combined nuisance: moderate noise (5 px), sparse outliers (5%),
+    and partial missingness (10%). First realistic-quality scenario.
+  seed: 42
+  dt: 0.0167
+  T: 200
+
+dataset_spec:
+  skeleton:
+    joint_names: [root, proximal, distal_left, distal_right]
+    parents: [-1, 0, 1, 1]
+    lengths: [0, 10, 8, 8]
+
+  states:
+    num_states: 1
+    transition_matrix: [[1.0]]
+
+  motion:
+    per_state_params:
+      "0":
+        mu: [[0, 0, 1], [0.7, 0, 0.7], [-0.7, 0, 0.7]]
+        omega: 3.0
+        zeta: 0.7
+        sigma_pose: 0.1
+    root_params:
+      per_state:
+        "0":
+          mu: [0, 0, 100]
+      omega: 2.0
+      zeta: 0.8
+      sigma_pose: 5.0
+      init_pos: [0, 0, 100]
+
+  cameras:
+    target_position: [0, 0, 100]
+    cameras:
+      - name: cam0_front
+        camera_position: [300, 0, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam1_left
+        camera_position: [-150, 260, 100]
+        focal_length: 800.0
+        image_size: [1280, 720]
+      - name: cam2_right_elevated
+        camera_position: [-150, -260, 180]
+        focal_length: 800.0
+        image_size: [1280, 720]
+
+  observation:
+    noise_px: 5.0
+    outliers:
+      enabled: true
+      fraction: 0.05
+      noise_scale: 50.0
+    missingness:
+      enabled: true
+      type: bernoulli
+      rate: 0.10
+
+output:
+  run_name: L04_combined

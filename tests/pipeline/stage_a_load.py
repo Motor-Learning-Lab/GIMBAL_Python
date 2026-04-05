@@ -272,6 +272,7 @@ def run_stage_a(dataset_dir: Path, output_dir: Path) -> Dict[str, Any]:
     # Plot 2D trajectories
     print("\n[4/4] Plotting 2D trajectories...")
     figures_dir = output_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
     joint_names = metadata["joint_names"]
     plot_2d_trajectories(dataset["y_2d"], figures_dir, joint_names)
     print(f"  Saved {metadata['num_cameras']} plots to {figures_dir}")
