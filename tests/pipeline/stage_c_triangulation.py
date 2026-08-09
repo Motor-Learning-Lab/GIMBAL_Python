@@ -212,7 +212,7 @@ def run_stage_c(
 
     # Triangulate
     print("\n[1/4] Triangulating 3D positions using DLT...")
-    x_3d = gp.triangulate_multi_view(
+    x_3d = gp_tri.triangulate_multi_view(
         y_2d_clean, camera_proj, min_cameras=2, condition_threshold=1e6
     )
     print(f"  Triangulated shape: {x_3d.shape}")
