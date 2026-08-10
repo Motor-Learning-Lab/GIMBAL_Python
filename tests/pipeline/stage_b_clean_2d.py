@@ -18,8 +18,7 @@ import matplotlib.pyplot as plt
 
 # Add repo root to path
 
-import gimbal_pymc as gp
-from gimbal_pymc.data_cleaning.cleaning import CleaningConfig
+from gimbal_pymc.data_cleaning.cleaning import CleaningConfig, clean_keypoints_2d
 
 
 def plot_2d_cleaning_comparison(
@@ -220,7 +219,7 @@ def run_stage_b(dataset_dir: Path, output_dir: Path) -> Dict[str, Any]:
 
     # Apply cleaning
     print("\n[1/3] Applying 2D cleaning...")
-    y_2d_clean, valid_mask, cleaning_summary = gp.clean_keypoints_2d(
+    y_2d_clean, valid_mask, cleaning_summary = clean_keypoints_2d(
         y_2d, parents, cleaning_config
     )
 
