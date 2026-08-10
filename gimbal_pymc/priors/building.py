@@ -11,7 +11,7 @@ from typing import Dict, List
 import numpy as np
 
 
-def _gamma_from_mode_sd(mode: float, sd: float) -> tuple[float, float]:
+def gamma_mode_sd_to_shape_rate(mode: float, sd: float) -> tuple[float, float]:
     """
     Convert Gamma(mode, sd) to Gamma(shape, rate) parameterization.
 
@@ -42,13 +42,13 @@ def _gamma_from_mode_sd(mode: float, sd: float) -> tuple[float, float]:
         shape = 1 + mode*rate
     which ensures shape > 1 and matches both mode and sd exactly.
     """
-    # Ensure valid inputs
-    if mode <= 0 or sd <= 0:
+    # Ensure valid inputs (use np.any for array inputs)
+    if np.any(mode <= 0) or np.any(sd <= 0):
         raise ValueError("mode and sd must be positive")
 
     # Exact formula from specification
-    rate = (mode + np.sqrt(mode**2 + 4*sd**2)) / (2*sd**2)
-    shape = 1 + mode*rate
+    rate = (mode + np.sqrt(mode**2 + 4 * sd**2)) / (2 * sd**2)
+    shape = 1 + mode * rate
 
     return shape, rate
 
@@ -140,32 +140,3 @@ def build_priors_from_statistics(
         }
 
     return prior_config
-
-
-def get_gamma_shape_rate(mode: float, sd: float) -> tuple[float, float]:
-    """
-    Public utility to convert Gamma(mode, sd) to (shape, rate).
-
-    This is exposed for testing and advanced usage. The build_priors_from_statistics
-    function uses this internally but stores mode/sd in the config for transparency.
-
-    Parameters
-    ----------
-    mode : float
-        Mode of Gamma distribution
-    sd : float
-        Standard deviation of Gamma distribution
-
-    Returns
-    -------
-    shape : float
-        Shape parameter (alpha)
-    rate : float
-        Rate parameter (beta)
-
-    Examples
-    --------
-    >>> shape, rate = get_gamma_shape_rate(mode=2.0, sd=1.0)
-    >>> # Use shape and rate in PyMC: pm.Gamma('kappa', alpha=shape, beta=rate)
-    """
-    return _gamma_from_mode_sd(mode, sd)

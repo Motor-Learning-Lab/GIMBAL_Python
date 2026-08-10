@@ -53,7 +53,8 @@ from test_utils import (
     extract_metrics,
     save_diagnostic_plots,
 )
-import gimbal_pymc from gimbal_pymc.prior_building import get_gamma_shape_rate
+import gimbal_pymc.priors.initialization as gp_init
+from gimbal_pymc.priors.building import gamma_mode_sd_to_shape_rate
 
 
 def compute_ground_truth_directions(
@@ -119,7 +120,7 @@ def build_test_model_strong_priors(
         PyMC model with strong GT-based priors
     """
     # Initialize from observations using DLT
-    init_result = gp.fit_params.initialize_from_observations_dlt(
+    init_result = gp_init.initialize_from_observations_dlt(
         y_observed=synth_data["observations_uv"],
         camera_proj=synth_data["camera_matrices"],
         parents=synth_data["parents"],

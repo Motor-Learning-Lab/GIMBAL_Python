@@ -12,8 +12,12 @@ The reconstruction error should be small, confirming that:
 """
 
 import numpy as np
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
-from gimbal_pymc.triangulation import triangulate_multi_view
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
+from gimbal_pymc.cameras.triangulation import triangulate_multi_view
 
 
 def test_dlt_round_trip():

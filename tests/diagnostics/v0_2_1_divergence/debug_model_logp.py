@@ -20,7 +20,11 @@ import pandas as pd
 
 # Add repository root to path
 
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
 from test_utils import build_test_model
 from extract_ground_truth import (
     extract_complete_ground_truth,

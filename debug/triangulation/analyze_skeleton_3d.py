@@ -1,8 +1,12 @@
 """Analyze 3D skeleton positions and camera views"""
 
 import numpy as np
-from gimbal_pymc import DEMO_V0_1_SKELETON, SyntheticDataConfig, generate_demo_sequence
-from gimbal_pymc.camera_utils import camera_center_from_proj
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    SyntheticDataConfig,
+    generate_demo_sequence,
+)
+from gimbal_pymc.cameras.projection import camera_center_from_proj
 
 config = SyntheticDataConfig(T=100, C=3, S=3, kappa=5.0, random_seed=42)
 data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)

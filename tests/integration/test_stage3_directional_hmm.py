@@ -14,7 +14,7 @@ import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from gimbal_pymc.hmm_directional import add_directional_hmm_prior, _build_kappa
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior, _build_kappa
 
 
 def test_kappa_sharing_options():
@@ -293,8 +293,8 @@ def test_logp_normalization():
 def test_integration_with_stage2():
     """Test that v0.1.3 integrates correctly with v0.1.2 camera model."""
     try:
-        from gimbal_pymc.pymc_model import build_camera_observation_model
-        from gimbal_pymc.fit_params import InitializationResult
+        from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+        from gimbal_pymc.priors.initialization import InitializationResult
     except ImportError:
         print("Skipping test_integration_with_stage2 - gp.pymc_model not available")
         return
@@ -351,9 +351,9 @@ def test_integration_with_stage2():
         assert "test_hmm_mu" in model.named_vars, "v0.1.3 mu should be in model"
         assert "test_hmm_kappa" in model.named_vars, "v0.1.3 kappa should be in model"
         assert (
-            "test_hmm_hmm_loglik" in model.named_vars
+            "test_hmm_loglik" in model.named_vars
         ), "v0.1.3 hmm_loglik should be in model"
-        assert "test_hmm_hmm_loglik" in [
+        assert "test_hmm_potential" in [
             pot.name for pot in model.potentials
         ], "v0.1.3 potential should be in model"
 

@@ -19,9 +19,18 @@ from pathlib import Path
 import numpy as np
 import pymc as pm
 
-import gimbal_pymc as gp
-from gimbal_pymc import DEMO_V0_1_SKELETON
-from gimbal_pymc.synthetic_data import generate_demo_sequence, SyntheticDataConfig
+import gimbal_pymc.skeleton.config as gp_config
+import gimbal_pymc.skeleton.synthetic_data as gp_synth
+import gimbal_pymc.cameras.triangulation as gp_tri
+import gimbal_pymc.data_cleaning.cleaning as gp_clean
+import gimbal_pymc.joints.statistics as gp_stats
+import gimbal_pymc.priors.building as gp_priors
+
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.skeleton.synthetic_data import (
+    generate_demo_sequence,
+    SyntheticDataConfig,
+)
 
 # =============================================================================
 # 1. Generate Synthetic Data
@@ -55,14 +64,14 @@ print(f"  - 2D observations shape: {data.y_observed.shape}")
 
 print("\n[2/8] Cleaning 2D keypoints...")
 
-cleaning_config = gp.CleaningConfig(
+cleaning_config = gp_clean.CleaningConfig(
     jump_z_thresh=3.5,
     bone_z_thresh=3.5,
     max_gap=5,
     max_bad_joint_fraction=0.3,
 )
 
-keypoints_2d_clean, valid_2d_mask, summary_2d = gp.clean_keypoints_2d(
+keypoints_2d_clean, valid_2d_mask, summary_2d = gp_clean.clean_keypoints_2d(
     data.y_observed, DEMO_V0_1_SKELETON.parents, cleaning_config
 )
 
@@ -77,7 +86,7 @@ print(f"  - Invalid frames: {summary_2d['n_invalid_frames']}")
 
 print("\n[3/8] Triangulating 2D -> 3D...")
 
-positions_3d_tri = gp.triangulate_multi_view(
+positions_3d_tri = gp_tri.triangulate_multi_view(
     keypoints_2d_clean, data.camera_proj, min_cameras=2
 )
 
@@ -93,7 +102,7 @@ print(
 print("\n[4/8] Cleaning 3D positions...")
 
 positions_3d_clean, valid_3d_mask, use_for_stats_mask, summary_3d = (
-    gp.clean_keypoints_3d(
+    gp_clean.clean_keypoints_3d(
         positions_3d_tri, DEMO_V0_1_SKELETON.parents, cleaning_config
     )
 )
@@ -110,7 +119,7 @@ print(f"  - Valid for statistics: {use_for_stats_mask.sum()} samples")
 
 print("\n[5/8] Computing directional statistics...")
 
-empirical_stats = gp.compute_direction_statistics(
+empirical_stats = gp_stats.compute_direction_statistics(
     positions_3d_clean,
     DEMO_V0_1_SKELETON.parents,
     use_for_stats_mask,
@@ -136,7 +145,7 @@ for joint_name, stats in empirical_stats.items():
 
 print("\n[6/8] Building prior configuration...")
 
-prior_config = gp.build_priors_from_statistics(
+prior_config = gp_priors.build_priors_from_statistics(
     empirical_stats,
     DEMO_V0_1_SKELETON.joint_names,
     kappa_min=0.1,
@@ -156,7 +165,7 @@ for joint_name, prior in prior_config.items():
 print("\n[7/8] Building PyMC model with data-driven priors...")
 
 # Initialize from triangulated positions
-init_result = gp.fit_params.initialize_from_observations_dlt(
+init_result = gp_priors.initialize_from_observations_dlt(
     y_observed=data.y_observed,
     camera_proj=data.camera_proj,
     parents=DEMO_V0_1_SKELETON.parents,
@@ -168,7 +177,9 @@ print(f"    inlier_prob: {init_result.inlier_prob:.3f}")
 
 with pm.Model() as model_v0_2_1:
     # Stage 2: Camera observation model (returns model, not tuple)
-    gp.build_camera_observation_model(
+    from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+
+    build_camera_observation_model(
         y_observed=data.y_observed,
         camera_proj=data.camera_proj,
         parents=DEMO_V0_1_SKELETON.parents,

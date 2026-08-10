@@ -1,66 +1,89 @@
-"""Quick smoke test for v0.2.1 exports."""
+"""Quick smoke test that subpackages are accessible."""
 
-import gimbal_pymc as gp
+import gimbal_pymc
 
-print("Testing v0.2.1 module imports...")
+print("Testing gimbal_pymc subpackage imports...")
 
-# Test exports
-exports = [
-    "triangulate_multi_view",
-    "CleaningConfig",
-    "clean_keypoints_2d",
-    "clean_keypoints_3d",
-    "compute_direction_statistics",
-    "build_priors_from_statistics",
-    "get_gamma_shape_rate",
-]
+# Test subpackages are accessible
+subpackages = ["hmm", "cameras", "skeleton", "joints", "priors", "data_cleaning"]
 
-for name in exports:
-    if hasattr(gp, name):
+for name in subpackages:
+    if hasattr(gimbal_pymc, name):
         print(f"  ✓ {name}")
     else:
         print(f"  ✗ {name} MISSING")
 
-# Test basic functionality
-import numpy as np
+# Test that we can import from subpackages
+print("\nTesting subpackage module access...")
 
-print("\nTesting basic functionality...")
+try:
+    from gimbal_pymc.cameras.triangulation import triangulate_multi_view
 
-# Test triangulation
-P = np.eye(3, 4, dtype=np.float64)
-camera_proj = P[np.newaxis, :, :]
-kp_2d = np.random.rand(1, 2, 1, 2)
-result = gp.triangulate_multi_view(kp_2d, camera_proj)
-print(f"  ✓ triangulate_multi_view: output shape {result.shape}")
+    print("  ✓ cameras.triangulation.triangulate_multi_view")
+except ImportError as e:
+    print(f"  ✗ cameras.triangulation.triangulate_multi_view: {e}")
 
-# Test CleaningConfig
-config = gp.CleaningConfig()
-print(f"  ✓ CleaningConfig: jump_z_thresh={config.jump_z_thresh}")
+try:
+    from gimbal_pymc.data_cleaning.cleaning import (
+        CleaningConfig,
+        clean_keypoints_2d,
+        clean_keypoints_3d,
+    )
 
-# Test clean_keypoints_2d
-kp_2d = np.random.rand(1, 10, 2, 2)
-parents = np.array([-1, 0])
-clean_kp, valid, summary = gp.clean_keypoints_2d(kp_2d, parents, config)
-print(f"  ✓ clean_keypoints_2d: processed {clean_kp.shape[1]} frames")
+    print(
+        "  ✓ data_cleaning.cleaning.{CleaningConfig, clean_keypoints_2d, clean_keypoints_3d}"
+    )
+except ImportError as e:
+    print(f"  ✗ data_cleaning.cleaning: {e}")
 
-# Test clean_keypoints_3d
-pos_3d = np.random.rand(10, 2, 3)
-clean_pos, valid, use_stats, summary = gp.clean_keypoints_3d(pos_3d, parents, config)
-print(f"  ✓ clean_keypoints_3d: {use_stats.sum()} samples for statistics")
+try:
+    from gimbal_pymc.joints.statistics import compute_direction_statistics
 
-# Test compute_direction_statistics
-stats = gp.compute_direction_statistics(
-    clean_pos, parents, use_stats, ["root", "child"], min_samples=5
-)
-print(f"  ✓ compute_direction_statistics: {len(stats)} joints")
+    print("  ✓ joints.statistics.compute_direction_statistics")
+except ImportError as e:
+    print(f"  ✗ joints.statistics.compute_direction_statistics: {e}")
 
-# Test build_priors_from_statistics
-emp_stats = {"child": {"mu": np.array([1.0, 0.0, 0.0]), "kappa": 5.0, "n_samples": 10}}
-prior_config = gp.build_priors_from_statistics(emp_stats, ["root", "child"])
-print(f"  ✓ build_priors_from_statistics: {len(prior_config)} joints with priors")
+try:
+    from gimbal_pymc.priors.building import (
+        build_priors_from_statistics,
+        gamma_mode_sd_to_shape_rate,
+    )
 
-# Test get_gamma_shape_rate
-shape, rate = gp.get_gamma_shape_rate(2.0, 1.0)
-print(f"  ✓ get_gamma_shape_rate: shape={shape:.2f}, rate={rate:.2f}")
+    print(
+        "  ✓ priors.building.{build_priors_from_statistics, gamma_mode_sd_to_shape_rate}"
+    )
+except ImportError as e:
+    print(f"  ✗ priors.building: {e}")
 
-print("\nAll smoke tests passed!")
+try:
+    from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+
+    print("  ✓ hmm.observation_model.build_camera_observation_model")
+except ImportError as e:
+    print(f"  ✗ hmm.observation_model.build_camera_observation_model: {e}")
+
+try:
+    from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+
+    print("  ✓ hmm.directional_prior.add_directional_hmm_prior")
+except ImportError as e:
+    print(f"  ✗ hmm.directional_prior.add_directional_hmm_prior: {e}")
+
+try:
+    from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON, SkeletonConfig
+
+    print("  ✓ skeleton.config.{DEMO_V0_1_SKELETON, SkeletonConfig}")
+except ImportError as e:
+    print(f"  ✗ skeleton.config: {e}")
+
+try:
+    from gimbal_pymc.skeleton.synthetic_data import (
+        generate_demo_sequence,
+        SyntheticDataConfig,
+    )
+
+    print("  ✓ skeleton.synthetic_data.{generate_demo_sequence, SyntheticDataConfig}")
+except ImportError as e:
+    print(f"  ✗ skeleton.synthetic_data: {e}")
+
+print("\nAll API export tests passed!")

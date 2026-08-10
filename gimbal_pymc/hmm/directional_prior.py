@@ -16,7 +16,7 @@ inside a PyMC model context.
 
 import pymc as pm
 import pytensor.tensor as pt
-from gimbal_pymc.hmm_pytensor import collapsed_hmm_loglik
+from gimbal_pymc.hmm.engine import collapsed_hmm_loglik
 
 
 def _add_single_state_directional_prior(
@@ -95,7 +95,7 @@ def _add_single_state_directional_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven kappa priors
-        from gimbal_pymc.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.priors.building import gamma_mode_sd_to_shape_rate
 
         kappa_list = []
         for k in range(K):
@@ -106,7 +106,7 @@ def _add_single_state_directional_prior(
                 kappa_mode = joint_prior["kappa_mode"]
                 kappa_sd = joint_prior["kappa_sd"]
 
-                shape, rate = get_gamma_shape_rate(kappa_mode, kappa_sd)
+                shape, rate = gamma_mode_sd_to_shape_rate(kappa_mode, kappa_sd)
                 kappa_k = pm.Gamma(
                     f"{name_prefix}_kappa_s0_k{k}",
                     alpha=shape,
@@ -433,7 +433,7 @@ def add_directional_hmm_prior(
     # -------------------------------------------------------------------------
     if prior_config:
         # v0.2.1 mode: Data-driven Gamma priors per joint
-        from gimbal_pymc.prior_building import get_gamma_shape_rate
+        from gimbal_pymc.priors.building import gamma_mode_sd_to_shape_rate
 
         kappa_list = []
         for s in range(S):
@@ -447,8 +447,8 @@ def add_directional_hmm_prior(
                     kappa_mode = joint_prior["kappa_mode"]
                     kappa_sd = joint_prior["kappa_sd"]
 
-                    # Convert to shape/rate parameterization
-                    shape, rate = get_gamma_shape_rate(kappa_mode, kappa_sd)
+                    # Convert (mode, sd) to (shape, rate)
+                    shape, rate = gamma_mode_sd_to_shape_rate(kappa_mode, kappa_sd)
 
                     kappa_jk = pm.Gamma(
                         f"{name_prefix}_kappa_s{s}_k{k}",

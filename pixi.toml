@@ -6,7 +6,6 @@ platforms = ["linux-64", "win-64"]
 [dependencies]
 python = "3.11.*"
 pip = "*"
-pytorch = "*"
 scikit-learn = "*"
 matplotlib = "*"
 jupyterlab = "*"
@@ -27,9 +26,6 @@ install-dev = "pip install -e ."
 # Quick environment validation
 check-setup = { cmd = "python -c 'import gimbal_pymc, pymc, nutpie; print(\"✓ Environment OK\")'" }
 
-# Run the synthetic GIMBAL demo (legacy Torch implementation)
-run-demo = "python -m examples.run_gimbal_demo"
-
 # PyMC pipeline demos
 demo-pymc = "python examples/demo_v0_2_0_pymc_pipeline.py"
 demo-priors = "python examples/demo_v0_2_1_data_driven_priors.py"
@@ -41,6 +37,7 @@ notebook = "jupyter lab"
 generate-datasets = "python tests/pipeline/generate_dataset.py"
 
 # Testing
+test-p0 = "pytest tests/smoke/ tests/unit/ tests/integration/ tests/test_stage1_collapsed_hmm.py tests/test_stage2_camera_model.py -v"
 test-pipeline = "pytest tests/pipeline/test_synthetic_data_generator.py -v"
 test-unit = "pytest tests/unit/ -v"
 test-stages = "pytest tests/test_stage1_collapsed_hmm.py tests/test_stage2_camera_model.py -v"

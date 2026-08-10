@@ -1,12 +1,122 @@
 """Multi-view triangulation for GIMBAL.
 
 This module provides triangulation functionality to convert multi-camera 2D
-keypoint observations into 3D positions using Direct Linear Transform (DLT).
+keypoint observations into 3D positions using Direct Linear Transform (DLT)
+and Anipose integration.
 
 v0.2.1 addition for data-driven priors pipeline.
+v0.2.2 P0: Consolidated triangulation functions from fit_params module.
 """
 
 import numpy as np
+
+
+def triangulate_dlt(
+    y_observed: np.ndarray,
+    camera_proj: np.ndarray,
+    min_cameras: int = 2,
+    condition_threshold: float = 1e6,
+) -> np.ndarray:
+    """
+    Triangulate 3D positions using Direct Linear Transform (DLT).
+
+    Public function for DLT triangulation with explicit parameter control.
+
+    Parameters
+    ----------
+    y_observed : ndarray, shape (C, T, K, 2)
+        2D keypoint observations from C cameras over T timesteps for K joints.
+        NaN values indicate missing/occluded observations.
+    camera_proj : ndarray, shape (C, 3, 4)
+        Camera projection matrices [A | b] for each camera.
+    min_cameras : int, default=2
+        Minimum number of cameras required for triangulation.
+    condition_threshold : float, default=1e6
+        Maximum condition number for SVD (largest/smallest singular value).
+
+    Returns
+    -------
+    x_triangulated : ndarray, shape (T, K, 3)
+        Triangulated 3D joint positions.
+        NaN where triangulation failed.
+    """
+    C, T, K, _ = y_observed.shape
+    x_triangulated = np.zeros((T, K, 3))
+
+    for k in range(K):
+        for t in range(T):
+            y_tk = y_observed[:, t, k, :]
+            valid_mask = ~np.isnan(y_tk[:, 0]) & ~np.isnan(y_tk[:, 1])
+            n_valid = valid_mask.sum()
+
+            if n_valid < min_cameras:
+                x_triangulated[t, k, :] = np.nan
+                continue
+
+            A = []
+            for c in np.where(valid_mask)[0]:
+                u, v = y_tk[c]
+                P = camera_proj[c]
+                A.append(u * P[2, :] - P[0, :])
+                A.append(v * P[2, :] - P[1, :])
+
+            A = np.array(A)
+
+            try:
+                _, S, Vt = np.linalg.svd(A)
+                cond = S[0] / (S[-1] + 1e-10)
+
+                if cond > condition_threshold:
+                    x_triangulated[t, k, :] = np.nan
+                    continue
+
+                X_homog = Vt[-1, :]
+
+                if np.abs(X_homog[3]) < 1e-8:
+                    x_triangulated[t, k, :] = np.nan
+                else:
+                    x_triangulated[t, k, :] = X_homog[:3] / X_homog[3]
+
+            except np.linalg.LinAlgError:
+                x_triangulated[t, k, :] = np.nan
+
+    return x_triangulated
+
+
+def triangulate_anipose(
+    y_observed: np.ndarray, camera_proj: np.ndarray, **kwargs
+) -> np.ndarray:
+    """
+    Triangulate using Anipose (aniposelib).
+
+    Falls back to DLT if aniposelib is not available.
+
+    Parameters
+    ----------
+    y_observed : ndarray, shape (C, T, K, 2)
+        2D keypoint observations.
+    camera_proj : ndarray, shape (C, 3, 4)
+        Camera projection matrices.
+    **kwargs
+        Additional arguments passed to triangulate_dlt fallback.
+
+    Returns
+    -------
+    x_triangulated : ndarray, shape (T, K, 3)
+        Triangulated 3D joint positions.
+    """
+    try:
+        from aniposelib.cameras import CameraGroup
+
+        # TODO: Full Anipose integration with CameraGroup
+        print(
+            "Warning: Full Anipose integration not yet implemented. Falling back to DLT."
+        )
+        return triangulate_dlt(y_observed, camera_proj, **kwargs)
+    except ImportError:
+        print("Warning: aniposelib not installed. Falling back to DLT.")
+        print("  To use full Anipose features: pip install aniposelib")
+        return triangulate_dlt(y_observed, camera_proj, **kwargs)
 
 
 def triangulate_multi_view(

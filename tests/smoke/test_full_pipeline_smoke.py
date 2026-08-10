@@ -16,14 +16,14 @@ import pytest
 import numpy as np
 import pymc as pm
 
-from gimbal_pymc import (
-    build_camera_observation_model,
-    add_directional_hmm_prior,
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+from gimbal_pymc.skeleton.synthetic_data import (
     generate_demo_sequence,
-    DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
-from gimbal_pymc.fit_params import initialize_from_observations_dlt
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
 
 
 def test_v0_1_pipeline_builds():
@@ -164,8 +164,13 @@ def test_v0_1_prior_predictive_sampling():
         assert "dir_hmm_kappa_full" in prior_pred.prior
 
 
-def test_v0_1_backward_compatibility():
-    """Test that v0.1 behavior is preserved (no priors changed)."""
+def test_v0_1_behavioral_invariance():
+    """Test that v0.1 default behavior is preserved.
+
+    This tests that explicitly passing prior_config=None produces the same
+    model structure as using the default (HalfNormal priors, not data-driven).
+    This is behavioral invariance, not module-path backward compatibility.
+    """
     config = SyntheticDataConfig(T=20, C=2, S=2, random_seed=42)
     data = generate_demo_sequence(DEMO_V0_1_SKELETON, config)
 

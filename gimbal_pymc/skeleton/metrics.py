@@ -13,7 +13,7 @@ These functions work with any skeletal data (synthetic or real motion capture).
 import numpy as np
 from typing import Dict, Any, List, Tuple
 
-from .skeleton_config import SkeletonConfig
+from gimbal_pymc.skeleton.config import SkeletonConfig
 
 
 def compute_bone_length_metrics(

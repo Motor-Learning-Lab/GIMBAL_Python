@@ -13,7 +13,8 @@ import numpy as np
 
 # Add repo root to path
 
-import gimbal_pymc as gp 
+import gimbal_pymc.priors.building as gp_priors
+
 
 def format_priors_for_json(prior_config: Dict) -> Dict:
     """Convert prior config to JSON-serializable format."""
@@ -82,7 +83,7 @@ def run_stage_f(
 
     # Build priors
     print("\n[1/2] Building prior configurations...")
-    prior_config = gp.build_priors_from_statistics(
+    prior_config = gp_priors.build_priors_from_statistics(
         empirical_stats, joint_names, kappa_min=0.1, kappa_scale=kappa_scale
     )
 

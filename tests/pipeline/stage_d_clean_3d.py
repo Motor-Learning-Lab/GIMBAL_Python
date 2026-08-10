@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # Add repo root to path
 
 import gimbal_pymc as gp
-from gimbal_pymc.data_cleaning import CleaningConfig
+from gimbal_pymc.data_cleaning.cleaning import CleaningConfig
 
 
 def plot_3d_cleaning_comparison(

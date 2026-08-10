@@ -40,14 +40,14 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 
 # GIMBAL imports
-from gimbal_pymc import (
-    build_camera_observation_model,
-    add_directional_hmm_prior,
+from gimbal_pymc.hmm.observation_model import build_camera_observation_model
+from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
+from gimbal_pymc.skeleton.synthetic_data import (
     generate_demo_sequence,
-    DEMO_V0_1_SKELETON,
     SyntheticDataConfig,
 )
-from gimbal_pymc.fit_params import InitializationResult
+from gimbal_pymc.skeleton.config import DEMO_V0_1_SKELETON
+from gimbal_pymc.priors.initialization import InitializationResult
 
 print("Libraries imported successfully!")
 print(f"PyMC version: {pm.__version__}")

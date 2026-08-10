@@ -19,78 +19,13 @@ import numpy as np
 import pymc as pm
 import pytensor.tensor as pt
 
-from .fit_params import InitializationResult
-from .pymc_utils import (
+from gimbal_pymc.priors.initialization import InitializationResult
+from gimbal_pymc.priors.utils import (
     _interpolate_nans,
     build_initial_points_for_nutpie,
     validate_initial_points,
 )
-
-
-def gamma_from_mode_sd(
-    mode: float | np.ndarray, sd: float | np.ndarray
-) -> tuple[float, float] | tuple[np.ndarray, np.ndarray]:
-    """
-    Convert desired mode and SD of a positive quantity into Gamma(alpha, beta)
-    where beta is the rate parameter (1/scale).
-
-    mode = (alpha - 1) / beta  for alpha > 1
-    var  = alpha / beta**2     and sd = sqrt(var)
-
-    Parameters
-    ----------
-    mode : float or array-like
-        Desired mode of the Gamma distribution (must be positive)
-    sd : float or array-like
-        Desired standard deviation (must be positive)
-
-    Returns
-    -------
-    alpha : float or ndarray
-        Shape parameter of Gamma distribution
-    beta : float or ndarray
-        Rate parameter (1/scale) of Gamma distribution
-
-    Raises
-    ------
-    ValueError
-        If mode or sd are not positive
-
-    Notes
-    -----
-    If arrays are provided, operates element-wise.
-    """
-    mode_arr = np.atleast_1d(mode)
-    sd_arr = np.atleast_1d(sd)
-
-    if np.any(mode_arr <= 0) or np.any(sd_arr <= 0):
-        raise ValueError("mode and sd for Gamma must be positive")
-
-    target = (sd_arr**2) / (mode_arr**2)
-
-    # Start from alpha = 2 as a reasonable guess
-    alpha = np.full_like(target, 2.0)
-    for _ in range(20):
-        num = alpha
-        den = (alpha - 1.0) ** 2
-        f = num / den - target  # f(alpha) = alpha / (alpha-1)^2 - target
-
-        # Derivative: f'(alpha)
-        df = ((alpha - 1.0) ** 2 - alpha * 2.0 * (alpha - 1.0)) / (alpha - 1.0) ** 4
-        # If derivative is tiny, break
-        converged = np.abs(df) < 1e-8
-        if np.all(converged):
-            break
-        alpha_new = alpha - f / df
-        alpha_new = np.maximum(alpha_new, 1.01)  # keep it > 1
-        alpha = alpha_new
-
-    beta = (alpha - 1.0) / mode_arr
-
-    # Return scalar if input was scalar
-    if alpha.size == 1:
-        return float(alpha[0]), float(beta[0])
-    return alpha.astype(np.float64), beta.astype(np.float64)
+from gimbal_pymc.priors.building import gamma_mode_sd_to_shape_rate
 
 
 def project_points_pytensor(
@@ -173,7 +108,7 @@ def build_camera_observation_model_simple(
     tuple
         (model, U, x_all, y_pred, log_obs_t) - Same as stage 2 output in v0.1 demos
     """
-    from .fit_params import initialize_from_observations_dlt
+    from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
 
     # Perform DLT initialization (automatically calculates bone lengths)
     init_result = initialize_from_observations_dlt(
@@ -183,7 +118,7 @@ def build_camera_observation_model_simple(
     )
 
     # Call the full function with init_result (use current model context)
-    model_obj = _build_camera_observation_model_full(
+    model_obj = build_camera_observation_model(
         y_observed=y_obs,
         camera_proj=proj_param,
         parents=parents,
@@ -202,7 +137,7 @@ def build_camera_observation_model_simple(
     return model_obj, U, x_all, y_pred, log_obs_t
 
 
-def _build_camera_observation_model_full(
+def build_camera_observation_model(
     y_observed: np.ndarray,
     camera_proj: np.ndarray,
     parents: np.ndarray,
@@ -318,8 +253,8 @@ def _build_camera_observation_model_full(
 
     Examples
     --------
-    >>> from gimbal_pymc.fit_params import initialize_from_observations_dlt
-    >>> from gimbal_pymc.pymc_model import build_camera_observation_model
+    >>> from gimbal_pymc.priors.initialization import initialize_from_observations_dlt
+    >>> from gimbal_pymc.hmm.observation_model import build_camera_observation_model
     >>>
     >>> # Initialize from observations
     >>> result = initialize_from_observations_dlt(y_obs, camera_proj, parents)
@@ -527,7 +462,7 @@ def _build_camera_observation_model_full(
         # Root temporal variance: data-driven Gamma prior with 100% CV
         eta2_root_mode = max(0.01, float(eta2_init[0]))
         eta2_root_sd = eta2_root_mode * 1.0  # 100% coefficient of variation (relaxed)
-        alpha_eta2_root, beta_eta2_root = gamma_from_mode_sd(
+        alpha_eta2_root, beta_eta2_root = gamma_mode_sd_to_shape_rate(
             eta2_root_mode, eta2_root_sd
         )
         eta2_root = pm.Gamma(
@@ -540,7 +475,7 @@ def _build_camera_observation_model_full(
         # Bone length scales: data-driven Gamma priors with 100% CV
         rho_mode = np.maximum(0.01, rho_init)
         rho_sd = rho_mode * 1.0
-        alpha_rho, beta_rho = gamma_from_mode_sd(rho_mode, rho_sd)
+        alpha_rho, beta_rho = gamma_mode_sd_to_shape_rate(rho_mode, rho_sd)
         rho = pm.Gamma(
             "rho", alpha=alpha_rho, beta=beta_rho, shape=K - 1, initval=rho_init
         )
@@ -548,7 +483,7 @@ def _build_camera_observation_model_full(
         # Direction variances: data-driven Gamma priors with 100% CV
         sigma2_mode = np.maximum(0.01, sigma2_init)
         sigma2_sd = sigma2_mode * 1.0
-        alpha_sigma2, beta_sigma2 = gamma_from_mode_sd(sigma2_mode, sigma2_sd)
+        alpha_sigma2, beta_sigma2 = gamma_mode_sd_to_shape_rate(sigma2_mode, sigma2_sd)
         sigma2 = pm.Gamma(
             "sigma2",
             alpha=alpha_sigma2,
@@ -671,7 +606,7 @@ def _build_camera_observation_model_full(
             # New approach: Gamma prior with mode/SD
             mode = hyperparams["obs_sigma_mode"]
             sd = hyperparams["obs_sigma_sd"]
-            alpha, beta = gamma_from_mode_sd(mode, sd)
+            alpha, beta = gamma_mode_sd_to_shape_rate(mode, sd)
             obs_sigma = pm.Gamma(
                 "obs_sigma",
                 alpha=alpha,
@@ -773,7 +708,7 @@ def _build_camera_observation_model_full(
                     "hmm_num_states must be provided when use_directional_hmm=True"
                 )
 
-            from gimbal_pymc.hmm_directional import add_directional_hmm_prior
+            from gimbal_pymc.hmm.directional_prior import add_directional_hmm_prior
 
             _hmm_result = add_directional_hmm_prior(
                 U=U,

@@ -3,128 +3,96 @@
 This package provides a Bayesian framework for inferring 3D skeletal motion
 from multi-camera 2D keypoint observations using Hidden Markov Models.
 
-Current Pipeline: PyMC HMM (v0.1+)
-===================================
+v0.2.2 Module Organization
+===========================
 
-The main GIMBAL pipeline consists of three stages:
+The package is organized into focused subpackages:
 
-**Stage 1: Collapsed HMM Engine** (`hmm_pytensor`)
-    Forward algorithm for marginalizing discrete states in log-space.
-    Provides numerically stable HMM inference via collapsed_hmm_loglik().
+**hmm/** - Hidden Markov Model components
+    - engine: Collapsed HMM forward algorithm (Stage 1)
+    - directional_prior: Directional HMM prior (Stage 3)
+    - observation_model: Camera observation model builder (Stage 2)
+    - gaussian_example: Example Gaussian HMM implementation
 
-**Stage 2: Camera Observation Model** (`pymc_model`)
-    Combines skeletal kinematics with multi-camera 2D projections.
-    Builds joint positions, directions, and observation likelihoods.
+**cameras/** - Camera projection and triangulation
+    - projection: Camera projection utilities
+    - triangulation: DLT and Anipose triangulation
+    - identifiability: Camera configuration validation
 
-**Stage 3: Directional HMM Prior** (`hmm_directional`)
-    Adds directional prior over joint orientations with state-dependent
-    canonical poses. Uses dot-product energy for computational efficiency.
+**skeleton/** - Skeletal structure and motion
+    - config: Skeleton configuration and validation
+    - synthetic_data: Synthetic data generation
+    - metrics: Quality metrics for skeletal motion
+    - visualization: Visualization utilities
+
+**joints/** - Joint-level operations
+    - distributions: VonMisesFisher and other joint distributions
+    - statistics: Direction distribution analysis
+
+**priors/** - Prior specification and initialization
+    - building: Prior distribution builders
+    - initialization: Parameter initialization strategies
+    - utils: Nutpie integration utilities
+
+**data_cleaning/** - Data preprocessing (v0.2.1)
+    - cleaning: 2D/3D keypoint cleaning
 
 Quick Start
 -----------
->>> import gimbal_pymc >>> from gimbal_pymc import DEMO_V0_1_SKELETON
->>> from gimbal_pymc.synthetic_data import generate_demo_sequence
+>>> import gimbal_pymc as gp
+>>> import pymc as pm
 >>>
 >>> # Generate synthetic data
->>> data = generate_demo_sequence(DEMO_V0_1_SKELETON)
+>>> data = gp.skeleton.synthetic_data.generate_demo_sequence(
+>>>     gp.skeleton.config.DEMO_V0_1_SKELETON
+>>> )
 >>>
->>> # Build Stage 1-3 model
->>> import pymc as pm
+>>> # Initialize from observations
+>>> init_result = gp.priors.initialization.initialize_from_observations_dlt(
+>>>     y_observed=data.y_observed,
+>>>     camera_proj=data.camera_proj,
+>>>     parents=gp.skeleton.config.DEMO_V0_1_SKELETON.parents,
+>>> )
+>>>
+>>> # Build Stage 2 model
 >>> with pm.Model() as model:
->>>     model, U, x_all, y_pred, log_obs_t = gp.build_camera_observation_model(
->>>         y_obs=data.y_observed,
->>>         proj_param=data.camera_proj,
->>>         parents=DEMO_V0_1_SKELETON.parents,
->>>         bone_lengths=DEMO_V0_1_SKELETON.bone_lengths,
+>>>     gp.hmm.observation_model.build_camera_observation_model(
+>>>         y_observed=data.y_observed,
+>>>         camera_proj=data.camera_proj,
+>>>         parents=gp.skeleton.config.DEMO_V0_1_SKELETON.parents,
+>>>         init_result=init_result,
+>>>         use_mixture=False,
 >>>     )
->>>     gp.add_directional_hmm_prior(U, log_obs_t, S=3)
->>>     # Sample with nutpie or PyMC samplers...
-
-Legacy Torch Implementation
-============================
-
-The original PyTorch-based GIMBAL implementation is available in the
-`torch_legacy` subpackage. This code is maintained for reference but is
-not the primary development path.
-
-See `gp.torch_legacy` for the Gibbs sampler and HMC inference code.
+>>>     # Access model variables via dictionary
+>>>     U = model["U"]
+>>>     log_obs_t = model["log_obs_t"]
+>>>
+>>>     # Add Stage 3 directional HMM prior
+>>>     gp.hmm.directional_prior.add_directional_hmm_prior(U, log_obs_t, S=3)
+>>>
+>>>     # Sample with PyMC or nutpie samplers
+>>>     # trace = pm.sample()
 
 See Also
 --------
-examples/demo_pymc_pipeline.py : Complete PyMC pipeline example
-notebook/demo_v0_1_complete.ipynb : Detailed walkthrough with visualizations
-plans/v0.1-overview.md : Architecture documentation
+examples/demo_v0_2_1_data_driven_priors.py : Complete PyMC pipeline example
+notebook/demo_v0_2_1_data_driven_priors.ipynb : Detailed walkthrough
+plans/v0.2.2_overview.md : v0.2.2 architecture documentation
 """
 
-# PyMC HMM Pipeline (Stage 1-3)
-from .hmm_pytensor import collapsed_hmm_loglik
-from .pymc_model import (
-    _build_camera_observation_model_full as build_camera_observation_model,
-)
-from .hmm_directional import add_directional_hmm_prior
-
-# v0.2.1: Data-driven priors pipeline
-from .triangulation import triangulate_multi_view
-from .data_cleaning import (
-    CleaningConfig,
-    clean_keypoints_2d,
-    clean_keypoints_3d,
-)
-from .direction_statistics import compute_direction_statistics
-from .prior_building import (
-    build_priors_from_statistics,
-    get_gamma_shape_rate,
-)
-
-# Skeleton and synthetic data utilities
-from .skeleton_config import (
-    DEMO_V0_1_SKELETON,
-    L00_SKELETON,
-    SkeletonConfig,
-    validate_skeleton,
-)
-from .synthetic_data import (
-    generate_demo_sequence,
-    SyntheticDataConfig,
-    SyntheticMotionData,
-)
-
-# Initialization utilities
-from . import fit_params
-
-# Metrics and visualization modules (v0.2.1)
-from . import skeleton_metrics
-from . import skeleton_visualization
-
-# Identifiability checking (v0.2.1)
-from . import identifiability
-
-# Legacy Torch implementation
-from . import torch_legacy
+# Subpackage imports - use explicit subpackage paths for all imports
+from . import hmm
+from . import cameras
+from . import skeleton
+from . import joints
+from . import priors
+from . import data_cleaning
 
 __all__ = [
-    # Stage 1-3 PyMC pipeline
-    "collapsed_hmm_loglik",
-    "build_camera_observation_model",
-    "add_directional_hmm_prior",
-    # v0.2.1: Data-driven priors
-    "triangulate_multi_view",
-    "CleaningConfig",
-    "clean_keypoints_2d",
-    "clean_keypoints_3d",
-    "compute_direction_statistics",
-    "build_priors_from_statistics",
-    "get_gamma_shape_rate",
-    # Skeleton configuration
-    "DEMO_V0_1_SKELETON",
-    "L00_SKELETON",
-    "SkeletonConfig",
-    "validate_skeleton",
-    # Synthetic data generation
-    "generate_demo_sequence",
-    "SyntheticDataConfig",
-    "SyntheticMotionData",
-    # Submodules
-    "fit_params",
-    "torch_legacy",
+    "hmm",
+    "cameras",
+    "skeleton",
+    "joints",
+    "priors",
+    "data_cleaning",
 ]
