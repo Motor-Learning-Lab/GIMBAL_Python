@@ -17,8 +17,7 @@ import matplotlib.pyplot as plt
 
 # Add repo root to path
 
-import gimbal_pymc as gp
-from gimbal_pymc.data_cleaning.cleaning import CleaningConfig
+from gimbal_pymc.data_cleaning.cleaning import CleaningConfig, clean_keypoints_3d
 
 
 def plot_3d_cleaning_comparison(
@@ -239,7 +238,7 @@ def run_stage_d(
     # Apply cleaning
     print("\n[1/4] Applying 3D cleaning...")
     x_3d_clean, valid_mask, use_for_stats_mask, cleaning_summary = (
-        gp.clean_keypoints_3d(x_3d, parents, cleaning_config)
+        clean_keypoints_3d(x_3d, parents, cleaning_config)
     )
 
     print(f"  Cleaning summary:")
