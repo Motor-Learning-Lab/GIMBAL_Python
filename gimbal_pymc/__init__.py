@@ -77,7 +77,7 @@ See Also
 --------
 examples/demo_v0_2_1_data_driven_priors.py : Complete PyMC pipeline example
 notebook/demo_v0_2_1_data_driven_priors.ipynb : Detailed walkthrough
-plans/v0.2.2_overview.md : v0.2.2 architecture documentation
+plans/v0.2.2/v0.2.2_overview.md : v0.2.2 architecture documentation
 """
 
 # Subpackage imports - use explicit subpackage paths for all imports
