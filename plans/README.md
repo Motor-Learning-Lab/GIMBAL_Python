@@ -99,9 +99,41 @@ See `v0.2.0/` directory for completion reports and planning documents.
 
 > **Archived:** Intermediate debug plans and iteration documents are in `archive/v0.2.1/`
 
-### v0.2.2 and Beyond
+### v0.2.2 — Module Reorganization + Anipose-Derived Priors + Capability Ladder
 
-Create `v0.2.2/` directory when planning the next phase. Follow the established naming conventions and keep the root clean for active work.
+- [v0.2.2_overview.md](v0.2.2/v0.2.2_overview.md) - Architecture and sub-project roadmap (P0, P1, A1-A3, C1)
+- [v0.2.2_P0_plan.md](v0.2.2/v0.2.2_P0_plan.md) - P0 (module reorganization) plan
+- [v0.2.2_P0_plan_original.md](v0.2.2/v0.2.2_P0_plan_original.md) - P0 plan, original draft
+- [v0.2.2_P0_completion_report.md](v0.2.2/v0.2.2_P0_completion_report.md) - P0 completion report
+
+**Sub-project documents:** each sub-project (P1, A1, A2, A3, C1) gets its own plan and
+findings documents here as work on it starts, following the pattern established by P0:
+
+- `v0.2.2_<ID>_plan.md` - scope and design for that sub-project
+- `v0.2.2_<ID>_findings.md` - accumulated evidence and results (a living document, not a
+  one-time report — see the Living Documents convention below)
+- `v0.2.2_<ID>_completion_report.md` - written once the sub-project is done
+
+Don't create a sub-project's documents speculatively before there is real content — an
+empty or stub document is worse than none, since it looks current and isn't. The
+corresponding GitHub issue is authoritative for scope in the meantime.
+
+### Living Documents
+
+Some planning documents are not one-time specs but accumulate findings over the life of
+a sub-project (e.g. a divergence investigation, or the C1 capability ladder). These
+follow the pattern set by `v0.2.1/v0.2.1_divergence_plan_2.md`:
+
+- An editor's note at the top: preserve existing content, append or revise sections in
+  place rather than rewriting, and describe what results *show* rather than asserting
+  that a problem is solved.
+- A "Current Status" section carrying a revision date, updated in place as findings
+  accumulate — not superseded by a new document each time.
+- Stable IDs for named findings/issues (e.g. I1, I2, I3), assigned once and never
+  reused. Other documents and GitHub issues should link to a finding by ID rather than
+  restating it, so there is exactly one place it's defined.
+
+See `AGENTS.md` for how these documents relate to GitHub issues.
 
 ### Phases (0.2.1 - 0.2.8) - Overall Roadmap
 1. **Coarse Anatomical Priors & Basic Cleaning**
@@ -148,8 +180,8 @@ Files are archived when:
 | v0.1 (3-stage HMM) | ✅ Complete | [v0.1/](v0.1/) - All Stage 1-3 specs and completion reports |
 | v0.2.0 (Restructuring) | ✅ Complete | [v0.2.0/](v0.2.0/) |
 | v0.2.1 (Data-Driven Priors) | ✅ Complete | [v0.2.1/](v0.2.1/) |
-| v0.2.2 (Next Phase) | 📋 Planning | Create v0.2.2/ directory as needed |
+| v0.2.2 (Reorg + Priors + Ladder) | 🔄 In Progress (P0 ✅ complete) | [v0.2.2/](v0.2.2/) |
 
 ---
 
-**Last Updated:** January 14, 2026
+**Last Updated:** August 11, 2026

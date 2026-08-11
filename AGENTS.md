@@ -106,12 +106,55 @@ imported and called by the ladder runner on the `c1-capability-ladder` branch.
 
 When sources disagree, prefer in this order:
 
-1. **GitHub issues** — current scope and dependencies. Authoritative for what to build.
-2. **`plans/`** — design rationale and recorded findings. Explains *why*, may lag scope.
+1. **GitHub issues** — current scope, status, and dependencies. Authoritative for what
+   to build and whether it's blocked.
+2. **`plans/`** — design rationale and accumulated findings. Explains *why*, and holds
+   the evidence issues summarize. May lag scope if not kept current.
 3. **Code** — implementation truth. Verify claims here before relying on docs.
 
 `plans/README.md` indexes the planning documents. Anything under `plans/archive/` is
 superseded — check the archive notice at the top before using it.
+
+### How issues and `plans/` documents relate
+
+They hold different kinds of content and are updated differently — don't put one kind
+in the other's place:
+
+- **Issue body:** current scope and status only. Keep it short. If a `plans/` document
+  exists for this issue, the body carries one line — `Working notes: plans/v0.2.2/...`
+  — pointing to it. Update the body when status changes; don't let it go stale.
+- **Issue comments:** dated, point-in-time narrative — decisions made, questions
+  raised, links to newly-relevant findings. Don't edit old comments to keep them
+  current; that's what the linked document is for.
+- **`plans/<version>/` documents:** evidence, numbers, and reasoning, versioned
+  alongside the code they describe. This is where findings actually live. An agent
+  working in a checkout has these files but not the issue tracker — anything an agent
+  must not miss has to be here, not only in a comment.
+
+### Sub-project documents (`plans/v0.2.2/` and later versions)
+
+Each sub-project (e.g. P0, P1, A1, A2, A3, C1) gets its own documents under
+`plans/v0.2.2/`, created when the sub-project has real content — not speculatively:
+
+- `v0.2.2_<ID>_plan.md` — scope and design.
+- `v0.2.2_<ID>_findings.md` — accumulated evidence, a **living document** (see below),
+  not a one-time report.
+- `v0.2.2_<ID>_completion_report.md` — written once, when the sub-project is done.
+
+### Living documents
+
+Some documents accumulate findings over a sub-project's life rather than describing one
+snapshot (an investigation, a benchmark ladder). Follow the pattern in
+`plans/v0.2.1/v0.2.1_divergence_plan_2.md` (the model for this) and
+`plans/v0.2.2/v0.2.2_C1_findings.md` (an application of it):
+
+- An editor's note at the top: preserve existing content, append or revise sections in
+  place rather than rewriting, and describe what results *show* rather than asserting a
+  problem is solved.
+- A "Current Status" section carrying a revision date, updated in place.
+- Stable IDs for named findings (e.g. I1, I2, I3), assigned once, never reused. Other
+  documents and issues link to a finding by ID rather than restating it — there should
+  be exactly one place a given finding is defined.
 
 ## Known state — do not rediscover
 
