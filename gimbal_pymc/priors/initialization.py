@@ -99,7 +99,30 @@ def _triangulate_anipose(
 def _estimate_temporal_variances_numpy(
     x_triangulated: np.ndarray, parents: np.ndarray
 ) -> np.ndarray:
-    """Estimate temporal variance from triangulated positions."""
+    """Estimate temporal variance from triangulated positions.
+
+    Two corrections versus a naive frame-to-frame variance of the triangulated
+    trajectory:
+
+    1. The per-coordinate deltas are assumed Gaussian (matching the model's
+       ``x[t] ~ Normal(x[t-1], eta2 * I_3)``), so the robust MAD-to-SD conversion
+       (factor 1.4826) is applied per coordinate, not to the 3-DOF sum of squared
+       deltas -- that sum is chi-squared(3)-distributed, not Gaussian, and applying
+       the Gaussian conversion factor to it biases the estimate high by about 2x
+       even with noiseless triangulation.
+    2. Frame-by-frame DLT triangulation has its own position error, independent
+       between frames. Differencing two independently-noisy positions inflates the
+       apparent temporal variance: for ``x_t = true_t + noise_t`` with i.i.d.
+       ``noise_t`` and ``true_t`` a random walk with step variance ``eta2``,
+       ``Var(dx_t) = eta2 + 2*meas_var`` while ``Cov(dx_t, dx_{t-1}) = -meas_var``
+       (they share one noisy term with opposite sign). Combining these,
+       ``eta2 = Var(dx_t) + 2*Cov(dx_t, dx_{t-1})`` removes the triangulation-noise
+       contribution. This correction can be noisy or run negative when
+       triangulation error is large relative to the true step size (observed for
+       this repo's synthetic data); the result is floored at the same constant as
+       before, which is a safe direction to fail toward here, since 0 is the mode
+       of the HalfNormal priors this feeds as an initval, not a tail value.
+    """
     T, K, _ = x_triangulated.shape
     eta2 = np.zeros(K)
 
@@ -107,17 +130,23 @@ def _estimate_temporal_variances_numpy(
         x_k = x_triangulated[:, k, :]
         valid_frames = ~np.any(np.isnan(x_k), axis=1)
 
-        if valid_frames.sum() < 2:
+        # Need >= 3 valid frames for >= 2 deltas, the minimum for a lag-1 covariance.
+        if valid_frames.sum() < 3:
             eta2[k] = 0.01
             continue
 
         x_k_valid = x_k[valid_frames]
-        deltas = np.diff(x_k_valid, axis=0)
-        squared_displacements = np.sum(deltas**2, axis=1)
+        deltas = np.diff(x_k_valid, axis=0)  # (n_valid - 1, 3)
 
-        median_sq = np.median(squared_displacements)
-        mad = np.median(np.abs(squared_displacements - median_sq))
-        eta2[k] = max(1.4826 * mad, 1e-4)
+        med = np.median(deltas, axis=0)
+        mad = np.median(np.abs(deltas - med), axis=0)
+        var_per_coord = (1.4826 * mad) ** 2
+
+        cov_per_coord = np.array(
+            [np.cov(deltas[1:, d], deltas[:-1, d])[0, 1] for d in range(3)]
+        )
+        eta2_per_coord = var_per_coord + 2 * cov_per_coord
+        eta2[k] = max(float(eta2_per_coord.mean()), 1e-4)
 
     return eta2
 
