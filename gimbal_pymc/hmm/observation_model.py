@@ -56,7 +56,16 @@ def project_points_pytensor(
     2. Apply projection matrix: P @ [x, y, z, 1]^T = [u*w, v*w, w]^T
     3. Perspective division: (u, v) = (u*w/w, v*w/w)
 
-    A small epsilon (1e-6) is added to w to prevent division by zero.
+    Depth (w) is passed through a softplus before the division, giving it a smooth
+    positive lower bound (w > 0 everywhere, w -> raw_w for raw_w >> 0) instead of a
+    hard pt.maximum clamp. A hard clamp has zero gradient once a point is pushed
+    behind the clamp threshold, so nothing in the model pulls a wayward point back in
+    front of the camera; a point can then drift arbitrarily far behind the lens
+    (negative true depth) with no likelihood penalty until it crosses back, at which
+    point the projection has a real 1/w pole that HMC leapfrog steps can land on and
+    diverge on. softplus keeps a genuine (if small) gradient at every depth, including
+    deeply negative raw depth, and never lets w reach exactly zero, so the model has no
+    literal singularity to fall into.
     """
     # Homogeneous coordinates: (T, K, 4)
     ones = pt.ones((*x.shape[:-1], 1))
@@ -69,7 +78,7 @@ def project_points_pytensor(
     # Perspective division
     u = x_cam[:, :, :, 0]
     v = x_cam[:, :, :, 1]
-    w = pt.maximum(x_cam[:, :, :, 2], 1e-6)  # Avoid division by zero
+    w = pt.softplus(x_cam[:, :, :, 2]) + 1e-9  # smooth positive lower bound on depth
 
     # Stack to (C, T, K, 2)
     y = pt.stack([u / w, v / w], axis=-1)
