@@ -9,6 +9,7 @@ This tests:
 
 import numpy as np
 import pymc as pm
+import pytensor.tensor as pt
 
 from gimbal_pymc.priors.initialization import initialize_from_groundtruth
 from gimbal_pymc.priors.utils import (
@@ -52,12 +53,32 @@ with pm.Model() as model:
     )
 
     # Root trajectory
-    x_root = pm.GaussianRandomWalk(
+    # NOTE (2026-08-12): previously built with pm.GaussianRandomWalk(shape=(T, 3)),
+    # which walks along the *last* axis -- i.e. across x/y/z within each frame, not
+    # across frames. See plans/v0.2.2/v0.2.2_C1_findings.md, "Correction: TG10-TG13's
+    # root random walk has a coordinate/time axis bug". Explicit cumsum over axis=0
+    # (time) below fixes this; matches the construction in
+    # gimbal_pymc/hmm/observation_model.py and test_tg14_i1_noncentered_root.py.
+    x_root0 = pm.Normal(
+        "x_root0",
+        mu=0.0,
+        sigma=100.0,
+        shape=(3,),
+        initval=init_result.x_init[0, 0, :],
+    )
+    x_root_steps = pm.Normal(
+        "x_root_steps",
+        mu=0.0,
+        sigma=pt.sqrt(eta2_root),
+        shape=(T - 1, 3),
+        initval=np.diff(init_result.x_init[:, 0, :], axis=0),
+    )
+    x_root = pm.Deterministic(
         "x_root",
-        init_dist=pm.Normal.dist(0, 100),
-        sigma=pm.math.sqrt(eta2_root),
-        shape=(T, 3),
-        initval=init_result.x_init[:, 0, :],
+        pt.concatenate(
+            [x_root0[None, :], x_root0[None, :] + pt.cumsum(x_root_steps, axis=0)],
+            axis=0,
+        ),
     )
 
     # Directional vectors (non-root joints)

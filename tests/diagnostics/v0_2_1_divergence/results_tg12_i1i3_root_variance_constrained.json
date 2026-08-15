@@ -1,0 +1,54 @@
+{
+  "test_group": 12,
+  "description": "Root variance constraint on top of TG11b strong priors",
+  "mode": "full",
+  "configuration": {
+    "test_group": 12,
+    "description": "Root variance constraint on top of TG11b strong priors",
+    "T": 100,
+    "C": 3,
+    "S": 3,
+    "seed": 42,
+    "length_relative_sd": 0.02,
+    "raw_direction_sd": 0.05,
+    "draws": 500,
+    "tune": 500,
+    "chains": 2
+  },
+  "sweep": [
+    {
+      "eta2_root_sigma": 0.5,
+      "divergences": 0,
+      "total_samples": 1000,
+      "max_rhat": 1.623064654906347,
+      "worst_rhat_param": "sigma2_3",
+      "min_ess": 3.533657518247259,
+      "worst_ess_param": "sigma2_3",
+      "runtime_seconds": 640.016729593277,
+      "gate_pass": false
+    },
+    {
+      "eta2_root_sigma": 0.1,
+      "divergences": 0,
+      "total_samples": 1000,
+      "max_rhat": 1.2667934741462332,
+      "worst_rhat_param": "sigma2_2",
+      "min_ess": 6.468674216847092,
+      "worst_ess_param": "sigma2_2",
+      "runtime_seconds": 153.11036467552185,
+      "gate_pass": false
+    },
+    {
+      "eta2_root_sigma": 0.02,
+      "divergences": 0,
+      "total_samples": 1000,
+      "max_rhat": 1.5697774848150345,
+      "worst_rhat_param": "sigma2_4",
+      "min_ess": 3.571916237342897,
+      "worst_ess_param": "sigma2_4",
+      "runtime_seconds": 69.08042621612549,
+      "gate_pass": false
+    }
+  ],
+  "timestamp": "2026-08-12T14:56:47.665114"
+}

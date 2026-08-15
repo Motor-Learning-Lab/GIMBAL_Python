@@ -190,6 +190,11 @@ results/figures/*.png
 # Diagnostic plots and visualizations - can be regenerated
 plots/
 
+# GIMBAL C1 diagnostic posterior traces (v0_2_1_divergence test groups)
+# 50-90MB each, would push .git past GitHub's soft limits. Regenerate with:
+#   pixi run python tests/diagnostics/v0_2_1_divergence/test_tgNN_*.py
+tests/diagnostics/v0_2_1_divergence/trace_*.nc
+
 # GIMBAL Pipeline Artifacts
 # Policy: Configs are versioned, generated artifacts are not
 # Keep: config.json, config_template.json (define datasets)

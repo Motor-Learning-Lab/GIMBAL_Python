@@ -1,0 +1,30 @@
+{
+  "test_group": 14,
+  "description": "Non-centered root random walk on top of TG13 non-centered length",
+  "mode": "full",
+  "configuration": {
+    "test_group": 14,
+    "description": "Non-centered root random walk on top of TG13 non-centered length",
+    "T": 100,
+    "C": 3,
+    "S": 3,
+    "seed": 42,
+    "eta2_root_sigma": 0.5,
+    "length_relative_sd": 0.02,
+    "raw_direction_sd": 0.05,
+    "draws": 500,
+    "tune": 500,
+    "chains": 2
+  },
+  "result": {
+    "divergences": 19,
+    "total_samples": 1000,
+    "max_rhat": 2.24020305289642,
+    "worst_rhat_param": "y_pred",
+    "min_ess": 2.578892633134725,
+    "worst_ess_param": "eta2_root",
+    "runtime_seconds": 1072.6649112701416,
+    "gate_pass": false
+  },
+  "timestamp": "2026-08-12T14:56:31.879472"
+}

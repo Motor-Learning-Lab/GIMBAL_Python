@@ -24,8 +24,23 @@ Never run `pip install` or `conda` directly. Use [Pixi](https://pixi.sh):
 
 ```bash
 pixi install                 # set up environment
-pixi run <task>              # run a task
+pixi run install-dev         # pip install -e . -- REQUIRED once, see below
+pixi run <task>               # run a task
 pixi run python <script>     # run a script in the environment
+```
+
+**`pixi run install-dev` is required, not optional, despite the name.** Without it,
+`gimbal_pymc` is only importable when the current working directory happens to be the
+repo root (Python's script-vs-`-c`/`-m` sys.path behavior). `pixi run python
+path/to/script.py` does **not** get this for free — running a script by path puts the
+script's own directory on `sys.path[0]`, not the cwd. This silently breaks every
+`tests/diagnostics/` and `tests/pipeline/` script run this way in a fresh environment,
+with an error several layers removed from the actual cause
+(`ModuleNotFoundError: No module named 'gimbal_pymc'` from deep inside the script's own
+imports, not at startup). Verify with:
+
+```bash
+pixi run pip show gimbal_pymc     # should show "Editable project location"
 ```
 
 Dependencies go in `pixi.toml` under `[dependencies]`. Do not put machine-specific
